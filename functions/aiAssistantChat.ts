@@ -57,13 +57,15 @@ export default Deno.serve(async (req) => {
       add_context_from_internet: false
     });
 
-    // Create activity log
+    // Create activity log with proper org isolation
     await base44.asServiceRole.entities.ActivityLog.create({
-      org_id: user.org_id || 'default',
+      org_id: user_org_id,
       deal_id: deal_id || null,
-      action_type: 'ai_assistant_query',
+      activity_type: 'ai_assistant_query',
       description: `AI Assistant query: ${message.substring(0, 100)}...`,
-      metadata_json: { user_role: user.role }
+      source: 'api',
+      user_id: user.email,
+      metadata: { user_role: user.role }
     });
 
     return Response.json({
