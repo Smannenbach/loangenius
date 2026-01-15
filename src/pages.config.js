@@ -8,19 +8,24 @@ import AdminOrganization from './pages/AdminOrganization';
 import AdminPortalPreview from './pages/AdminPortalPreview';
 import AdminSettings from './pages/AdminSettings';
 import AdminWebhooks from './pages/AdminWebhooks';
+import AlertsNotifications from './pages/AlertsNotifications';
+import Analytics from './pages/Analytics';
 import Assumptions from './pages/Assumptions';
 import BorrowerPortal from './pages/BorrowerPortal';
 import BorrowerPortalHome from './pages/BorrowerPortalHome';
 import BorrowerPortalLogin from './pages/BorrowerPortalLogin';
 import Borrowers from './pages/Borrowers';
+import BrandingSettings from './pages/BrandingSettings';
 import Calculator from './pages/Calculator';
 import CoborrowerPortal from './pages/CoborrowerPortal';
 import Communications from './pages/Communications';
+import ComplianceDashboard from './pages/ComplianceDashboard';
 import ConsentManagement from './pages/ConsentManagement';
 import ContactDetail from './pages/ContactDetail';
 import Contacts from './pages/Contacts';
 import Dashboard from './pages/Dashboard';
 import DealDetail from './pages/DealDetail';
+import DealMobile from './pages/DealMobile';
 import DealWizard from './pages/DealWizard';
 import Deals from './pages/Deals';
 import DocumentIntelligence from './pages/DocumentIntelligence';
@@ -39,18 +44,13 @@ import ReportViewer from './pages/ReportViewer';
 import Reports from './pages/Reports';
 import Roadmap from './pages/Roadmap';
 import Settings from './pages/Settings';
+import SubmissionPrep from './pages/SubmissionPrep';
 import SuperAdmin from './pages/SuperAdmin';
 import Tasks from './pages/Tasks';
 import Underwriting from './pages/Underwriting';
+import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
-import UnderwritingChecklist from './pages/UnderwritingChecklist';
-import SubmissionPrep from './pages/SubmissionPrep';
-import Analytics from './pages/Analytics';
-import ComplianceDashboard from './pages/ComplianceDashboard';
-import AlertsNotifications from './pages/AlertsNotifications';
-import BrandingSettings from './pages/BrandingSettings';
-import DealMobile from './pages/DealMobile';
 import __Layout from './Layout.jsx';
 
 
@@ -65,19 +65,24 @@ export const PAGES = {
     "AdminPortalPreview": AdminPortalPreview,
     "AdminSettings": AdminSettings,
     "AdminWebhooks": AdminWebhooks,
+    "AlertsNotifications": AlertsNotifications,
+    "Analytics": Analytics,
     "Assumptions": Assumptions,
     "BorrowerPortal": BorrowerPortal,
     "BorrowerPortalHome": BorrowerPortalHome,
     "BorrowerPortalLogin": BorrowerPortalLogin,
     "Borrowers": Borrowers,
+    "BrandingSettings": BrandingSettings,
     "Calculator": Calculator,
     "CoborrowerPortal": CoborrowerPortal,
     "Communications": Communications,
+    "ComplianceDashboard": ComplianceDashboard,
     "ConsentManagement": ConsentManagement,
     "ContactDetail": ContactDetail,
     "Contacts": Contacts,
     "Dashboard": Dashboard,
     "DealDetail": DealDetail,
+    "DealMobile": DealMobile,
     "DealWizard": DealWizard,
     "Deals": Deals,
     "DocumentIntelligence": DocumentIntelligence,
@@ -96,18 +101,13 @@ export const PAGES = {
     "Reports": Reports,
     "Roadmap": Roadmap,
     "Settings": Settings,
+    "SubmissionPrep": SubmissionPrep,
     "SuperAdmin": SuperAdmin,
     "Tasks": Tasks,
     "Underwriting": Underwriting,
+    "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
-    "UnderwritingChecklist": UnderwritingChecklist,
-    "SubmissionPrep": SubmissionPrep,
-    "Analytics": Analytics,
-    "ComplianceDashboard": ComplianceDashboard,
-    "AlertsNotifications": AlertsNotifications,
-    "BrandingSettings": BrandingSettings,
-    "DealMobile": DealMobile,
 }
 
 export const pagesConfig = {

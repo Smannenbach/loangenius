@@ -161,8 +161,8 @@ export default function Layout({ children, currentPageName }) {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
-  const renderContent = () => (
-    <>
+  return (
+    <div className="min-h-screen bg-slate-900 flex flex-col">
       {/* Mobile Menu Button */}
       <button
         className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 transition-colors"
@@ -368,11 +368,6 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav />
-    </>
-  );
-
-  return (
-    <div className="min-h-screen bg-slate-900 flex flex-col">
-      {renderContent()}
     </div>
   );
+}
