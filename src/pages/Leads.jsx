@@ -38,6 +38,9 @@ import {
   TrendingUp,
   Filter,
   FileOutput,
+  Sheet,
+  Download,
+  Upload,
 } from 'lucide-react';
 import QuoteGeneratorModal from '@/components/QuoteGeneratorModal';
 
@@ -53,14 +56,33 @@ export default function Leads() {
   const [newLead, setNewLead] = useState({
     first_name: '',
     last_name: '',
-    email: '',
-    phone: '',
-    source: '',
-    loan_type_interest: '',
-    estimated_loan_amount: '',
+    home_email: '',
+    work_email: '',
+    mobile_phone: '',
+    home_phone: '',
+    work_phone: '',
+    property_street: '',
+    property_city: '',
     property_state: '',
-    notes: '',
+    property_zip: '',
+    property_county: '',
+    property_country: 'USA',
+    property_type: '',
+    occupancy: '',
+    estimated_value: '',
+    property_taxes: '',
+    annual_homeowners_insurance: '',
+    monthly_rental_income: '',
+    fico_score: '',
+    current_rate: '',
+    current_balance: '',
+    loan_amount: '',
+    loan_type: '',
+    loan_purpose: '',
+    cashout_amount: '',
+    source: '',
     status: 'new',
+    notes: '',
   });
 
   const { data: leads = [], isLoading } = useQuery({
@@ -71,16 +93,24 @@ export default function Leads() {
   const createLeadMutation = useMutation({
     mutationFn: async (data) => {
       const user = await base44.auth.me();
+      const processedData = {
+        ...data,
+        estimated_value: data.estimated_value ? parseFloat(data.estimated_value) : null,
+        loan_amount: data.loan_amount ? parseFloat(data.loan_amount) : null,
+        current_balance: data.current_balance ? parseFloat(data.current_balance) : null,
+        current_rate: data.current_rate ? parseFloat(data.current_rate) : null,
+        property_taxes: data.property_taxes ? parseFloat(data.property_taxes) : null,
+        annual_homeowners_insurance: data.annual_homeowners_insurance ? parseFloat(data.annual_homeowners_insurance) : null,
+        monthly_rental_income: data.monthly_rental_income ? parseFloat(data.monthly_rental_income) : null,
+        cashout_amount: data.cashout_amount ? parseFloat(data.cashout_amount) : null,
+        fico_score: data.fico_score ? parseInt(data.fico_score) : null,
+      };
       if (editingLead) {
-        return base44.entities.Lead.update(editingLead.id, {
-          ...data,
-          estimated_loan_amount: data.estimated_loan_amount ? parseFloat(data.estimated_loan_amount) : null,
-        });
+        return base44.entities.Lead.update(editingLead.id, processedData);
       }
       return base44.entities.Lead.create({
-        ...data,
+        ...processedData,
         org_id: user.org_id || 'default',
-        estimated_loan_amount: data.estimated_loan_amount ? parseFloat(data.estimated_loan_amount) : null,
       });
     },
     onSuccess: () => {
@@ -90,14 +120,33 @@ export default function Leads() {
       setNewLead({
         first_name: '',
         last_name: '',
-        email: '',
-        phone: '',
-        source: '',
-        loan_type_interest: '',
-        estimated_loan_amount: '',
+        home_email: '',
+        work_email: '',
+        mobile_phone: '',
+        home_phone: '',
+        work_phone: '',
+        property_street: '',
+        property_city: '',
         property_state: '',
-        notes: '',
+        property_zip: '',
+        property_county: '',
+        property_country: 'USA',
+        property_type: '',
+        occupancy: '',
+        estimated_value: '',
+        property_taxes: '',
+        annual_homeowners_insurance: '',
+        monthly_rental_income: '',
+        fico_score: '',
+        current_rate: '',
+        current_balance: '',
+        loan_amount: '',
+        loan_type: '',
+        loan_purpose: '',
+        cashout_amount: '',
+        source: '',
         status: 'new',
+        notes: '',
       });
     },
   });
@@ -146,14 +195,33 @@ export default function Leads() {
     setNewLead({
       first_name: lead.first_name || '',
       last_name: lead.last_name || '',
-      email: lead.email || '',
-      phone: lead.phone || '',
-      source: lead.source || '',
-      loan_type_interest: lead.loan_type_interest || '',
-      estimated_loan_amount: lead.estimated_loan_amount || '',
+      home_email: lead.home_email || '',
+      work_email: lead.work_email || '',
+      mobile_phone: lead.mobile_phone || '',
+      home_phone: lead.home_phone || '',
+      work_phone: lead.work_phone || '',
+      property_street: lead.property_street || '',
+      property_city: lead.property_city || '',
       property_state: lead.property_state || '',
-      notes: lead.notes || '',
+      property_zip: lead.property_zip || '',
+      property_county: lead.property_county || '',
+      property_country: lead.property_country || 'USA',
+      property_type: lead.property_type || '',
+      occupancy: lead.occupancy || '',
+      estimated_value: lead.estimated_value || '',
+      property_taxes: lead.property_taxes || '',
+      annual_homeowners_insurance: lead.annual_homeowners_insurance || '',
+      monthly_rental_income: lead.monthly_rental_income || '',
+      fico_score: lead.fico_score || '',
+      current_rate: lead.current_rate || '',
+      current_balance: lead.current_balance || '',
+      loan_amount: lead.loan_amount || '',
+      loan_type: lead.loan_type || '',
+      loan_purpose: lead.loan_purpose || '',
+      cashout_amount: lead.cashout_amount || '',
+      source: lead.source || '',
       status: lead.status || 'new',
+      notes: lead.notes || '',
     });
     setIsAddOpen(true);
   };
@@ -177,14 +245,14 @@ export default function Leads() {
           <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
               <UserPlus className="h-4 w-4" />
-              New Loan
+              New Lead
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>{editingLead ? 'Edit Lead' : 'Add New Lead'}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto">
+            <div className="space-y-4 mt-4 max-h-[70vh] overflow-y-auto">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>First Name</Label>
@@ -201,20 +269,46 @@ export default function Leads() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input
-                  type="email"
-                  value={newLead.email}
-                  onChange={(e) => setNewLead({ ...newLead, email: e.target.value })}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Home Email</Label>
+                  <Input
+                    type="email"
+                    value={newLead.home_email}
+                    onChange={(e) => setNewLead({ ...newLead, home_email: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Work Email</Label>
+                  <Input
+                    type="email"
+                    value={newLead.work_email}
+                    onChange={(e) => setNewLead({ ...newLead, work_email: e.target.value })}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Phone</Label>
-                <Input
-                  value={newLead.phone}
-                  onChange={(e) => setNewLead({ ...newLead, phone: e.target.value })}
-                />
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Mobile Phone</Label>
+                  <Input
+                    value={newLead.mobile_phone}
+                    onChange={(e) => setNewLead({ ...newLead, mobile_phone: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Home Phone</Label>
+                  <Input
+                    value={newLead.home_phone}
+                    onChange={(e) => setNewLead({ ...newLead, home_phone: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Work Phone</Label>
+                  <Input
+                    value={newLead.work_phone}
+                    onChange={(e) => setNewLead({ ...newLead, work_phone: e.target.value })}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
@@ -255,40 +349,206 @@ export default function Leads() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Loan Type Interest</Label>
-                <Select
-                  value={newLead.loan_type_interest}
-                  onValueChange={(v) => setNewLead({ ...newLead, loan_type_interest: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select loan type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="dscr_purchase">DSCR Purchase</SelectItem>
-                    <SelectItem value="dscr_refi">DSCR Refinance</SelectItem>
-                    <SelectItem value="dscr_cashout">DSCR Cash-Out</SelectItem>
-                    <SelectItem value="conventional">Conventional</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Estimated Value</Label>
+                  <Input
+                    type="number"
+                    value={newLead.estimated_value}
+                    onChange={(e) => setNewLead({ ...newLead, estimated_value: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>FICO/Credit Score</Label>
+                  <Input
+                    type="number"
+                    value={newLead.fico_score}
+                    onChange={(e) => setNewLead({ ...newLead, fico_score: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Current Rate (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.125"
+                    value={newLead.current_rate}
+                    onChange={(e) => setNewLead({ ...newLead, current_rate: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Current Balance</Label>
+                  <Input
+                    type="number"
+                    value={newLead.current_balance}
+                    onChange={(e) => setNewLead({ ...newLead, current_balance: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Loan Amount</Label>
+                  <Input
+                    type="number"
+                    value={newLead.loan_amount}
+                    onChange={(e) => setNewLead({ ...newLead, loan_amount: e.target.value })}
+                    placeholder="500000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Cash Out Amount</Label>
+                  <Input
+                    type="number"
+                    value={newLead.cashout_amount}
+                    onChange={(e) => setNewLead({ ...newLead, cashout_amount: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Loan Type</Label>
+                  <Select
+                    value={newLead.loan_type}
+                    onValueChange={(v) => setNewLead({ ...newLead, loan_type: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DSCR">DSCR</SelectItem>
+                      <SelectItem value="Conventional">Conventional</SelectItem>
+                      <SelectItem value="FHA">FHA</SelectItem>
+                      <SelectItem value="VA">VA</SelectItem>
+                      <SelectItem value="Hard Money">Hard Money</SelectItem>
+                      <SelectItem value="Bridge">Bridge</SelectItem>
+                      <SelectItem value="Portfolio">Portfolio</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Loan Purpose</Label>
+                  <Select
+                    value={newLead.loan_purpose}
+                    onValueChange={(v) => setNewLead({ ...newLead, loan_purpose: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select purpose" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Purchase">Purchase</SelectItem>
+                      <SelectItem value="Refinance">Refinance</SelectItem>
+                      <SelectItem value="Cash-Out">Cash-Out</SelectItem>
+                      <SelectItem value="Rate and Term">Rate and Term</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Property Taxes</Label>
+                  <Input
+                    type="number"
+                    value={newLead.property_taxes}
+                    onChange={(e) => setNewLead({ ...newLead, property_taxes: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Annual Homeowners Insurance</Label>
+                  <Input
+                    type="number"
+                    value={newLead.annual_homeowners_insurance}
+                    onChange={(e) => setNewLead({ ...newLead, annual_homeowners_insurance: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Monthly Rental Income</Label>
+                  <Input
+                    type="number"
+                    value={newLead.monthly_rental_income}
+                    onChange={(e) => setNewLead({ ...newLead, monthly_rental_income: e.target.value })}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label>Estimated Loan Amount</Label>
+                <Label>Property Address</Label>
                 <Input
-                  type="number"
-                  value={newLead.estimated_loan_amount}
-                  onChange={(e) => setNewLead({ ...newLead, estimated_loan_amount: e.target.value })}
-                  placeholder="500000"
+                  value={newLead.property_street}
+                  onChange={(e) => setNewLead({ ...newLead, property_street: e.target.value })}
+                  placeholder="123 Main St"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Property State</Label>
-                <Input
-                  value={newLead.property_state}
-                  onChange={(e) => setNewLead({ ...newLead, property_state: e.target.value })}
-                  placeholder="CA"
-                />
+              <div className="grid grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label>City</Label>
+                  <Input
+                    value={newLead.property_city}
+                    onChange={(e) => setNewLead({ ...newLead, property_city: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>State</Label>
+                  <Input
+                    value={newLead.property_state}
+                    onChange={(e) => setNewLead({ ...newLead, property_state: e.target.value })}
+                    placeholder="CA"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>ZIP</Label>
+                  <Input
+                    value={newLead.property_zip}
+                    onChange={(e) => setNewLead({ ...newLead, property_zip: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>County</Label>
+                  <Input
+                    value={newLead.property_county}
+                    onChange={(e) => setNewLead({ ...newLead, property_county: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Property Type</Label>
+                  <Select
+                    value={newLead.property_type}
+                    onValueChange={(v) => setNewLead({ ...newLead, property_type: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="SFR">Single Family</SelectItem>
+                      <SelectItem value="Multi-Family">Multi-Family</SelectItem>
+                      <SelectItem value="Commercial">Commercial</SelectItem>
+                      <SelectItem value="Land">Land</SelectItem>
+                      <SelectItem value="Condo">Condo</SelectItem>
+                      <SelectItem value="Townhouse">Townhouse</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Occupancy</Label>
+                  <Select
+                    value={newLead.occupancy}
+                    onValueChange={(v) => setNewLead({ ...newLead, occupancy: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select occupancy" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Primary Residence">Primary Residence</SelectItem>
+                      <SelectItem value="Investment Property">Investment Property</SelectItem>
+                      <SelectItem value="Second Home">Second Home</SelectItem>
+                      <SelectItem value="Vacation Home">Vacation Home</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Notes</Label>
@@ -336,6 +596,14 @@ export default function Leads() {
             <div className="text-2xl font-bold mt-1">${(totalValue / 1000000).toFixed(1)}M</div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Google Sheets Sync */}
+      <div className="mb-6">
+        <Button variant="outline" className="gap-2" onClick={() => alert('Sync with Google Sheets coming soon')}>
+          <Sheet className="h-4 w-4" />
+          Sync with Google Sheets
+        </Button>
       </div>
 
       {/* Filters */}
