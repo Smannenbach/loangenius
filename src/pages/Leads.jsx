@@ -37,7 +37,9 @@ import {
   MapPin,
   TrendingUp,
   Filter,
+  FileOutput,
 } from 'lucide-react';
+import QuoteGeneratorModal from '@/components/QuoteGeneratorModal';
 
 export default function Leads() {
   const queryClient = useQueryClient();
@@ -46,6 +48,8 @@ export default function Leads() {
   const [sortBy, setSortBy] = useState('created_date');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
+  const [quoteModalOpen, setQuoteModalOpen] = useState(false);
+  const [quoteSelectedLead, setQuoteSelectedLead] = useState(null);
   const [newLead, setNewLead] = useState({
     first_name: '',
     last_name: '',
@@ -173,7 +177,7 @@ export default function Leads() {
           <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
               <UserPlus className="h-4 w-4" />
-              Add Lead
+              New Loan
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg">
@@ -441,16 +445,25 @@ export default function Leads() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEditLead(lead)}>
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            className="text-red-600"
-                            onClick={() => deleteLeadMutation.mutate(lead.id)}
-                          >
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
+                           <DropdownMenuItem 
+                             onClick={() => {
+                               setQuoteSelectedLead(lead);
+                               setQuoteModalOpen(true);
+                             }}
+                           >
+                             <FileOutput className="h-3 w-3 mr-2" />
+                             Generate Quote
+                           </DropdownMenuItem>
+                           <DropdownMenuItem onClick={() => handleEditLead(lead)}>
+                             Edit
+                           </DropdownMenuItem>
+                           <DropdownMenuItem 
+                             className="text-red-600"
+                             onClick={() => deleteLeadMutation.mutate(lead.id)}
+                           >
+                             Delete
+                           </DropdownMenuItem>
+                         </DropdownMenuContent>
                       </DropdownMenu>
                     </td>
                   </tr>
@@ -460,6 +473,17 @@ export default function Leads() {
           </table>
         </div>
       </div>
+
+      {quoteSelectedLead && (
+        <QuoteGeneratorModal
+          isOpen={quoteModalOpen}
+          onClose={() => {
+            setQuoteModalOpen(false);
+            setQuoteSelectedLead(null);
+          }}
+          lead={quoteSelectedLead}
+        />
+      )}
     </div>
   );
 }

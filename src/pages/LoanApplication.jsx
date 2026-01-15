@@ -20,13 +20,16 @@ import {
   CheckCircle2,
   Clock,
   ArrowRight,
+  FileOutput,
 } from 'lucide-react';
+import QuoteGeneratorModal from '@/components/QuoteGeneratorModal';
 
 export default function LoanApplication() {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({});
   const [aiAssistant, setAiAssistant] = useState(false);
   const [autoFillLoading, setAutoFillLoading] = useState(false);
+  const [quoteModalOpen, setQuoteModalOpen] = useState(false);
 
   const steps = [
     { 
@@ -600,9 +603,21 @@ export default function LoanApplication() {
           </div>
         </div>
 
+        {/* Quote Tool */}
+        <div className="mb-6">
+          <Button 
+            variant="outline" 
+            className="gap-2 border-blue-200 text-blue-600 hover:bg-blue-50"
+            onClick={() => setQuoteModalOpen(true)}
+          >
+            <FileOutput className="h-4 w-4" />
+            Generate Quote
+          </Button>
+        </div>
+
         {/* AI Assistant Toggle */}
-        {!aiAssistant && (
-          <Card className="mb-6 border-blue-100 bg-blue-50">
+         {!aiAssistant && (
+           <Card className="mb-6 border-blue-100 bg-blue-50">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -684,6 +699,16 @@ export default function LoanApplication() {
             </button>
           ))}
         </div>
+
+        <QuoteGeneratorModal
+          isOpen={quoteModalOpen}
+          onClose={() => setQuoteModalOpen(false)}
+          lead={{
+            name: `${formData.first_name || ''} ${formData.last_name || ''}`,
+            email: formData.email || '',
+            property_address: formData.address || '',
+          }}
+        />
       </div>
     </div>
   );
