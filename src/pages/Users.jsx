@@ -122,24 +122,33 @@ export default function UsersPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Role</Label>
-                <Select
-                  value={inviteData.role}
-                  onValueChange={(v) => setInviteData({ ...inviteData, role: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="loan_officer">Loan Officer</SelectItem>
-                    <SelectItem value="processor">Processor</SelectItem>
-                    <SelectItem value="realtor">Realtor</SelectItem>
-                    <SelectItem value="underwriter">Underwriter</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="viewer">Viewer</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Role & Permissions</Label>
+                <div className="space-y-2">
+                  {[
+                    { value: 'admin', label: '👨‍💼 Admin', desc: 'Full system access' },
+                    { value: 'manager', label: '📊 Manager', desc: 'Team oversight & reporting' },
+                    { value: 'loan_officer', label: '💼 Loan Officer', desc: 'Manage deals & borrowers' },
+                    { value: 'processor', label: '📋 Processor', desc: 'Process documents' },
+                    { value: 'underwriter', label: '✅ Underwriter', desc: 'Underwriting decisions' },
+                    { value: 'realtor', label: '🏠 Realtor', desc: 'View deals & referrals' },
+                    { value: 'viewer', label: '👁️ Viewer', desc: 'Read-only access' },
+                  ].map(role => (
+                    <label key={role.value} className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-blue-50">
+                      <input
+                        type="radio"
+                        name="role"
+                        value={role.value}
+                        checked={inviteData.role === role.value}
+                        onChange={(e) => setInviteData({ ...inviteData, role: e.target.value })}
+                        className="h-4 w-4"
+                      />
+                      <div>
+                        <p className="font-medium text-gray-900">{role.label}</p>
+                        <p className="text-xs text-gray-500">{role.desc}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
               </div>
               <Button 
                 className="w-full bg-blue-600 hover:bg-blue-500"
