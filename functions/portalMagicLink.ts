@@ -70,11 +70,20 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'sendInvite') {
-      if (!org_id || !deal_id || !borrower_id) {
-        return Response.json({ error: 'Missing required fields' }, { status: 400 });
+      if (!deal_id || !borrower_id) {
+        return Response.json({ error: 'Missing deal_id or borrower_id' }, { status: 400 });
       }
 
-      const result = await sendPortalInvite(base44, org_id, deal_id, borrower_id, user.email);
+      // Get org_id from user's membership
+      const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+        user_id: user.email,
+      });
+      if (memberships.length === 0) {
+        return Response.json({ error: 'User not part of any organization' }, { status: 403 });
+      }
+
+      const final_org_id = memberships[0].org_id;
+      const result = await sendPortalInvite(base44, final_org_id, deal_id, borrower_id, user.email);
       return Response.json(result);
     }
 
@@ -96,8 +105,16 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Get org_id from user's membership
+      const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+        user_id: user.email,
+      });
+      if (memberships.length === 0) {
+        return Response.json({ error: 'User not part of any organization' }, { status: 403 });
+      }
+
       // Send new invite
-      const result = await sendPortalInvite(base44, user.org_id, deal_id, borrower_id, user.email);
+      const result = await sendPortalInvite(base44, memberships[0].org_id, deal_id, borrower_id, user.email);
       return Response.json(result);
     }
 

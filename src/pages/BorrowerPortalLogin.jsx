@@ -59,12 +59,21 @@ export default function BorrowerPortalLogin() {
     setError('');
 
     try {
-      // In production, this would be a public endpoint that rate limits and notifies the LO
-      setStep('success');
-      setTimeout(() => {
-        setEmail('');
+      // Public endpoint: borrow looks up by email, notifies LO
+      const response = await base44.functions.invoke('portalLookupBorrower', {
+        borrower_email: email,
+      });
+
+      if (response.data?.success) {
+        setStep('success');
+        setTimeout(() => {
+          setEmail('');
+          setStep('email');
+        }, 5000);
+      } else {
+        setError('Email not found in system. Please contact your loan officer.');
         setStep('email');
-      }, 5000);
+      }
     } catch (err) {
       setError(err.message || 'Failed to send request');
       setStep('email');
