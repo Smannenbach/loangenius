@@ -194,9 +194,12 @@ export default function DealDetail() {
       <Tabs defaultValue="overview">
         <TabsList className="mb-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="borrowers">Borrowers</TabsTrigger>
+          <TabsTrigger value="property">Property</TabsTrigger>
+          <TabsTrigger value="terms">Loan Terms</TabsTrigger>
           <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
           <TabsTrigger value="conditions">Conditions ({conditions.length})</TabsTrigger>
-          <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -274,6 +277,23 @@ export default function DealDetail() {
           </div>
         </TabsContent>
 
+        <TabsContent value="activity">
+          <Card className="border-gray-200">
+            <CardHeader>
+              <CardTitle className="text-lg">Activity Log</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="pb-4 border-l-2 border-gray-200 pl-4 relative">
+                  <div className="absolute -left-1.5 top-1 w-3 h-3 rounded-full bg-blue-500" />
+                  <p className="text-sm font-medium">Deal created</p>
+                  <p className="text-xs text-gray-500 mt-1">Today at 9:30 AM</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="documents">
           <Card className="border-gray-200">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -346,44 +366,105 @@ export default function DealDetail() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="tasks">
+        <TabsContent value="borrowers">
           <Card className="border-gray-200">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Tasks</CardTitle>
-              <Button variant="outline" size="sm">Add Task</Button>
+            <CardHeader>
+              <CardTitle className="text-lg">Borrowers & Entities</CardTitle>
             </CardHeader>
             <CardContent>
-              {tasks.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                  <p>No tasks yet</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {tasks.map((task) => (
-                    <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        {task.status === 'completed' ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-500" />
-                        ) : (
-                          <Clock className="h-5 w-5 text-yellow-500" />
-                        )}
+              <p className="text-gray-500 text-center py-8">Borrower information coming soon</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="property">
+          <Card className="border-gray-200">
+            <CardHeader>
+              <CardTitle className="text-lg">Property Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {property ? (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="font-semibold mb-3">Subject Property</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 text-gray-400 mt-1 flex-shrink-0" />
                         <div>
-                          <div className="font-medium">{task.title}</div>
-                          {task.due_date && (
-                            <div className="text-sm text-gray-500">
-                              Due: {new Date(task.due_date).toLocaleDateString()}
-                            </div>
-                          )}
+                          <div className="font-medium">{property.address_street}</div>
+                          <div className="text-gray-500 text-sm">
+                            {property.address_city}, {property.address_state} {property.address_zip}
+                          </div>
                         </div>
                       </div>
-                      <Badge className={task.priority === 'urgent' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}>
-                        {task.priority}
-                      </Badge>
+                      <div className="grid grid-cols-2 gap-4 pt-3 border-t">
+                        <div>
+                          <p className="text-sm text-gray-500">Property Type</p>
+                          <p className="font-medium capitalize">{property.property_type?.replace(/_/g, ' ')}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Year Built</p>
+                          <p className="font-medium">{property.year_built || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Bedrooms</p>
+                          <p className="font-medium">{property.bedrooms || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Bathrooms</p>
+                          <p className="font-medium">{property.bathrooms || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Monthly Rent</p>
+                          <p className="font-medium">${(property.monthly_rent || 0).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Annual Taxes</p>
+                          <p className="font-medium">${(property.annual_taxes || 0).toLocaleString()}</p>
+                        </div>
+                      </div>
                     </div>
-                  ))}
+                  </div>
                 </div>
+              ) : (
+                <p className="text-gray-500 text-center py-8">No property added</p>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="terms">
+          <Card className="border-gray-200">
+            <CardHeader>
+              <CardTitle className="text-lg">Loan Terms</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                <div>
+                  <p className="text-sm text-gray-500">Loan Amount</p>
+                  <p className="font-semibold mt-1">${(deal.loan_amount || 0).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Interest Rate</p>
+                  <p className="font-semibold mt-1">{deal.interest_rate || '-'}%</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Loan Term</p>
+                  <p className="font-semibold mt-1">{deal.loan_term_months ? `${deal.loan_term_months / 12} years` : '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Rate Type</p>
+                  <p className="font-semibold mt-1">Fixed</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Monthly P&I</p>
+                  <p className="font-semibold mt-1">${(deal.monthly_pi || 0).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Prepayment</p>
+                  <p className="font-semibold mt-1">5-4-3-2-1</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
