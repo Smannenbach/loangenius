@@ -16,6 +16,7 @@ export default function BorrowerPortalLogin() {
 
   // Check if we have token in URL
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const urlParams = new URLSearchParams(window.location.search);
     const urlToken = urlParams.get('token');
     if (urlToken) {

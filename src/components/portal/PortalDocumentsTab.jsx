@@ -27,24 +27,21 @@ export default function PortalDocumentsTab({ loanFileId, sessionId, borrower }) 
   const uploadMutation = useMutation({
     mutationFn: async (file) => {
       setUploading(true);
-      const response = await base44.integrations.Core.UploadFile({ file });
-      
-      // Create document record
-      await base44.asServiceRole.entities.Document.create({
-        loan_file_id: loanFileId,
-        borrower_id: borrower.id,
-        name: file.name,
-        file_name: file.name,
-        file_url: response.file_url,
-        file_size: file.size,
-        file_type: file.type,
-        file_extension: file.name.split('.').pop(),
-        category: 'Other',
-        source: 'Borrower_Upload',
-        status: 'Uploaded',
-      });
-
-      return response;
+      try {
+        // Call backend function to handle upload server-side
+        const response = await base44.functions.invoke('portalDocuments', {
+          action: 'presignUpload',
+          sessionId,
+          requirementId: null, // Will be set by user in UI
+          fileName: file.name,
+          mimeType: file.type,
+          fileSize: file.size,
+        });
+        return response.data;
+      } catch (error) {
+        console.error('Upload error:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['portalDocuments', loanFileId] });

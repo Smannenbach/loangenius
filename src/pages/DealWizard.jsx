@@ -22,63 +22,32 @@ export default function DealWizard() {
 
   const handleNext = async () => {
     if (step === 6) {
-      // Create deal
+      // Create deal via backend function
       setLoading(true);
       try {
-        // Generate loan number
-        const now = new Date();
-        const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
-        const counter = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-        const loanNumber = `LG-${yearMonth}-${counter}`;
-
-        // Create loan file
-        const loanFile = await base44.entities.LoanFile.create({
-          org_id: 'default-org', // TODO: Get from auth context
-          loan_number: loanNumber,
-          loan_name: formData.loanName || `${formData.loanType} Loan`,
-          loan_type: formData.loanType,
-          loan_purpose: formData.loanPurpose,
-          occupancy_type: formData.occupancyType,
-          is_blanket: formData.isBlanket,
-          loan_amount: formData.loanAmount,
-          purchase_price: formData.purchasePrice,
-          appraised_value: formData.appraisedValue || formData.purchasePrice,
-          down_payment: formData.purchasePrice ? formData.purchasePrice - formData.loanAmount : 0,
-          interest_rate: formData.interestRate,
-          loan_term_months: formData.loanTermMonths,
-          status: 'Lead',
+        const response = await base44.functions.invoke('createOrUpdateDeal', {
+          action: 'create',
+          dealData: {
+            loan_product: formData.loanType,
+            loan_purpose: formData.loanPurpose,
+            is_blanket: formData.isBlanket,
+            loan_amount: formData.loanAmount,
+            interest_rate: formData.interestRate,
+            loan_term_months: formData.loanTermMonths,
+            amortization_type: formData.amortizationType || 'fixed',
+            properties: formData.properties || [],
+            borrowers: formData.borrowers || [],
+          },
         });
 
-        // Create properties
-        if (formData.properties && formData.properties.length > 0) {
-          for (const prop of formData.properties) {
-            await base44.entities.Property.create({
-              org_id: 'default-org',
-              loan_file_id: loanFile.id,
-              address_street: prop.street,
-              address_unit: prop.unit,
-              address_city: prop.city,
-              address_state: prop.state,
-              address_zip: prop.zip,
-              property_type: prop.propertyType || 'SFR',
-              unit_count: prop.unitCount || 1,
-              year_built: prop.yearBuilt,
-              square_feet: prop.squareFeet,
-              is_subject_property: true,
-            });
-          }
+        if (response.data?.deal?.id) {
+          navigate(`/DealDetail?dealId=${response.data.deal.id}`);
+        } else {
+          alert('Error creating deal. Please try again.');
         }
-
-        // Create borrowers (if needed)
-        // TODO: Implement borrower creation
-
-        // Log audit
-        // TODO: Implement audit logging
-
-        navigate(`/DealDetail?id=${loanFile.id}`);
       } catch (error) {
         console.error('Error creating deal:', error);
-        alert('Error creating deal. Please try again.');
+        alert(error.message || 'Error creating deal. Please try again.');
       } finally {
         setLoading(false);
       }

@@ -7,11 +7,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, AlertCircle, Clock, Upload, MessageSquare, FileText } from 'lucide-react';
 
-const urlParams = new URLSearchParams(window.location.search);
-const dealId = urlParams.get('deal_id');
-
 export default function BorrowerPortalHome() {
   const [selectedTab, setSelectedTab] = useState('overview');
+  const [dealId, setDealId] = useState(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      setDealId(urlParams.get('deal_id'));
+    }
+  }, []);
 
   const { data: summary } = useQuery({
     queryKey: ['portalSummary', dealId],
