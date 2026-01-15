@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 /**
- * Get messages for borrower portal
+ * Get messages for portal session
  */
 Deno.serve(async (req) => {
   try {
@@ -12,26 +12,35 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Session ID required' }, { status: 400 });
     }
 
+    // Get session
     const session = await base44.asServiceRole.entities.PortalSession.get(sessionId);
     if (!session || session.is_revoked || new Date(session.expires_at) < new Date()) {
-      return Response.json({ error: 'Invalid session' }, { status: 401 });
+      return Response.json({ error: 'Session invalid' }, { status: 401 });
     }
 
     if (action === 'getMessages') {
-      const messages = await base44.asServiceRole.entities.CommunicationsLog.filter({
-        org_id: session.org_id,
+      // Get communications for this deal
+      const communications = await base44.asServiceRole.entities.CommunicationsLog.filter({
         deal_id: session.deal_id,
-      }, '-created_date', 50);
+      });
+
+      const messages = communications
+        .filter(c => c.direction === 'inbound' || c.direction === 'outbound')
+        .sort((a, b) => new Date(b.created_date) - new Date(a.created_date))
+        .slice(0, 50);
+
+      // Update last accessed
+      await base44.asServiceRole.entities.PortalSession.update(sessionId, {
+        last_accessed_at: new Date().toISOString(),
+      });
 
       return Response.json({
-        messages: messages.map(msg => ({
-          id: msg.id,
-          from: msg.from,
-          to: msg.to,
-          subject: msg.subject,
-          body: msg.body,
-          channel: msg.channel,
-          created_date: msg.created_date,
+        success: true,
+        messages: messages.map(m => ({
+          id: m.id,
+          from: m.from,
+          body: m.body,
+          created_at: m.created_date,
         })),
       });
     }
