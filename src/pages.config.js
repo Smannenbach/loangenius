@@ -52,6 +52,7 @@ import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
 import PortalSettings from './pages/PortalSettings';
+import Conversations from './pages/Conversations';
 import __Layout from './Layout.jsx';
 
 
@@ -110,6 +111,7 @@ export const PAGES = {
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
     "PortalSettings": PortalSettings,
+    "Conversations": Conversations,
 }
 
 export const pagesConfig = {

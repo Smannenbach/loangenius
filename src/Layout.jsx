@@ -87,11 +87,11 @@ export default function Layout({ children, currentPageName }) {
   ];
 
   const toolsNav = [
-    { name: 'Calculator', href: '/Calculator', icon: Calculator },
-    { name: 'Quote Generator', href: '/QuoteGenerator', icon: FileOutput },
-    { name: 'AI Assistant', href: '/AIAssistant', icon: Bot },
-    { name: 'Communications', href: '/Communications', icon: Mail },
-  ];
+      { name: 'Calculator', href: '/Calculator', icon: Calculator },
+      { name: 'Quote Generator', href: '/QuoteGenerator', icon: FileOutput },
+      { name: 'AI Assistant', href: '/AIAssistant', icon: Bot },
+      { name: 'Conversations', href: '/Conversations', icon: Mail },
+    ];
 
   const adminNav = [
     { name: 'Users', href: '/Users', icon: Users },
