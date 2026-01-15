@@ -1,177 +1,157 @@
-/**
- * Portal Magic Link Service
- * Handles sending magic links to borrowers via email/SMS for passwordless auth
- */
-
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { logActivity } from './auditLogHelper.js';
+
+/**
+ * Send magic link via email & SMS
+ */
+async function sendPortalInvite(base44, org_id, deal_id, borrower_id, user_email) {
+  try {
+    const borrower = await base44.asServiceRole.entities.Borrower.get(borrower_id);
+    const deal = await base44.asServiceRole.entities.Deal.get(deal_id);
+    if (!borrower || !deal) throw new Error('Borrower or deal not found');
+
+    // Generate token
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    const token = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    // Hash token
+    const encoder = new TextEncoder();
+    const data = encoder.encode(token);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const token_hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+    // Create session
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    await base44.asServiceRole.entities.PortalSession.create({
+      org_id,
+      deal_id,
+      borrower_id,
+      session_token_hash: token_hash,
+      expires_at: expiresAt,
+    });
+
+    // Build portal URL
+    const portalUrl = `https://apply.loangenius.ai/portal/login?token=${token}`;
+    
+    // Send email via SendGrid
+    await base44.integrations.Core.SendEmail({
+      to: borrower.email,
+      subject: `Your ${deal.deal_number} Loan Application Portal`,
+      body: `Hi ${borrower.first_name},\n\nAccess your secure loan portal:\n${portalUrl}\n\nThis link expires in 7 days.`,
+    });
+
+    // Send SMS if opted in
+    if (borrower.phone && !borrower.sms_opt_out) {
+      const shortLink = `bit.ly/${Math.random().toString(36).substr(2, 6)}`;
+      // Would integrate with Twilio here
+      console.log(`SMS to ${borrower.phone}: Access your loan: ${shortLink}`);
+    }
+
+    return { success: true, expires_at: expiresAt };
+  } catch (error) {
+    console.error('Send invite error:', error);
+    throw error;
+  }
+}
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
 
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user || user.role !== 'admin') {
+      return Response.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const { action, deal_id, org_id, data } = await req.json();
+    const { action, org_id, deal_id, borrower_id } = await req.json();
 
-    if (!action || !deal_id || !org_id) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!action) {
+      return Response.json({ error: 'Missing action' }, { status: 400 });
     }
 
-    let result;
+    if (action === 'sendInvite') {
+      if (!org_id || !deal_id || !borrower_id) {
+        return Response.json({ error: 'Missing required fields' }, { status: 400 });
+      }
 
-    switch (action) {
-      case 'send_magic_link':
-        result = await sendMagicLink(base44, org_id, deal_id, data, user);
-        break;
-      case 'exchange_token':
-        result = await exchangeToken(base44, org_id, data);
-        break;
-      default:
-        return Response.json({ error: 'Invalid action' }, { status: 400 });
+      const result = await sendPortalInvite(base44, org_id, deal_id, borrower_id, user.email);
+      return Response.json(result);
     }
 
-    return Response.json(result);
+    if (action === 'resendInvite') {
+      if (!deal_id || !borrower_id) {
+        return Response.json({ error: 'Missing deal_id or borrower_id' }, { status: 400 });
+      }
+
+      // Revoke old sessions
+      const oldSessions = await base44.asServiceRole.entities.PortalSession.filter({
+        deal_id,
+        borrower_id,
+        is_revoked: false,
+      });
+
+      for (const session of oldSessions) {
+        await base44.asServiceRole.entities.PortalSession.update(session.id, {
+          is_revoked: true,
+        });
+      }
+
+      // Send new invite
+      const result = await sendPortalInvite(base44, user.org_id, deal_id, borrower_id, user.email);
+      return Response.json(result);
+    }
+
+    if (action === 'validateAndCreateSession') {
+      const { token } = await req.json();
+      if (!token) {
+        return Response.json({ error: 'Token required' }, { status: 400 });
+      }
+
+      // Hash incoming token
+      const encoder = new TextEncoder();
+      const data = encoder.encode(token);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const token_hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      // Find session
+      const sessions = await base44.asServiceRole.entities.PortalSession.filter({
+        session_token_hash: token_hash,
+      });
+
+      if (sessions.length === 0) {
+        return Response.json({ error: 'Invalid token' }, { status: 401 });
+      }
+
+      const session = sessions[0];
+
+      // Check expiration and revocation
+      if (new Date(session.expires_at) < new Date()) {
+        return Response.json({ error: 'Link expired' }, { status: 401 });
+      }
+
+      if (session.is_revoked) {
+        return Response.json({ error: 'Link revoked' }, { status: 401 });
+      }
+
+      // Update session
+      const sessionExpires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      await base44.asServiceRole.entities.PortalSession.update(session.id, {
+        last_accessed_at: new Date().toISOString(),
+      });
+
+      return Response.json({
+        valid: true,
+        sessionId: session.id,
+        orgId: session.org_id,
+        dealId: session.deal_id,
+        borrowerId: session.borrower_id,
+      });
+    }
+
+    return Response.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
-    console.error('Error in portalMagicLink:', error);
+    console.error('Portal magic link error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
-
-async function sendMagicLink(base44, org_id, deal_id, data, user) {
-  const { borrower_email, channel = 'email', template = 'default' } = data;
-
-  if (!borrower_email) {
-    throw new Error('Missing borrower_email');
-  }
-
-  // Generate token
-  const token = crypto.randomUUID();
-  const tokenHash = await sha256Hash(token);
-  const expiresAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
-
-  // Create magic link record
-  const magicLink = await base44.asServiceRole.entities.PortalMagicLink.create({
-    org_id,
-    deal_id,
-    borrower_email,
-    token_hash: tokenHash,
-    channel,
-    expires_at: expiresAt,
-    created_by_user_id: user.id
-  });
-
-  const portalUrl = `${Deno.env.get('APP_URL') || 'https://app.loangenius.io'}/portal/login?token=${token}&deal=${deal_id}`;
-
-  // Send message
-  if (channel === 'email') {
-    const body = template === 'default'
-      ? `Click here to access your loan documents: ${portalUrl}\n\nThis link expires in 24 hours.`
-      : `Your documents are ready for review. Access them here: ${portalUrl}`;
-
-    await base44.integrations.Core.SendEmail({
-      to: borrower_email,
-      subject: 'Your Loan Documents Portal Access',
-      body
-    });
-  }
-  // SMS would use Twilio integration (not implemented here; would require secrets)
-
-  // Log communication
-  await base44.asServiceRole.entities.Communication.create({
-    org_id,
-    deal_id,
-    borrower_id: borrower_email, // Using email as identifier
-    channel: channel === 'email' ? 'Email' : 'SMS',
-    direction: 'Outbound',
-    from_address: user.email,
-    to_address: borrower_email,
-    subject: 'Portal Access Link',
-    body: `Magic link sent for portal access`,
-    status: 'Sent',
-    provider: 'Internal'
-  });
-
-  // Log activity
-  await logActivity(base44, {
-    deal_id,
-    activity_type: 'Email_Sent',
-    title: 'Portal access link sent',
-    description: `Magic link sent to ${borrower_email}`,
-    icon: '📧',
-    color: 'blue'
-  });
-
-  return {
-    success: true,
-    magic_link_id: magicLink.id,
-    sent_to: borrower_email,
-    expires_at: expiresAt,
-    portal_url: portalUrl
-  };
-}
-
-async function exchangeToken(base44, org_id, data) {
-  const { token, deal_id } = data;
-
-  if (!token || !deal_id) {
-    throw new Error('Missing token or deal_id');
-  }
-
-  const tokenHash = await sha256Hash(token);
-
-  // Find magic link
-  const links = await base44.asServiceRole.entities.PortalMagicLink.filter({
-    deal_id,
-    token_hash: tokenHash
-  });
-
-  if (!links.length) {
-    throw new Error('Invalid or expired token');
-  }
-
-  const link = links[0];
-
-  // Check expiration
-  if (new Date(link.expires_at) < new Date()) {
-    throw new Error('Token expired');
-  }
-
-  // Mark as used
-  await base44.asServiceRole.entities.PortalMagicLink.update(link.id, {
-    used_at: new Date().toISOString()
-  });
-
-  // Create session
-  const sessionToken = crypto.randomUUID();
-  const sessionTokenHash = await sha256Hash(sessionToken);
-  const sessionExpiresAt = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(); // 7 days
-
-  const session = await base44.asServiceRole.entities.PortalSession.create({
-    org_id,
-    deal_id,
-    borrower_email: link.borrower_email,
-    session_token_hash: sessionTokenHash,
-    expires_at: sessionExpiresAt,
-    last_activity_at: new Date().toISOString()
-  });
-
-  return {
-    success: true,
-    session_token: sessionToken, // Send to client; will be stored in httpOnly cookie
-    session_id: session.id,
-    expires_at: sessionExpiresAt,
-    redirect: `/portal/deals/${deal_id}`
-  };
-}
-
-async function sha256Hash(input) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(input);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
