@@ -1,85 +1,113 @@
 /**
- * Field-level encryption helper for SSN, DOB, EIN
- * Uses Web Crypto API (async)
+ * Encryption helper for sensitive fields (SSN, DOB, EIN)
+ * Uses AES-256-GCM with org-specific keys stored in environment
  */
 
-const ENCRYPTION_KEY = Deno.env.get('ENCRYPTION_KEY');
+import crypto from 'crypto';
 
-if (!ENCRYPTION_KEY) {
-  console.warn('ENCRYPTION_KEY not set - encryption disabled');
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY; // 32-byte hex string
+const ALGORITHM = 'aes-256-gcm';
+const IV_LENGTH = 16; // bytes
+const AUTH_TAG_LENGTH = 16; // bytes
+
+/**
+ * Encrypt a sensitive value
+ * @param {string} plaintext - Value to encrypt
+ * @returns {string} - Base64-encoded ciphertext with IV and auth tag prepended
+ */
+export function encrypt(plaintext) {
+  if (!plaintext) return null;
+  
+  const key = Buffer.from(ENCRYPTION_KEY, 'hex');
+  const iv = crypto.randomBytes(IV_LENGTH);
+  
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+  let encrypted = cipher.update(String(plaintext), 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  
+  const authTag = cipher.getAuthTag();
+  
+  // Format: IV (hex) + authTag (hex) + ciphertext (hex)
+  const combined = iv.toString('hex') + authTag.toString('hex') + encrypted;
+  return Buffer.from(combined, 'hex').toString('base64');
 }
 
 /**
- * Encrypt a sensitive field
+ * Decrypt a sensitive value
+ * @param {string} encrypted - Base64-encoded ciphertext
+ * @returns {string} - Decrypted plaintext
  */
-export async function encryptField(plaintext) {
-  if (!plaintext || !ENCRYPTION_KEY) return plaintext;
+export function decrypt(encrypted) {
+  if (!encrypted) return null;
+  
+  const key = Buffer.from(ENCRYPTION_KEY, 'hex');
+  const combined = Buffer.from(encrypted, 'base64').toString('hex');
+  
+  const iv = Buffer.from(combined.slice(0, IV_LENGTH * 2), 'hex');
+  const authTag = Buffer.from(
+    combined.slice(IV_LENGTH * 2, IV_LENGTH * 2 + AUTH_TAG_LENGTH * 2),
+    'hex'
+  );
+  const ciphertext = combined.slice(IV_LENGTH * 2 + AUTH_TAG_LENGTH * 2);
+  
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+  decipher.setAuthTag(authTag);
+  
+  let decrypted = decipher.update(ciphertext, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  
+  return decrypted;
+}
 
-  try {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(plaintext);
-
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(ENCRYPTION_KEY.padEnd(32, '0').substring(0, 32)),
-      { name: 'AES-GCM' },
-      false,
-      ['encrypt']
-    );
-
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data);
-
-    // Return IV + ciphertext as base64
-    const combined = new Uint8Array(iv.length + encrypted.byteLength);
-    combined.set(iv);
-    combined.set(new Uint8Array(encrypted), iv.length);
-
-    return btoa(String.fromCharCode(...combined));
-  } catch (error) {
-    console.error('Encryption error:', error);
-    throw new Error('Field encryption failed');
+/**
+ * Mask sensitive field for logging (SSN → ***-**-1234)
+ * @param {string} fieldName - Field name
+ * @param {string} value - Value to mask
+ * @returns {string} - Masked value
+ */
+export function maskSensitiveField(fieldName, value) {
+  if (!value) return '[REDACTED]';
+  
+  const field = fieldName.toLowerCase();
+  const str = String(value);
+  
+  if (field === 'ssn' || field === 'social_security_number') {
+    return `***-**-${str.slice(-4)}`;
   }
-}
-
-/**
- * Decrypt a sensitive field
- */
-export async function decryptField(ciphertext) {
-  if (!ciphertext || !ENCRYPTION_KEY) return ciphertext;
-
-  try {
-    const encoder = new TextEncoder();
-    const combined = new Uint8Array(atob(ciphertext).split('').map(c => c.charCodeAt(0)));
-
-    const iv = combined.slice(0, 12);
-    const encrypted = combined.slice(12);
-
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(ENCRYPTION_KEY.padEnd(32, '0').substring(0, 32)),
-      { name: 'AES-GCM' },
-      false,
-      ['decrypt']
-    );
-
-    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, encrypted);
-    return new TextDecoder().decode(decrypted);
-  } catch (error) {
-    console.error('Decryption error:', error);
-    throw new Error('Field decryption failed');
+  if (field === 'ein' || field === 'tax_id') {
+    return `**-***${str.slice(-4)}`;
   }
+  if (field === 'email') {
+    const [local, domain] = str.split('@');
+    return `${local[0]}***@${domain}`;
+  }
+  if (field === 'phone') {
+    return str.replace(/\d(?=\d{4})/g, '*');
+  }
+  if (field === 'password' || field === 'secret' || field === 'token') {
+    return '[REDACTED]';
+  }
+  if (field === 'bank_account' || field === 'account_number') {
+    return `****${str.slice(-4)}`;
+  }
+  
+  return value;
 }
 
 /**
- * Mask a sensitive field for display (e.g., XXX-XX-1234)
+ * Check if field should be encrypted
+ * @param {string} fieldName
+ * @returns {boolean}
  */
-export function maskSSN(ssn) {
-  if (!ssn || ssn.length < 4) return ssn;
-  return 'XXX-XX-' + ssn.slice(-4);
-}
-
-export function maskEIN(ein) {
-  if (!ein || ein.length < 4) return ein;
-  return 'XX-' + ein.slice(-7);
+export function shouldEncrypt(fieldName) {
+  const sensitiveFields = [
+    'ssn', 'social_security_number',
+    'dob', 'date_of_birth',
+    'ein', 'tax_id',
+    'bank_account', 'account_number',
+    'credit_card',
+    'drivers_license',
+    'password', 'secret'
+  ];
+  return sensitiveFields.includes(fieldName.toLowerCase());
 }
