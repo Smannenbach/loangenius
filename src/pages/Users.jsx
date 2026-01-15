@@ -259,8 +259,9 @@ export default function UsersPage() {
           </DialogContent>
           </Dialog>
           </div>
+          </div>
 
-      {/* Search */}
+          {/* Search */}
       <Card className="border-gray-200 mb-6">
         <CardContent className="p-4">
           <div className="relative">
