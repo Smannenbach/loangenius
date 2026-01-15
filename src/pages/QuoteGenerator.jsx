@@ -1,8 +1,16 @@
 import React, { useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -11,8 +19,73 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileOutput, Download, Send, Building2, DollarSign, Percent, TrendingUp, AlertCircle, Check } from 'lucide-react';
+import { FileOutput, Download, Send, Building2, DollarSign, Percent, TrendingUp, AlertCircle, Check, Loader } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
+
+function SendQuoteButton({ quote }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const sendMutation = useMutation({
+    mutationFn: async (data) => {
+      return await base44.functions.invoke('sendQuote', {
+        borrower_email: quote.borrowerEmail,
+        borrower_name: quote.borrowerName,
+        quote_data: quote,
+      });
+    },
+    onSuccess: () => {
+      setIsOpen(false);
+      alert('Quote sent successfully!');
+    },
+  });
+
+  return (
+    <>
+      <Button 
+        className="flex-1 gap-2 bg-blue-600 hover:bg-blue-500"
+        onClick={() => setIsOpen(true)}
+        disabled={!quote.borrowerEmail}
+      >
+        <Send className="h-4 w-4" />
+        Send to Borrower
+      </Button>
+
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Quote to {quote.borrowerName}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-gray-700">
+                Sending quote to: <span className="font-semibold">{quote.borrowerEmail}</span>
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
+              <Button 
+                className="flex-1 bg-blue-600 hover:bg-blue-700 gap-2"
+                onClick={() => sendMutation.mutate()}
+                disabled={sendMutation.isPending}
+              >
+                {sendMutation.isPending ? (
+                  <>
+                    <Loader className="h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" />
+                    Send Quote
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
 
 export default function QuoteGenerator() {
   const [quoteData, setQuoteData] = useState({
@@ -26,8 +99,13 @@ export default function QuoteGenerator() {
     interestRate: '',
     pointsCost: '0',
     term: '30',
-    closingCosts: '',
     originationFee: '1.5',
+    appraisalFee: '500',
+    titleInsurance: '1200',
+    titleSearch: '300',
+    homeInspection: '500',
+    survey: '400',
+    otherFees: '0',
   });
 
   const [generatedQuote, setGeneratedQuote] = useState(null);
@@ -40,7 +118,15 @@ export default function QuoteGenerator() {
     const propertyValue = parseFloat(quoteData.propertyValue) || loanAmount;
     const points = parseFloat(quoteData.pointsCost) || 0;
     const origFee = (parseFloat(quoteData.originationFee) || 0) / 100;
-    const closingCosts = parseFloat(quoteData.closingCosts) || 0;
+    
+    // All closing costs
+    const appraisalFee = parseFloat(quoteData.appraisalFee) || 0;
+    const titleInsurance = parseFloat(quoteData.titleInsurance) || 0;
+    const titleSearch = parseFloat(quoteData.titleSearch) || 0;
+    const homeInspection = parseFloat(quoteData.homeInspection) || 0;
+    const survey = parseFloat(quoteData.survey) || 0;
+    const otherFees = parseFloat(quoteData.otherFees) || 0;
+    const closingCosts = appraisalFee + titleInsurance + titleSearch + homeInspection + survey + otherFees;
 
     const monthlyRate = rate / 12;
     let monthlyPayment = 0;
@@ -57,6 +143,7 @@ export default function QuoteGenerator() {
     const totalUpfrontCosts = points + originationFeeAmount + closingCosts;
     const totalPayment = principalInterest * termMonths;
     const totalCostOfLoan = totalPayment + totalUpfrontCosts;
+    const totalClosingCosts = closingCosts;
 
     // DSCR Calculation (simplified)
     const grossMonthlyIncome = loanAmount > 0 ? (loanAmount / 25) : 0; // Rough estimate
@@ -79,7 +166,13 @@ export default function QuoteGenerator() {
       totalPayment: totalPayment.toFixed(2),
       points: points.toFixed(2),
       originationFee: originationFeeAmount.toFixed(2),
-      closingCosts: closingCosts.toFixed(2),
+      appraisalFee: appraisalFee.toFixed(2),
+      titleInsurance: titleInsurance.toFixed(2),
+      titleSearch: titleSearch.toFixed(2),
+      homeInspection: homeInspection.toFixed(2),
+      survey: survey.toFixed(2),
+      otherFees: otherFees.toFixed(2),
+      totalClosingCosts: totalClosingCosts.toFixed(2),
       totalUpfrontCosts: totalUpfrontCosts.toFixed(2),
       totalCostOfLoan: totalCostOfLoan.toFixed(2),
       apr: (quoteData.interestRate + ((totalUpfrontCosts / loanAmount) * 100 / parseInt(quoteData.term))).toFixed(3),
@@ -301,7 +394,7 @@ APR: ${generatedQuote.apr}%
             {/* Fees & Costs */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Fees & Costs</CardTitle>
+                <CardTitle className="text-lg">Fees & Closing Costs</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -323,14 +416,70 @@ APR: ${generatedQuote.apr}%
                     onChange={(e) => setQuoteData({...quoteData, pointsCost: e.target.value})}
                   />
                 </div>
-                <div>
-                  <Label>Closing Costs ($)</Label>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={quoteData.closingCosts}
-                    onChange={(e) => setQuoteData({...quoteData, closingCosts: e.target.value})}
-                  />
+                <div className="border-t pt-4">
+                  <p className="text-sm font-semibold mb-3">Third-Party Costs</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Appraisal</Label>
+                      <Input
+                        type="number"
+                        placeholder="500"
+                        value={quoteData.appraisalFee}
+                        onChange={(e) => setQuoteData({...quoteData, appraisalFee: e.target.value})}
+                        className="h-9"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Title Insurance</Label>
+                      <Input
+                        type="number"
+                        placeholder="1200"
+                        value={quoteData.titleInsurance}
+                        onChange={(e) => setQuoteData({...quoteData, titleInsurance: e.target.value})}
+                        className="h-9"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Title Search</Label>
+                      <Input
+                        type="number"
+                        placeholder="300"
+                        value={quoteData.titleSearch}
+                        onChange={(e) => setQuoteData({...quoteData, titleSearch: e.target.value})}
+                        className="h-9"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Home Inspection</Label>
+                      <Input
+                        type="number"
+                        placeholder="500"
+                        value={quoteData.homeInspection}
+                        onChange={(e) => setQuoteData({...quoteData, homeInspection: e.target.value})}
+                        className="h-9"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Survey</Label>
+                      <Input
+                        type="number"
+                        placeholder="400"
+                        value={quoteData.survey}
+                        onChange={(e) => setQuoteData({...quoteData, survey: e.target.value})}
+                        className="h-9"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Other Fees</Label>
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        value={quoteData.otherFees}
+                        onChange={(e) => setQuoteData({...quoteData, otherFees: e.target.value})}
+                        className="h-9"
+                      />
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -455,8 +604,8 @@ APR: ${generatedQuote.apr}%
 
                   {/* Fees Breakdown */}
                   <div className="border-t pt-6">
-                    <h3 className="font-semibold text-gray-900 mb-4">FEES & CLOSING COSTS</h3>
-                    <div className="space-y-3 text-sm">
+                    <h3 className="font-semibold text-gray-900 mb-4">LENDER FEES</h3>
+                    <div className="space-y-2 text-sm mb-4">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Origination Fee</span>
                         <span>${parseFloat(generatedQuote.originationFee).toLocaleString()}</span>
@@ -465,22 +614,72 @@ APR: ${generatedQuote.apr}%
                         <span className="text-gray-600">Points</span>
                         <span>${parseFloat(generatedQuote.points).toLocaleString()}</span>
                       </div>
+                    </div>
+
+                    <h3 className="font-semibold text-gray-900 mb-4">THIRD-PARTY COSTS</h3>
+                    <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Other Closing Costs</span>
-                        <span>${parseFloat(generatedQuote.closingCosts).toLocaleString()}</span>
+                        <span className="text-gray-600">Appraisal Fee</span>
+                        <span>${parseFloat(generatedQuote.appraisalFee || 0).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Title Insurance</span>
+                        <span>${parseFloat(generatedQuote.titleInsurance || 0).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Title Search</span>
+                        <span>${parseFloat(generatedQuote.titleSearch || 0).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Home Inspection</span>
+                        <span>${parseFloat(generatedQuote.homeInspection || 0).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Survey</span>
+                        <span>${parseFloat(generatedQuote.survey || 0).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Other Fees</span>
+                        <span>${parseFloat(generatedQuote.otherFees || 0).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between border-t pt-2 font-bold">
-                        <span>Total Upfront Costs</span>
-                        <span>${parseFloat(generatedQuote.totalUpfrontCosts).toLocaleString()}</span>
+                        <span>Total Third-Party Costs</span>
+                        <span>${parseFloat(generatedQuote.totalClosingCosts).toLocaleString()}</span>
                       </div>
+                    </div>
+
+                    <div className="flex justify-between border-t pt-3 mt-3 font-bold text-base">
+                      <span>Total Closing Costs</span>
+                      <span>${(parseFloat(generatedQuote.originationFee) + parseFloat(generatedQuote.points) + parseFloat(generatedQuote.totalClosingCosts)).toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* Summary */}
+                  <div className="grid grid-cols-2 gap-4 pt-6 border-t">
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg">
+                      <p className="text-xs text-gray-600 uppercase">Total Upfront</p>
+                      <p className="text-2xl font-bold text-blue-600 mt-1">
+                        ${parseFloat(generatedQuote.totalUpfrontCosts).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg">
+                      <p className="text-xs text-gray-600 uppercase">Total Interest</p>
+                      <p className="text-2xl font-bold text-green-600 mt-1">
+                        ${(parseFloat(generatedQuote.totalPayment) - parseFloat(generatedQuote.loanAmount)).toLocaleString()}
+                      </p>
                     </div>
                   </div>
 
                   {/* Total Cost */}
-                  <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-lg">
-                    <div className="text-sm opacity-90">Total Cost of Loan</div>
-                    <div className="text-3xl font-bold mt-2">${parseFloat(generatedQuote.totalCostOfLoan).toLocaleString()}</div>
-                    <div className="text-sm opacity-75 mt-2">APR: {generatedQuote.apr}%</div>
+                  <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white p-8 rounded-xl shadow-xl">
+                    <div className="text-center">
+                      <div className="text-sm opacity-80 uppercase tracking-wider">Total Cost of Loan</div>
+                      <div className="text-5xl font-black mt-3">${parseFloat(generatedQuote.totalCostOfLoan).toLocaleString()}</div>
+                      <div className="mt-4 pt-4 border-t border-slate-700">
+                        <span className="text-lg font-semibold">{generatedQuote.apr}% APR</span>
+                      </div>
+                      <p className="text-xs opacity-60 mt-3">This quote is valid for 7 days</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -502,10 +701,7 @@ APR: ${generatedQuote.apr}%
                   <Download className="h-4 w-4" />
                   Download PDF
                 </Button>
-                <Button className="flex-1 gap-2 bg-blue-600 hover:bg-blue-500">
-                  <Send className="h-4 w-4" />
-                  Send to Borrower
-                </Button>
+                <SendQuoteButton quote={generatedQuote} />
               </div>
             </>
           )}
