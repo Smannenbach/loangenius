@@ -3,18 +3,33 @@
  * Computes DSCR, LTV, PITIA from deal and property data
  */
 
+import Decimal from 'decimal.js';
+
+// Configure Decimal precision
+Decimal.set({ precision: 28, rounding: Decimal.ROUND_HALF_UP });
+
+function toDecimal(value) {
+  if (value === null || value === undefined || value === '') return new Decimal(0);
+  return new Decimal(String(value));
+}
+
 /**
- * Calculate monthly P&I using standard amortization formula
+ * Calculate monthly P&I using standard amortization formula with precision
  * P&I = (Loan Amount * Monthly Rate) / (1 - (1 + Monthly Rate)^(-n))
+ * Uses Decimal.js to avoid floating-point errors (0.1 + 0.2 = 0.3 exactly)
  */
 export function calculateMonthlyPI(loanAmount, annualRate, termMonths) {
   if (!loanAmount || !annualRate || !termMonths) return 0;
 
-  const monthlyRate = annualRate / 100 / 12;
-  const numerator = loanAmount * monthlyRate;
-  const denominator = 1 - Math.pow(1 + monthlyRate, -termMonths);
-
-  return parseFloat((numerator / denominator).toFixed(2));
+  const loan = toDecimal(loanAmount);
+  const rate = toDecimal(annualRate).dividedBy(100).dividedBy(12);
+  const months = toDecimal(termMonths);
+  
+  const numerator = loan.times(rate);
+  const ratePlusOne = new Decimal(1).plus(rate);
+  const denominator = new Decimal(1).minus(ratePlusOne.pow(months.negated()));
+  
+  return parseFloat(numerator.dividedBy(denominator).toDecimalPlaces(2).toString());
 }
 
 /**
