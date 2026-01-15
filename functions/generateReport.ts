@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
       row_count: data.length,
       status: 'COMPLETED',
       execution_time_ms: executionTime,
-      run_by: user.id
+      run_by: user.email
     });
 
     return Response.json({
