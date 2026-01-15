@@ -1,0 +1,51 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+
+Deno.serve(async (req) => {
+  if (req.method !== 'GET') {
+    return Response.json({ error: 'Method not allowed' }, { status: 405 });
+  }
+
+  try {
+    const base44 = createClientFromRequest(req);
+
+    // Check OpenAI availability
+    let openaiStatus = 'unconfigured';
+    if (Deno.env.get('OPENAI_API_KEY')) {
+      openaiStatus = 'available';
+    }
+
+    // Check Anthropic availability
+    let anthropicStatus = 'unconfigured';
+    if (Deno.env.get('ANTHROPIC_API_KEY')) {
+      anthropicStatus = 'available';
+    }
+
+    // Check Google AI availability
+    let googleStatus = 'unconfigured';
+    if (Deno.env.get('GOOGLE_AI_STUDIO_API_KEY')) {
+      googleStatus = 'available';
+    }
+
+    const hasActiveProvider = openaiStatus === 'available' || anthropicStatus === 'available' || googleStatus === 'available';
+
+    return Response.json({
+      status: hasActiveProvider ? 'operational' : 'degraded',
+      providers: {
+        openai: openaiStatus,
+        anthropic: anthropicStatus,
+        google: googleStatus
+      },
+      message: hasActiveProvider 
+        ? 'AI services are operational' 
+        : 'No AI providers configured. Add API keys in Settings > Integrations.',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('AI status check failed:', error);
+    return Response.json({
+      status: 'error',
+      message: 'Failed to check AI service status',
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
+  }
+});

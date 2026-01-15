@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Send, Loader2, Sparkles } from 'lucide-react';
+import { Send, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 
 const urlParams = new URLSearchParams(window.location.search);
 const dealId = urlParams.get('deal_id');
@@ -19,6 +19,13 @@ export default function AIAssistant() {
   ]);
   const [input, setInput] = useState('');
   const scrollRef = useRef(null);
+
+  const { data: aiStatus, isLoading: statusLoading } = useQuery({
+    queryKey: ['ai-status'],
+    queryFn: () => base44.functions.invoke('aiStatus', {}),
+    retry: 1,
+    staleTime: 30000
+  });
 
   const chatMutation = useMutation({
     mutationFn: (message) =>
@@ -41,7 +48,7 @@ export default function AIAssistant() {
   }, [messages]);
 
   const handleSend = () => {
-    if (!input.trim()) return;
+    if (!input.trim() || aiStatus?.data?.status === 'degraded') return;
 
     setMessages(prev => [...prev, {
       role: 'user',
@@ -63,6 +70,17 @@ export default function AIAssistant() {
           <p className="text-gray-600 mt-1">Get instant answers about loan origination, documents, and compliance</p>
           {dealId && <Badge className="mt-3">Deal: {dealId}</Badge>}
         </div>
+
+        {/* AI Status Alert */}
+        {!statusLoading && aiStatus?.data?.status === 'degraded' && (
+          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-yellow-800 font-medium">AI Service Unavailable</p>
+              <p className="text-yellow-700 text-sm mt-1">{aiStatus.data.message}</p>
+            </div>
+          </div>
+        )}
 
         {/* Chat Container */}
         <Card className="h-[600px] flex flex-col">
@@ -109,7 +127,7 @@ export default function AIAssistant() {
               />
               <Button
                 onClick={handleSend}
-                disabled={chatMutation.isPending || !input.trim()}
+                disabled={chatMutation.isPending || !input.trim() || aiStatus?.data?.status === 'degraded'}
                 className="gap-2"
               >
                 {chatMutation.isPending ? (
@@ -143,7 +161,7 @@ export default function AIAssistant() {
                     setInput(q);
                     setTimeout(() => handleSend(), 0);
                   }}
-                  disabled={chatMutation.isPending}
+                  disabled={chatMutation.isPending || aiStatus?.data?.status === 'degraded'}
                 >
                   {q}
                 </Button>
