@@ -72,12 +72,20 @@ Deno.serve(async (req) => {
     const createdLeads = [];
     const errors = [];
 
-    // Get user's org_id
-    const userWithOrg = await base44.entities.User.filter({ email: user.email });
-    const orgId = userWithOrg && userWithOrg.length > 0 ? userWithOrg[0].org_id : user.org_id;
+    // user object should have org_id, if not try to fetch it
+    let orgId = user.org_id;
+    if (!orgId) {
+      // Try to get from User entity
+      try {
+        const users = await base44.asServiceRole.entities.User.filter({ email: user.email });
+        orgId = users && users.length > 0 ? users[0].org_id : null;
+      } catch (e) {
+        // Continue with null, will be caught below
+      }
+    }
 
     if (!orgId) {
-      return Response.json({ error: 'Unable to determine organization' }, { status: 400 });
+      return Response.json({ error: 'Unable to determine organization - user missing org_id' }, { status: 400 });
     }
 
     // Process each row (skip header)
