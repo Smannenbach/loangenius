@@ -1,56 +1,104 @@
 import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
-import ReportBuilder from '../components/reports/ReportBuilder';
-import ReportResults from '../components/reports/ReportResults';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Tab, TabsContent, TabsList } from '@/components/ui/tabs';
+import { Plus, Download, Eye } from 'lucide-react';
+import { createPageUrl } from '../utils';
+import { Link } from 'react-router-dom';
 
 export default function Reports() {
-  const [currentReport, setCurrentReport] = useState(null);
-  const [reportLoading, setReportLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('PIPELINE');
+  const queryClient = useQueryClient();
 
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+  const { data: reports = [] } = useQuery({
+    queryKey: ['reports'],
+    queryFn: () => base44.entities.ReportDefinition.filter({ is_system: true })
   });
 
-  const handleGenerateReport = async (filters) => {
-    setReportLoading(true);
-    try {
-      let functionName = 'generateProductionReport';
-      if (filters.report_type === 'pipeline') functionName = 'generatePipelineReport';
-      if (filters.report_type === 'funnel') functionName = 'generateConversionFunnel';
-      if (filters.report_type === 'risk') functionName = 'generateBorrowerRiskAnalysis';
+  const filteredReports = reports.filter(r => r.report_type === selectedCategory);
 
-      const response = await base44.functions.invoke(functionName, {
-        ...filters,
-        org_id: user?.org_id || '',
-      });
-
-      setCurrentReport(response.data?.report);
-    } catch (error) {
-      console.error('Error generating report:', error);
-      alert('Failed to generate report');
-    } finally {
-      setReportLoading(false);
-    }
-  };
+  const categories = ['PIPELINE', 'PRODUCTION', 'SCORECARD', 'LENDER', 'CONVERSION', 'CUSTOM'];
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
-        <p className="text-gray-600 mt-2">Generate detailed reports on production, pipeline, and risk metrics.</p>
+    <div className="space-y-6 p-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Reports</h1>
+        <Link to={createPageUrl('ReportBuilder')}>
+          <Button className="gap-2 bg-blue-600 hover:bg-blue-700">
+            <Plus className="h-4 w-4" />
+            New Custom Report
+          </Button>
+        </Link>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1">
-          <ReportBuilder onGenerateReport={handleGenerateReport} />
-        </div>
-
-        <div className="lg:col-span-2">
-          <ReportResults report={currentReport} loading={reportLoading} />
-        </div>
+      {/* Category Navigation */}
+      <div className="flex gap-2 flex-wrap">
+        {categories.map(cat => (
+          <Button
+            key={cat}
+            variant={selectedCategory === cat ? 'default' : 'outline'}
+            onClick={() => setSelectedCategory(cat)}
+          >
+            {cat.replace(/_/g, ' ')}
+          </Button>
+        ))}
       </div>
+
+      {/* Reports Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {filteredReports.map(report => (
+          <ReportCard key={report.id} report={report} />
+        ))}
+      </div>
+
+      {filteredReports.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-gray-500">No reports in this category</p>
+        </div>
+      )}
     </div>
+  );
+}
+
+function ReportCard({ report }) {
+  const mutation = useMutation({
+    mutationFn: () => base44.functions.invoke('generateReport', {
+      org_id: 'default',
+      report_id: report.id,
+      filters: {}
+    })
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">{report.name}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-gray-600">{report.description}</p>
+        
+        <div className="flex gap-2">
+          <Link to={createPageUrl(`ReportViewer?id=${report.id}`)}>
+            <Button size="sm" className="gap-2" variant="outline">
+              <Eye className="h-4 w-4" />
+              View
+            </Button>
+          </Link>
+          <Button
+            size="sm"
+            className="gap-2"
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending}
+          >
+            <Download className="h-4 w-4" />
+            {mutation.isPending ? 'Running...' : 'Run'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

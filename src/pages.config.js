@@ -32,6 +32,9 @@ import LoanApplication from './pages/LoanApplication';
 import AdminWebhooks from './pages/AdminWebhooks';
 import AdminAuditLogs from './pages/AdminAuditLogs';
 import AdminLoginHistory from './pages/AdminLoginHistory';
+import ReportViewer from './pages/ReportViewer';
+import ReportBuilder from './pages/ReportBuilder';
+import ExecutiveDashboard from './pages/ExecutiveDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -70,6 +73,9 @@ export const PAGES = {
     "AdminWebhooks": AdminWebhooks,
     "AdminAuditLogs": AdminAuditLogs,
     "AdminLoginHistory": AdminLoginHistory,
+    "ReportViewer": ReportViewer,
+    "ReportBuilder": ReportBuilder,
+    "ExecutiveDashboard": ExecutiveDashboard,
 }
 
 export const pagesConfig = {
