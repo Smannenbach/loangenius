@@ -83,7 +83,8 @@ Deno.serve(async (req) => {
 
       try {
         const leadData = {
-          org_id: 'default',
+          org_id: user.org_id || user.id,
+          status: 'new',
         };
 
         // Map values from spreadsheet
