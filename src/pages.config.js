@@ -42,6 +42,7 @@ import DocumentIntelligence from './pages/DocumentIntelligence';
 import BorrowerPortalHome from './pages/BorrowerPortalHome';
 import AdminPortalPreview from './pages/AdminPortalPreview';
 import ConsentManagement from './pages/ConsentManagement';
+import ValidationDashboard from './pages/ValidationDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -90,6 +91,7 @@ export const PAGES = {
     "BorrowerPortalHome": BorrowerPortalHome,
     "AdminPortalPreview": AdminPortalPreview,
     "ConsentManagement": ConsentManagement,
+    "ValidationDashboard": ValidationDashboard,
 }
 
 export const pagesConfig = {
