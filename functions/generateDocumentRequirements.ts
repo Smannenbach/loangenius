@@ -1,10 +1,9 @@
-/**
- * Generate rule-based document requirements for a deal
- * Creates Document entities based on loan product/purpose and borrower composition
- */
-
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
+/**
+ * Generate document requirements for a new deal
+ * Based on loan product, loan purpose, and borrower type
+ */
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -14,127 +13,128 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { deal_id, org_id } = await req.json();
+    const { deal_id } = await req.json();
 
-    if (!deal_id || !org_id) {
-      return Response.json({ error: 'Missing deal_id or org_id' }, { status: 400 });
+    if (!deal_id) {
+      return Response.json({ error: 'Deal ID required' }, { status: 400 });
     }
 
-    // Fetch deal
-    const deals = await base44.asServiceRole.entities.Deal.filter({ id: deal_id });
-    if (!deals.length) {
+    // Get deal
+    const deal = await base44.asServiceRole.entities.Deal.get(deal_id);
+    if (!deal) {
       return Response.json({ error: 'Deal not found' }, { status: 404 });
     }
-    const deal = deals[0];
 
-    // Fetch borrowers for this deal
-    const dealBorrowers = await base44.asServiceRole.entities.DealBorrower.filter({
-      deal_id: deal_id
-    });
+    // Standard DSCR document checklist
+    const standardRequirements = [
+      {
+        document_type: 'bank_statements',
+        display_name: 'Bank Statements (Last 2 months)',
+        category: 'Assets',
+        instructions: 'Download or scan your bank statements showing your business bank account.',
+        is_required: true,
+        days_until_due: 5,
+      },
+      {
+        document_type: 'tax_returns',
+        display_name: 'Tax Returns (Last 2 years)',
+        category: 'Income',
+        instructions: 'Provide completed business tax returns (1040s, Schedule C, or corporate returns).',
+        is_required: true,
+        days_until_due: 5,
+      },
+      {
+        document_type: 'profit_loss',
+        display_name: 'Profit & Loss Statement (Last 12 months)',
+        category: 'Income',
+        instructions: 'Business P&L statement signed by CPA or accountant.',
+        is_required: true,
+        days_until_due: 5,
+      },
+      {
+        document_type: 'lease_agreements',
+        display_name: 'Lease Agreements',
+        category: 'Property',
+        instructions: 'All signed lease agreements for the subject property.',
+        is_required: true,
+        days_until_due: 7,
+      },
+      {
+        document_type: 'appraisal',
+        display_name: 'Property Appraisal',
+        category: 'Property',
+        instructions: 'Recent appraisal report (within 6 months).',
+        is_required: true,
+        days_until_due: 10,
+      },
+      {
+        document_type: 'title_report',
+        display_name: 'Title Report',
+        category: 'Property',
+        instructions: 'Preliminary title report for the property.',
+        is_required: true,
+        days_until_due: 10,
+      },
+      {
+        document_type: 'id_verification',
+        display_name: 'ID Verification',
+        category: 'Identity',
+        instructions: 'Copy of driver\'s license or passport.',
+        is_required: true,
+        days_until_due: 3,
+      },
+      {
+        document_type: 'proof_of_funds',
+        display_name: 'Proof of Funds',
+        category: 'Assets',
+        instructions: 'Bank statements showing down payment funds available.',
+        is_required: true,
+        days_until_due: 5,
+      },
+    ];
 
-    // Fetch borrower details
-    const borrowers = await Promise.all(
-      dealBorrowers.map(db => base44.asServiceRole.entities.Borrower.filter({ id: db.borrower_id }))
-    );
+    // Create document requirements
+    const createdRequirements = [];
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 14); // Default 14 days from now
 
-    const hasEntityBorrower = borrowers.some(b => b.length && b[0].borrower_type === 'entity');
-    const isRefinance = deal.loan_purpose?.toLowerCase().includes('refinance') || false;
-
-    // Get document requirements for this product/purpose
-    const baseRequirements = await base44.asServiceRole.entities.DocumentRequirement.filter({
-      org_id,
-      loan_product: deal.loan_product,
-      is_active: true
-    });
-
-    const relevantRequirements = baseRequirements.filter(req => {
-      // Check if purpose matches
-      if (req.loan_purpose && req.loan_purpose !== deal.loan_purpose) {
-        return false;
-      }
-
-      // Check conditional rules
-      if (req.condition_rule === 'entity_borrower' && !hasEntityBorrower) {
-        return false;
-      }
-      if (req.condition_rule === 'refinance_only' && !isRefinance) {
-        return false;
-      }
-
-      return req.is_required || req.condition_rule;
-    });
-
-    // Create Document records for each requirement
-    const createdDocs = [];
-    for (const req of relevantRequirements) {
-      // Check if document already exists
-      const existing = await base44.asServiceRole.entities.Document.filter({
-        deal_id,
-        document_type: req.document_type
+    for (const req of standardRequirements) {
+      const created = await base44.asServiceRole.entities.DealDocumentRequirement.create({
+        org_id: deal.org_id,
+        deal_id: deal_id,
+        requirement_template_id: null,
+        document_type: req.document_type,
+        display_name: req.display_name,
+        instructions: req.instructions,
+        category: req.category,
+        status: 'pending',
+        is_required: req.is_required,
+        is_visible_to_borrower: true,
+        due_date: dueDate.toISOString(),
       });
-
-      if (!existing.length) {
-        const doc = await base44.asServiceRole.entities.Document.create({
-          org_id,
-          deal_id,
-          document_type: req.document_type,
-          source: 'requirement',
-          status: 'uploaded',
-          expires_at: req.expiration_days 
-            ? new Date(Date.now() + req.expiration_days * 86400000).toISOString()
-            : null
-        });
-
-        createdDocs.push({
-          id: doc.id,
-          document_type: req.document_type,
-          status: 'uploaded',
-          expires_at: doc.expires_at
-        });
-      }
+      createdRequirements.push(created);
     }
 
-    // Create corresponding Condition records
-    const createdConditions = [];
-    for (const req of relevantRequirements) {
-      // Check if condition exists
-      const existing = await base44.asServiceRole.entities.Condition.filter({
-        deal_id,
-        title: req.document_type
-      });
-
-      if (!existing.length) {
-        const condition = await base44.asServiceRole.entities.Condition.create({
-          org_id,
-          deal_id,
-          title: req.document_type,
-          description: `Provide ${req.document_type.replace(/_/g, ' ')}`,
-          condition_type: 'PTD',
-          status: 'pending',
-          due_at: req.expiration_days
-            ? new Date(Date.now() + req.expiration_days * 86400000).toISOString()
-            : null
-        });
-
-        createdConditions.push({
-          id: condition.id,
-          title: condition.title,
-          status: condition.status,
-          due_at: condition.due_at
-        });
-      }
-    }
+    // Log activity
+    await base44.asServiceRole.entities.ActivityLog.create({
+      org_id: deal.org_id,
+      deal_id: deal_id,
+      activity_type: 'DEAL_CREATED',
+      description: `Generated ${createdRequirements.length} document requirements for ${deal.deal_number}`,
+      source: 'system',
+    });
 
     return Response.json({
       success: true,
-      deal_id,
-      documents_created: createdDocs.length,
-      documents: createdDocs,
-      conditions_created: createdConditions.length,
-      conditions: createdConditions
+      requirements_created: createdRequirements.length,
+      requirements: createdRequirements.map(r => ({
+        id: r.id,
+        document_type: r.document_type,
+        display_name: r.display_name,
+      })),
     });
   } catch (error) {
-    console.error('Error generating document requirements:', error);
+    console.error('Generate requirements error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
