@@ -170,41 +170,72 @@ export default function Conversations() {
             </h1>
             <p className="text-sm text-slate-500 mt-1">{filtered.length} active • {conversations.reduce((sum, c) => sum + c.unread, 0)} unread</p>
           </div>
-          <Dialog>
+          <Dialog open={showContactMethodModal} onOpenChange={setShowContactMethodModal}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700 gap-2">
+              <Button className="bg-blue-600 hover:bg-blue-700 gap-2 shadow-lg">
                 <Plus className="h-4 w-4" />
-                Start Conversation
+                New Conversation
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>New Conversation</DialogTitle>
+                <DialogTitle className="text-xl">Start New Conversation</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-slate-700">Email Address</label>
-                  <Input
-                    placeholder="Enter email"
-                    value={newContactEmail}
-                    onChange={(e) => setNewContactEmail(e.target.value)}
-                  />
+              <div className="space-y-4 mt-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700">Select Contact or Lead</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      placeholder="Search by name, email, or phone..."
+                      value={newContactEmail}
+                      onChange={(e) => setNewContactEmail(e.target.value)}
+                      className="pl-10 h-11"
+                    />
+                  </div>
                 </div>
-                <Button 
-                  className="w-full bg-blue-600"
-                  onClick={() => {
-                    if (newContactEmail.trim()) {
-                      setSelectedConversation(conversations.find(c => c.contact === newContactEmail) || {
-                        contact: newContactEmail,
-                        messages: [],
-                        unread: 0,
-                      });
-                      setNewContactEmail('');
-                    }
-                  }}
-                >
-                  Start Conversation
-                </Button>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700">Choose Contact Method</label>
+                  <div className="grid grid-cols-3 gap-3">
+                    <button
+                      onClick={() => {
+                        if (newContactEmail.trim()) {
+                          startConversationWithMethod(newContactEmail, 'email');
+                          setNewContactEmail('');
+                        }
+                      }}
+                      className="p-4 rounded-lg border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-all flex flex-col items-center gap-2 group"
+                    >
+                      <Mail className="h-6 w-6 text-blue-600 group-hover:scale-110 transition-transform" />
+                      <span className="text-sm font-semibold text-slate-700">Email</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (newContactEmail.trim()) {
+                          startConversationWithMethod(newContactEmail, 'sms');
+                          setNewContactEmail('');
+                        }
+                      }}
+                      className="p-4 rounded-lg border-2 border-slate-200 hover:border-green-500 hover:bg-green-50 transition-all flex flex-col items-center gap-2 group"
+                    >
+                      <Phone className="h-6 w-6 text-green-600 group-hover:scale-110 transition-transform" />
+                      <span className="text-sm font-semibold text-slate-700">SMS</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (newContactEmail.trim()) {
+                          startConversationWithMethod(newContactEmail, 'facebook');
+                          setNewContactEmail('');
+                        }
+                      }}
+                      className="p-4 rounded-lg border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-all flex flex-col items-center gap-2 group"
+                    >
+                      <Facebook className="h-6 w-6 text-blue-500 group-hover:scale-110 transition-transform" />
+                      <span className="text-sm font-semibold text-slate-700">Messenger</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </DialogContent>
           </Dialog>
