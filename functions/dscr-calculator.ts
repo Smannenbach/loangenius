@@ -77,14 +77,16 @@ export function calculateDSCR(property, loanAmount, annualRate, termMonths) {
 }
 
 /**
- * Calculate LTV
+ * Calculate LTV with precision
  * LTV = Loan Amount / Property Value (or Purchase Price)
  */
 export function calculateLTV(loanAmount, propertyValue) {
   if (!loanAmount || !propertyValue || propertyValue === 0) return 0;
 
-  const ltv = (loanAmount / propertyValue) * 100;
-  return parseFloat(ltv.toFixed(2));
+  const loan = toDecimal(loanAmount);
+  const value = toDecimal(propertyValue);
+
+  return parseFloat(loan.dividedBy(value).times(100).toDecimalPlaces(2).toString());
 }
 
 /**
