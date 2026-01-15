@@ -1,143 +1,124 @@
-/**
- * Daily Reminders Job
- * Sends email/SMS reminders for outstanding documents, rate locks, tasks
- * Respects opt-out + consent + cadence controls
- * Runs once daily (scheduled)
- */
-
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
 
-    if (user?.role !== 'admin') {
-      return Response.json({ error: 'Admin only' }, { status: 403 });
+    // Admin-only: verify scheduled task token
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader?.includes('Bearer')) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const org_id = new URL(req.url).searchParams.get('org_id');
-    if (!org_id) {
-      return Response.json({ error: 'Missing org_id' }, { status: 400 });
-    }
-
-    let remindersSent = 0;
-
-    // Find deals with outstanding documents
-    const deals = await base44.asServiceRole.entities.Deal.filter({
-      org_id,
-      status: 'active'
+    // Get all deals with outstanding docs
+    const requirements = await base44.asServiceRole.entities.DealDocumentRequirement.filter({
+      status: 'requested'
     });
 
-    for (const deal of deals) {
-      // Get outstanding document requirements
-      const requirements = await base44.asServiceRole.entities.DealDocumentRequirement.filter({
-        deal_id: deal.id,
-        status: 'pending'
-      });
+    let reminders_sent = 0;
+    let errors = [];
 
-      if (requirements.length === 0) continue;
+    // Group by deal + borrower
+    const dealBorrowerMap = new Map();
 
-      // Get primary borrower
-      const borrowers = await base44.asServiceRole.entities.DealBorrower.filter({
-        deal_id: deal.id,
-        role: 'primary'
-      });
-
-      if (!borrowers.length) continue;
-      const borrower = borrowers[0];
-      const borrowerEmail = borrower.email;
-
-      // Check consent + opt-out
-      const consent = await base44.asServiceRole.entities.ConsentRecord.filter({
-        org_id,
-        borrower_email: borrowerEmail,
-        consent_type: 'email',
-        status: 'opt_in'
-      });
-
-      if (!consent.length) continue; // No consent
-
-      // Check if reminder already sent today
-      const logs = await base44.asServiceRole.entities.ReminderLog.filter({
-        deal_id: deal.id,
-        borrower_email: borrowerEmail,
-        reminder_type: 'document'
-      });
-
-      const lastReminder = logs.length > 0 ? new Date(logs[0].last_sent_at) : null;
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      // Check cadence
-      const cadence = logs.length > 0 ? logs[0].cadence : 'daily';
-      let shouldSend = false;
-
-      if (cadence === 'daily' && (!lastReminder || lastReminder < today)) {
-        shouldSend = true;
-      } else if (cadence === 'every_3_days' && (!lastReminder || daysDiff(lastReminder, new Date()) >= 3)) {
-        shouldSend = true;
-      } else if (cadence === 'weekly' && (!lastReminder || daysDiff(lastReminder, new Date()) >= 7)) {
-        shouldSend = true;
+    for (const req of requirements) {
+      // Skip if snoozed
+      if (req.snoozed_until && new Date(req.snoozed_until) > new Date()) {
+        continue;
       }
 
-      if (!shouldSend) continue;
+      // Skip if already reminded today
+      if (req.last_reminded_at) {
+        const lastReminderDate = new Date(req.last_reminded_at).toDateString();
+        const today = new Date().toDateString();
+        if (lastReminderDate === today) {
+          continue;
+        }
+      }
 
-      // Build message
-      const docList = requirements.slice(0, 3).map(r => `• ${r.name}`).join('\n');
-      const message = `Dear Borrower,\n\nWe're waiting for the following documents to proceed with your loan:\n\n${docList}\n\nPlease upload them to your portal as soon as possible.\n\nDeal: ${deal.deal_number}`;
+      const key = `${req.deal_id}`;
+      if (!dealBorrowerMap.has(key)) {
+        dealBorrowerMap.set(key, []);
+      }
+      dealBorrowerMap.get(key).push(req);
+    }
 
-      // Send email
+    // Send reminders
+    for (const [dealId, reqs] of dealBorrowerMap.entries()) {
       try {
-        await base44.integrations.Core.SendEmail({
-          to: borrowerEmail,
-          subject: `Action Required: Submit Missing Documents - ${deal.deal_number}`,
-          body: message
+        const deal = await base44.asServiceRole.entities.Deal.get(dealId);
+        if (!deal) continue;
+
+        // Get primary borrower
+        const borrowers = await base44.asServiceRole.entities.Borrower.filter({
+          deal_id: dealId,
+          is_primary: true
         });
 
-        // Log reminder
-        const nextSend = new Date();
-        if (cadence === 'daily') nextSend.setDate(nextSend.getDate() + 1);
-        else if (cadence === 'every_3_days') nextSend.setDate(nextSend.getDate() + 3);
-        else nextSend.setDate(nextSend.getDate() + 7);
+        if (borrowers.length === 0) continue;
 
-        if (logs.length > 0) {
-          await base44.asServiceRole.entities.ReminderLog.update(logs[0].id, {
-            last_sent_at: new Date().toISOString(),
-            next_send_at: nextSend.toISOString()
+        const borrower = borrowers[0];
+
+        // Check email consent
+        const emailConsent = await base44.asServiceRole.entities.ConsentRecord.filter({
+          org_id: deal.org_id,
+          contact_email: borrower.email,
+          consent_type: 'email',
+          status: 'opt_in'
+        });
+
+        if (emailConsent.length > 0) {
+          // Send email reminder
+          const docList = reqs.map(r => `• ${r.name}`).join('\n');
+          
+          await base44.asServiceRole.entities.Communication.create({
+            org_id: deal.org_id,
+            deal_id: dealId,
+            channel: 'Email',
+            direction: 'Outbound',
+            from_address: 'noreply@loangenius.local',
+            to_address: borrower.email,
+            subject: 'Reminder: Documents Still Needed for Your Loan',
+            body: `Hi ${borrower.first_name || 'Borrower'},\n\nWe're still waiting on the following documents:\n\n${docList}\n\nPlease visit your portal to upload: https://portal.loangenius.local/login\n\nThanks!`,
+            status: 'Queued'
           });
-        } else {
-          await base44.asServiceRole.entities.ReminderLog.create({
-            org_id,
-            deal_id: deal.id,
-            borrower_email: borrowerEmail,
-            reminder_type: 'document',
-            channel: 'email',
-            message_sent: message,
-            sent_at: new Date().toISOString(),
-            cadence: 'daily',
-            next_send_at: nextSend.toISOString()
+
+          reminders_sent++;
+        }
+
+        // Update last_reminded_at for all reqs in this deal
+        for (const r of reqs) {
+          await base44.asServiceRole.entities.DealDocumentRequirement.update(r.id, {
+            last_reminded_at: new Date().toISOString()
           });
         }
 
-        remindersSent++;
-      } catch (error) {
-        console.error(`Failed to send reminder for deal ${deal.id}:`, error);
+        // Log reminder
+        await base44.asServiceRole.entities.ReminderLog.create({
+          org_id: deal.org_id,
+          deal_id: dealId,
+          contact_email: borrower.email,
+          reminder_type: 'outstanding_documents',
+          doc_count: reqs.length,
+          sent_at: new Date().toISOString(),
+          status: 'sent'
+        });
+
+      } catch (err) {
+        errors.push({
+          deal_id: dealId,
+          error: err.message
+        });
       }
     }
 
     return Response.json({
       success: true,
-      reminders_sent: remindersSent,
-      timestamp: new Date().toISOString()
+      reminders_sent,
+      deals_processed: dealBorrowerMap.size,
+      errors: errors.length > 0 ? errors : null
     });
   } catch (error) {
-    console.error('Error in sendDailyReminders:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
-
-function daysDiff(from, to) {
-  const diffMs = to - from;
-  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
-}

@@ -41,6 +41,7 @@ import AdminAIProviders from './pages/AdminAIProviders';
 import DocumentIntelligence from './pages/DocumentIntelligence';
 import BorrowerPortalHome from './pages/BorrowerPortalHome';
 import AdminPortalPreview from './pages/AdminPortalPreview';
+import ConsentManagement from './pages/ConsentManagement';
 import __Layout from './Layout.jsx';
 
 
@@ -88,6 +89,7 @@ export const PAGES = {
     "DocumentIntelligence": DocumentIntelligence,
     "BorrowerPortalHome": BorrowerPortalHome,
     "AdminPortalPreview": AdminPortalPreview,
+    "ConsentManagement": ConsentManagement,
 }
 
 export const pagesConfig = {
