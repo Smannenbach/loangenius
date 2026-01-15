@@ -22,6 +22,7 @@ export default function AIAssistant() {
     }
   ]);
   const [input, setInput] = useState('');
+  const [inputError, setInputError] = useState('');
   const scrollRef = useRef(null);
 
   const { data: aiStatus, isLoading: statusLoading } = useQuery({
