@@ -31,6 +31,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import FeesTab from '@/components/deal-detail/FeesTab';
+import DealCalculator from '@/components/deal-wizard/DealCalculator';
 
 export default function DealDetail() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -47,7 +48,30 @@ export default function DealDetail() {
 
   const { data: properties = [] } = useQuery({
     queryKey: ['deal-properties', dealId],
-    queryFn: () => base44.entities.Property.filter({ deal_id: dealId }),
+    queryFn: async () => {
+      if (!dealId) return [];
+      const dealProps = await base44.entities.DealProperty.filter({ deal_id: dealId });
+      const propertyIds = dealProps.map(dp => dp.property_id);
+      if (!propertyIds.length) return [];
+      const props = await base44.entities.Property.filter({ id: { $in: propertyIds } });
+      return props;
+    },
+    enabled: !!dealId,
+  });
+
+  const { data: borrowers = [] } = useQuery({
+    queryKey: ['deal-borrowers', dealId],
+    queryFn: async () => {
+      if (!dealId) return [];
+      const dealBorrs = await base44.entities.DealBorrower.filter({ deal_id: dealId });
+      const borrowerIds = dealBorrs.map(db => db.borrower_id);
+      if (!borrowerIds.length) return [];
+      const borrs = await base44.entities.Borrower.filter({ id: { $in: borrowerIds } });
+      return borrs.map(b => ({
+        ...b,
+        dealRole: dealBorrs.find(db => db.borrower_id === b.id)?.role
+      }));
+    },
     enabled: !!dealId,
   });
 
@@ -153,44 +177,12 @@ export default function DealDetail() {
         </CardContent>
       </Card>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card className="border-gray-200">
-          <CardContent className="p-4">
-            <div className="text-sm text-gray-500 mb-1">Loan Amount</div>
-            <div className="text-xl font-semibold text-gray-900">
-              ${(deal.loan_amount || 0).toLocaleString()}
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-gray-200">
-          <CardContent className="p-4">
-            <div className="text-sm text-gray-500 mb-1">Interest Rate</div>
-            <div className="text-xl font-semibold text-gray-900">
-              {deal.interest_rate ? `${deal.interest_rate}%` : '-'}
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-gray-200">
-          <CardContent className="p-4">
-            <div className="text-sm text-gray-500 mb-1">LTV</div>
-            <div className="text-xl font-semibold text-gray-900">
-              {deal.ltv_ratio ? `${deal.ltv_ratio.toFixed(1)}%` : '-'}
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-gray-200">
-          <CardContent className="p-4">
-            <div className="text-sm text-gray-500 mb-1">DSCR</div>
-            <div className={`text-xl font-semibold ${
-              deal.dscr_ratio >= 1.25 ? 'text-green-600' : 
-              deal.dscr_ratio >= 1.0 ? 'text-yellow-600' : 'text-red-600'
-            }`}>
-              {deal.dscr_ratio ? deal.dscr_ratio.toFixed(2) : '-'}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Calculator */}
+      {properties.length > 0 && (
+        <div className="mb-6">
+          <DealCalculator deal={deal} properties={properties} />
+        </div>
+      )}
 
       {/* Tabs */}
       <Tabs defaultValue="overview">
@@ -366,7 +358,35 @@ export default function DealDetail() {
               <CardTitle className="text-lg">Borrowers & Entities</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-500 text-center py-8">Borrower information coming soon</p>
+              {borrowers.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">No borrowers added</p>
+              ) : (
+                <div className="space-y-3">
+                  {borrowers.map((borrower) => (
+                    <div key={borrower.id} className="flex items-start justify-between p-4 bg-gray-50 rounded-lg border">
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">
+                          {borrower.first_name && borrower.last_name
+                            ? `${borrower.first_name} ${borrower.last_name}`
+                            : borrower.entity_name}
+                        </div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          {borrower.email && <div>{borrower.email}</div>}
+                          {borrower.phone && <div>{borrower.phone}</div>}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-blue-600 capitalize">
+                          {borrower.dealRole?.replace(/_/g, ' ')}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {borrower.borrower_type === 'individual' ? 'Individual' : 'Entity'}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
