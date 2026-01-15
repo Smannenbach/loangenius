@@ -67,12 +67,17 @@ export default function AIAssistant() {
   }, [messages]);
 
   const handleSend = () => {
-    if (!input.trim() || aiStatus?.data?.status === 'degraded') return;
-
-    setMessages(prev => [...prev, {
-      role: 'user',
-      content: input
-    }]);
+    setInputError('');
+    
+    if (!input.trim()) {
+      setInputError('Please enter a message');
+      return;
+    }
+    
+    if (aiStatus?.data?.status === 'degraded') {
+      setInputError('AI service is currently unavailable');
+      return;
+    }
 
     chatMutation.mutate(input);
   };
