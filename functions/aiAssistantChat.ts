@@ -29,11 +29,24 @@ export default Deno.serve(async (req) => {
          Help with: understanding loan terms, document requirements, application status, required documents, 
          and general mortgage questions. Be helpful, clear, and reassuring.`;
 
-    // Fetch deal context if provided
+    // Get user's org for context isolation
+    const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+      user_id: user.email,
+    });
+    if (memberships.length === 0) {
+      return Response.json({ error: 'User not part of any organization' }, { status: 403 });
+    }
+    const user_org_id = memberships[0].org_id;
+
+    // Fetch deal context if provided - verify org isolation
     let dealContext = '';
     if (deal_id) {
-      const deal = await base44.entities.Deal.get(deal_id);
-      if (deal) {
+      const deals = await base44.asServiceRole.entities.Deal.filter({
+        id: deal_id,
+        org_id: user_org_id
+      });
+      if (deals.length > 0) {
+        const deal = deals[0];
         dealContext = `\n\nCurrent Deal Context:\n- Loan Amount: $${deal.loan_amount?.toLocaleString()}\n- Product: ${deal.loan_product}\n- Status: ${deal.status}`;
       }
     }
