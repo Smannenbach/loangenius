@@ -40,9 +40,9 @@ Deno.serve(async (req) => {
 
     const deal = deals[0];
 
-    const borrowers = await base44.asServiceRole.entities.DealBorrower.filter({ deal_id });
-    const properties = await base44.asServiceRole.entities.DealProperty.filter({ deal_id });
-    const fees = await base44.asServiceRole.entities.DealFee.filter({ deal_id });
+    const borrowers = await base44.asServiceRole.entities.DealBorrower.filter({ deal_id, org_id });
+    const properties = await base44.asServiceRole.entities.DealProperty.filter({ deal_id, org_id });
+    const fees = await base44.asServiceRole.entities.DealFee.filter({ deal_id, org_id });
 
     // Validate required fields
     const validationErrors = [];
