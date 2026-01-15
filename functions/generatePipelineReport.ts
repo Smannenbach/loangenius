@@ -1,9 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-/**
- * Generate pipeline report - deal count/value by stage with days in stage
- */
 Deno.serve(async (req) => {
+  if (req.method !== 'POST') {
+    return Response.json({ error: 'Method not allowed' }, { status: 405 });
+  }
+
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -12,67 +13,63 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { as_of_date, org_id } = await req.json();
+    const { filter_stage, filter_product } = await req.json();
 
-    const startTime = performance.now();
+    // Get deals
+    const deals = await base44.entities.Deal.filter({});
 
-    // Get all active deals
-    const deals = await base44.asServiceRole.entities.Deal.filter({
-      org_id,
-    });
+    // Apply filters
+    let filtered = deals;
+    if (filter_stage) {
+      filtered = filtered.filter(d => d.status === filter_stage);
+    }
+    if (filter_product) {
+      filtered = filtered.filter(d => d.loan_product === filter_product);
+    }
 
-    const activeDealStages = ['inquiry', 'application', 'processing', 'underwriting', 'approved', 'closing'];
+    // Calculate pipeline metrics
+    const reportData = filtered.map(d => ({
+      id: d.id,
+      deal_name: d.deal_name,
+      loan_amount: d.loan_amount,
+      loan_product: d.loan_product,
+      status: d.status,
+      stage_percent: getStagePercent(d.status),
+      created_date: d.created_date,
+      days_in_pipeline: Math.floor((Date.now() - new Date(d.created_date)) / (1000 * 60 * 60 * 24))
+    }));
 
-    const byStage = activeDealStages.map(stage => {
-      const stageDeals = deals.filter(d => d.stage === stage);
-      const daysInStage = stageDeals.map(d => {
-        const dealUpdated = new Date(d.updated_date);
-        const asOf = new Date(as_of_date);
-        return Math.floor((asOf - dealUpdated) / (1000 * 60 * 60 * 24));
-      });
-
-      const avgDays = daysInStage.length > 0 ? Math.round(daysInStage.reduce((a, b) => a + b) / daysInStage.length) : 0;
-      const volume = stageDeals.reduce((sum, d) => sum + (d.loan_amount || 0), 0);
-
-      return {
-        stage,
-        count: stageDeals.length,
-        volume,
-        avg_loan_amount: stageDeals.length > 0 ? Math.round(volume / stageDeals.length) : 0,
-        avg_days_in_stage: avgDays,
-      };
-    });
-
-    const totalCount = byStage.reduce((sum, s) => sum + s.count, 0);
-    const totalVolume = byStage.reduce((sum, s) => sum + s.volume, 0);
-
-    const execTime = performance.now() - startTime;
-
-    // Log report run
-    await base44.asServiceRole.entities.ReportRun.create({
-      org_id,
-      report_type: 'pipeline',
-      start_date: as_of_date,
-      end_date: as_of_date,
-      filters_applied: {},
+    // Create report record
+    const report = await base44.asServiceRole.entities.ReportRun.create({
+      org_id: user.org_id || 'default',
+      report_type: 'PIPELINE',
+      report_name: `Pipeline Report - ${new Date().toLocaleDateString()}`,
+      filters_json: { filter_stage, filter_product },
+      data_json: reportData,
+      total_rows: reportData.length,
+      total_value: reportData.reduce((sum, r) => sum + (r.loan_amount || 0), 0),
       generated_by: user.email,
-      row_count: totalCount,
-      execution_ms: Math.round(execTime),
+      generated_at: new Date().toISOString()
     });
 
     return Response.json({
-      success: true,
-      report: {
-        as_of_date,
-        total_active: totalCount,
-        total_volume: totalVolume,
-        by_stage: byStage,
-        generated_at: new Date().toISOString(),
-        execution_ms: Math.round(execTime),
-      },
+      report_id: report.id,
+      report_name: report.report_name,
+      total_deals: reportData.length,
+      total_pipeline_value: report.total_value,
+      data: reportData.slice(0, 50) // Return first 50 for preview
     });
   } catch (error) {
-    console.error('Error generating pipeline report:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
+
+function getStagePercent(status) {
+  const stages = {
+    draft: 10,
+    in_progress: 50,
+    submitted: 80,
+    completed: 100
+  };
+  return stages[status] || 0;
+}

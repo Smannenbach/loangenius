@@ -1,9 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-/**
- * Generate production report - funded volume, count, avg loan size by period
- */
 Deno.serve(async (req) => {
+  if (req.method !== 'POST') {
+    return Response.json({ error: 'Method not allowed' }, { status: 405 });
+  }
+
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -12,86 +13,54 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { start_date, end_date, group_by = 'month', org_id } = await req.json();
+    const { time_period = '30' } = await req.json(); // days
 
-    const startTime = performance.now();
+    const daysAgo = parseInt(time_period);
+    const startDate = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString();
 
-    // Get all funded deals in date range
-    const deals = await base44.asServiceRole.entities.Deal.filter({
-      org_id,
-      stage: 'funded',
-    });
+    // Get completed deals
+    const deals = await base44.entities.Deal.filter({ status: 'completed' });
+    const recentCompleted = deals.filter(d => new Date(d.updated_date) >= new Date(startDate));
 
-    // Filter by date
-    const fundedDeals = deals.filter(d => {
-      const dealDate = new Date(d.updated_date);
-      return dealDate >= new Date(start_date) && dealDate <= new Date(end_date);
-    });
+    // Production metrics
+    const reportData = recentCompleted.map(d => ({
+      id: d.id,
+      deal_name: d.deal_name,
+      loan_amount: d.loan_amount,
+      loan_product: d.loan_product,
+      completed_date: d.updated_date,
+      days_to_close: Math.floor((new Date(d.updated_date) - new Date(d.created_date)) / (1000 * 60 * 60 * 24))
+    }));
 
-    let grouped = {};
+    const totalProduction = reportData.reduce((sum, r) => sum + (r.loan_amount || 0), 0);
+    const avgDaysToClose = reportData.length > 0 
+      ? reportData.reduce((sum, r) => sum + r.days_to_close, 0) / reportData.length
+      : 0;
 
-    if (group_by === 'month') {
-      fundedDeals.forEach(d => {
-        const month = new Date(d.updated_date).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' });
-        if (!grouped[month]) grouped[month] = [];
-        grouped[month].push(d);
-      });
-    } else if (group_by === 'product') {
-      fundedDeals.forEach(d => {
-        const product = d.loan_product || 'Unknown';
-        if (!grouped[product]) grouped[product] = [];
-        grouped[product].push(d);
-      });
-    } else if (group_by === 'state') {
-      // Would need to join with property table; simplified here
-      fundedDeals.forEach(d => {
-        const state = d.state || 'Unknown';
-        if (!grouped[state]) grouped[state] = [];
-        grouped[state].push(d);
-      });
-    }
-
-    const byGroup = Object.entries(grouped).map(([groupName, groupDeals]) => {
-      const volume = groupDeals.reduce((sum, d) => sum + (d.loan_amount || 0), 0);
-      const avgSize = groupDeals.length > 0 ? volume / groupDeals.length : 0;
-
-      return {
-        group: groupName,
-        count: groupDeals.length,
-        volume,
-        avg_size: Math.round(avgSize),
-      };
-    });
-
-    const totalVolume = fundedDeals.reduce((sum, d) => sum + (d.loan_amount || 0), 0);
-    const execTime = performance.now() - startTime;
-
-    // Log report run
-    await base44.asServiceRole.entities.ReportRun.create({
-      org_id,
-      report_type: 'production',
-      start_date,
-      end_date,
-      filters_applied: { group_by },
+    // Create report
+    const report = await base44.asServiceRole.entities.ReportRun.create({
+      org_id: user.org_id || 'default',
+      report_type: 'PRODUCTION',
+      report_name: `Production Report - ${new Date().toLocaleDateString()}`,
+      filters_json: { period_days: daysAgo },
+      data_json: reportData,
+      total_rows: reportData.length,
+      total_value: totalProduction,
+      metadata_json: { avg_days_to_close: Math.round(avgDaysToClose * 10) / 10 },
       generated_by: user.email,
-      row_count: fundedDeals.length,
-      execution_ms: Math.round(execTime),
+      generated_at: new Date().toISOString()
     });
 
     return Response.json({
-      success: true,
-      report: {
-        period: { start: start_date, end: end_date },
-        total_funded: fundedDeals.length,
-        total_volume: totalVolume,
-        avg_loan_size: fundedDeals.length > 0 ? Math.round(totalVolume / fundedDeals.length) : 0,
-        by_group: byGroup,
-        generated_at: new Date().toISOString(),
-        execution_ms: Math.round(execTime),
-      },
+      report_id: report.id,
+      report_name: report.report_name,
+      period_days: daysAgo,
+      total_completed: reportData.length,
+      total_production: totalProduction,
+      avg_days_to_close: Math.round(avgDaysToClose * 10) / 10,
+      data: reportData
     });
   } catch (error) {
-    console.error('Error generating production report:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
