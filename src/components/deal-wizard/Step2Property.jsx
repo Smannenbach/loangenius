@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
-import { X } from 'lucide-react';
+import { X, Home } from 'lucide-react';
 import WizardStep from './WizardStep';
 
 const US_STATES = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'];
@@ -15,8 +15,14 @@ export default function Step2Property({ data, onChange, onNext, onPrev, isBlanke
   const [currentProperty, setCurrentProperty] = useState({});
 
   const addProperty = () => {
-    if (!currentProperty.street || !currentProperty.city || !currentProperty.state || !currentProperty.zip) {
-      alert('Please fill in required fields');
+    const errors = [];
+    if (!currentProperty.street) errors.push('Street address');
+    if (!currentProperty.city) errors.push('City');
+    if (!currentProperty.state) errors.push('State');
+    if (!currentProperty.zip) errors.push('ZIP code');
+    
+    if (errors.length > 0) {
+      alert(`Missing required fields: ${errors.join(', ')}`);
       return;
     }
     const properties = [...(data.properties || []), { ...currentProperty, id: Date.now() }];
@@ -136,22 +142,30 @@ export default function Step2Property({ data, onChange, onNext, onPrev, isBlanke
         )}
 
         {/* Property List */}
-        {isBlanket && data.properties && data.properties.length > 0 && (
-          <div className="space-y-3">
-            <Label className="font-semibold">Added Properties ({data.properties.length})</Label>
-            {data.properties.map(prop => (
-              <Card key={prop.id} className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{prop.street}</p>
-                  <p className="text-sm text-gray-500">{prop.city}, {prop.state} {prop.zip}</p>
-                </div>
-                <button onClick={() => removeProperty(prop.id)} className="text-red-500 hover:text-red-700">
-                  <X className="h-5 w-5" />
-                </button>
-              </Card>
-            ))}
-          </div>
-        )}
+         {isBlanket && data.properties && data.properties.length > 0 && (
+           <div className="space-y-3">
+             <Label className="font-semibold">Added Properties ({data.properties.length})</Label>
+             {data.properties.map(prop => (
+               <Card key={prop.id} className="p-4">
+                 <div className="flex items-start gap-4">
+                   <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                     <Home className="h-5 w-5 text-blue-600" />
+                   </div>
+                   <div className="flex-1">
+                     <p className="font-medium text-gray-900">{prop.street}</p>
+                     <p className="text-sm text-gray-600">{prop.city}, {prop.state} {prop.zip}</p>
+                     {prop.propertyType && (
+                       <p className="text-xs text-gray-500 mt-1">{prop.propertyType}</p>
+                     )}
+                   </div>
+                   <button onClick={() => removeProperty(prop.id)} className="text-red-500 hover:text-red-700 flex-shrink-0 mt-1">
+                     <X className="h-5 w-5" />
+                   </button>
+                 </div>
+               </Card>
+             ))}
+           </div>
+         )}
       </div>
     </WizardStep>
   );

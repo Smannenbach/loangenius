@@ -120,20 +120,25 @@ export default function BorrowerPortal() {
   const uploadedCount = allRequirements.filter(r => r.status === 'uploaded' || r.status === 'under_review').length;
 
   const tabs = [
-    { id: 'status', label: 'Status', icon: ClipboardList, count: null },
-    { id: 'documents', label: 'Documents', icon: FileText, count: pendingCount },
-    { id: 'messages', label: 'Messages', icon: MessageSquare, count: messages?.length || 0 },
+    { id: 'status', label: 'Status', icon: ClipboardList, count: null, badge: false },
+    { id: 'documents', label: 'Documents', icon: FileText, count: pendingCount, badge: pendingCount > 0 },
+    { id: 'messages', label: 'Messages', icon: MessageSquare, count: messages?.length || 0, badge: messages?.length > 0 },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-6 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+      {/* Modern Header */}
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+        <div className="max-w-6xl mx-auto px-6 py-5">
           <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">Your Loan Application</h1>
-              <p className="text-sm text-slate-600 mt-1">Deal #{deal?.deal_number || 'Loading...'}</p>
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                <FileText className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">Loan Application</h1>
+                <p className="text-xs text-slate-500 mt-0.5">ID: {deal?.deal_number || 'Loading...'}</p>
+              </div>
             </div>
             <Button
               variant="outline"
@@ -147,48 +152,67 @@ export default function BorrowerPortal() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
-        {/* Progress Section */}
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg">Application Progress</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <PortalProgressBar
-              stage={deal?.stage}
-              progress={progress}
-              stageLabel={deal?.stage?.replace(/_/g, ' ').toUpperCase()}
-            />
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{completedCount}</div>
-                <p className="text-sm text-slate-600 mt-1">Approved</p>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">{uploadedCount}</div>
-                <p className="text-sm text-slate-600 mt-1">Under Review</p>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-red-600">{pendingCount}</div>
-                <p className="text-sm text-slate-600 mt-1">Pending</p>
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Progress Overview Card */}
+        <Card className="border-slate-200 shadow-md mb-6">
+          <CardContent className="pt-6">
+            <div className="space-y-6">
+              {/* Progress Bar */}
+              <PortalProgressBar
+                stage={deal?.stage}
+                progress={progress}
+                stageLabel={deal?.stage?.replace(/_/g, ' ').toUpperCase()}
+              />
+              
+              {/* Stats Grid */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="h-6 w-6 text-green-600" />
+                    <div>
+                      <div className="text-2xl font-bold text-green-700">{completedCount}</div>
+                      <p className="text-xs text-green-600 font-medium">Approved</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg border border-orange-200">
+                  <div className="flex items-center gap-3">
+                    <Clock className="h-6 w-6 text-orange-600" />
+                    <div>
+                      <div className="text-2xl font-bold text-orange-700">{uploadedCount}</div>
+                      <p className="text-xs text-orange-600 font-medium">Under Review</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 bg-gradient-to-br from-red-50 to-red-100 rounded-lg border border-red-200">
+                  <div className="flex items-center gap-3">
+                    <AlertTriangle className="h-6 w-6 text-red-600" />
+                    <div>
+                      <div className="text-2xl font-bold text-red-700">{pendingCount}</div>
+                      <p className="text-xs text-red-600 font-medium">Action Needed</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Alerts */}
+        {/* Alert Banner */}
         {pendingCount > 0 && (
-          <div className="flex gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="font-medium text-amber-900">Action Required</p>
-              <p className="text-sm text-amber-800 mt-1">You have {pendingCount} pending document requirement{pendingCount !== 1 ? 's' : ''}. Please upload them as soon as possible to keep your application moving.</p>
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-300 rounded-lg shadow-sm">
+            <div className="flex gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-amber-900">Action Required</p>
+                <p className="text-sm text-amber-800 mt-1">{pendingCount} document{pendingCount !== 1 ? 's' : ''} need attention. Upload them to keep your application moving.</p>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Tab Navigation */}
-        <div className="flex gap-2 bg-white p-1 rounded-lg border border-slate-200">
+        {/* Tabs with Badges */}
+        <div className="flex gap-1 bg-white p-1.5 rounded-lg border border-slate-200 mb-6 shadow-sm">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -196,17 +220,17 @@ export default function BorrowerPortal() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-md font-medium text-sm transition-all ${
+                className={`relative flex items-center gap-2 px-5 py-2.5 rounded-md font-medium text-sm transition-all ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-50'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-slate-700 hover:bg-slate-50'
                 }`}
               >
                 <Icon className="h-4 w-4" />
                 <span>{tab.label}</span>
-                {tab.count !== null && tab.count > 0 && (
-                  <span className={`ml-1 px-2 py-0.5 text-xs rounded-full font-semibold ${
-                    isActive ? 'bg-blue-500' : 'bg-slate-200 text-slate-700'
+                {tab.badge && (
+                  <span className={`ml-1 h-5 w-5 rounded-full text-xs font-bold flex items-center justify-center ${
+                    isActive ? 'bg-blue-500 text-white' : 'bg-red-500 text-white'
                   }`}>
                     {tab.count}
                   </span>
@@ -217,7 +241,7 @@ export default function BorrowerPortal() {
         </div>
 
         {/* Tab Content */}
-        <div className="space-y-6">
+        <div>
           {activeTab === 'status' && (
             <PortalRequirementsTab requirements={requirements} sessionId={sessionId} />
           )}
