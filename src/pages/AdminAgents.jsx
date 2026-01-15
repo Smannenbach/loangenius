@@ -247,10 +247,10 @@ export default function AdminAgents() {
                   <div className="p-3 bg-gray-50 border border-gray-200 rounded text-sm">
                     <p className="font-semibold text-gray-900 mb-2">Alert Thresholds</p>
                     <ul className="space-y-1 text-gray-700">
-                      <li>• Latency p99 > 2000ms: Warning</li>
-                      <li>• Error rate > 1%: Critical</li>
-                      <li>• Uptime < 99.5%: Warning</li>
-                      <li>• Response time increase > 30%: Info</li>
+                      <li>• Latency p99 {'>'} 2000ms: Warning</li>
+                      <li>• Error rate {'>'} 1%: Critical</li>
+                      <li>• Uptime {'<'} 99.5%: Warning</li>
+                      <li>• Response time increase {'>'} 30%: Info</li>
                     </ul>
                   </div>
                 </div>
