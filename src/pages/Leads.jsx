@@ -53,8 +53,7 @@ import { COUNTRY_CODES } from '@/components/formatters';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import QuoteGeneratorModal from '@/components/QuoteGeneratorModal';
 import LeadDetailModal from '@/components/LeadDetailModal';
-import GoogleSheetsSync from '@/components/GoogleSheetsSync';
-import ImportFromGoogleSheets from '@/components/ImportFromGoogleSheets';
+import LeadsImportModal from '@/components/LeadsImportModal';
 
 export default function Leads() {
   const queryClient = useQueryClient();
@@ -764,10 +763,9 @@ export default function Leads() {
         </Card>
       </div>
 
-      {/* Google Sheets Integration */}
-      <div className="mb-6 flex gap-2">
-        <ImportFromGoogleSheets />
-        <GoogleSheetsSync />
+      {/* Import */}
+      <div className="mb-6">
+        <LeadsImportModal onImportComplete={() => queryClient.invalidateQueries({ queryKey: ['leads'] })} />
       </div>
 
       {/* Filters & Controls */}

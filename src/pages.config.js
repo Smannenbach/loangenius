@@ -62,6 +62,7 @@ import AgentPerformanceDashboard from './pages/AgentPerformanceDashboard';
 import TestingValidationHub from './pages/TestingValidationHub';
 import AuditComplianceViewer from './pages/AuditComplianceViewer';
 import AgentKnowledgeBase from './pages/AgentKnowledgeBase';
+import ContactCreate from './pages/ContactCreate';
 import __Layout from './Layout.jsx';
 
 
@@ -130,6 +131,7 @@ export const PAGES = {
     "TestingValidationHub": TestingValidationHub,
     "AuditComplianceViewer": AuditComplianceViewer,
     "AgentKnowledgeBase": AgentKnowledgeBase,
+    "ContactCreate": ContactCreate,
 }
 
 export const pagesConfig = {
