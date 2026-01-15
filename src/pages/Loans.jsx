@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Plus, DollarSign, TrendingUp, Calendar, ChevronRight, Edit2, MoreVertical } from 'lucide-react';
+import { Search, Plus, DollarSign, TrendingUp, Calendar, ChevronRight, Edit2, MoreVertical, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import {
@@ -84,66 +84,100 @@ export default function LoansPage() {
     : 0;
 
   return (
-    <div className="p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="px-8 py-8 max-w-full">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-10">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Loans</h1>
-            <p className="text-gray-500 mt-2">Manage all active and closed loans</p>
+            <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Loan Portfolio</h1>
+            <p className="text-slate-600 mt-2 text-lg">Comprehensive view of all loans and deal pipelines</p>
           </div>
           <Link to={createPageUrl('NewDeal')}>
-            <Button className="bg-blue-600 hover:bg-blue-500">
-              <Plus className="h-4 w-4 mr-2" />
-              New Loan
+            <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg gap-2 h-12 px-6">
+              <Plus className="h-5 w-5" />
+              <span className="font-semibold">New Loan</span>
             </Button>
           </Link>
         </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card>
+        {/* KPI Cards - Premium Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-shadow">
             <CardContent className="pt-6">
-              <div className="text-sm text-gray-500">Total Pipeline</div>
-              <div className="text-2xl font-bold mt-1">${(totalPipeline / 1000000).toFixed(1)}M</div>
-              <div className="text-xs text-gray-400 mt-1">{filteredLoans.length} loans</div>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Total Pipeline</p>
+                  <p className="text-3xl font-bold text-slate-900 mt-2">${(totalPipeline / 1000000).toFixed(1)}M</p>
+                  <p className="text-xs text-slate-500 mt-2">{filteredLoans.length} active loans</p>
+                </div>
+                <div className="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <DollarSign className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card>
+
+          <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-shadow">
             <CardContent className="pt-6">
-              <div className="text-sm text-gray-500">Funded</div>
-              <div className="text-2xl font-bold mt-1 text-green-600">${(fundedAmount / 1000000).toFixed(1)}M</div>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Funded</p>
+                  <p className="text-3xl font-bold text-green-600 mt-2">${(fundedAmount / 1000000).toFixed(1)}M</p>
+                  <p className="text-xs text-slate-500 mt-2">{filteredLoans.filter(l => l.stage === 'funded').length} funded</p>
+                </div>
+                <div className="h-12 w-12 rounded-lg bg-green-100 flex items-center justify-center">
+                  <TrendingUp className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card>
+
+          <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-shadow">
             <CardContent className="pt-6">
-              <div className="text-sm text-gray-500">Avg LTV</div>
-              <div className="text-2xl font-bold mt-1">{avgLTV}%</div>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Avg LTV</p>
+                  <p className="text-3xl font-bold text-slate-900 mt-2">{avgLTV}%</p>
+                  <p className="text-xs text-slate-500 mt-2">Portfolio ratio</p>
+                </div>
+                <div className="h-12 w-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <TrendingUp className="h-6 w-6 text-purple-600" />
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card>
+
+          <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-shadow">
             <CardContent className="pt-6">
-              <div className="text-sm text-gray-500">Active Deals</div>
-              <div className="text-2xl font-bold mt-1 text-blue-600">
-                {filteredLoans.filter(l => ['underwriting', 'processing', 'closing'].includes(l.stage)).length}
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">In Progress</p>
+                  <p className="text-3xl font-bold text-blue-600 mt-2">
+                    {filteredLoans.filter(l => ['underwriting', 'processing', 'closing'].includes(l.stage)).length}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-2">Active deals</p>
+                </div>
+                <div className="h-12 w-12 rounded-lg bg-orange-100 flex items-center justify-center">
+                  <Calendar className="h-6 w-6 text-orange-600" />
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Search & Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        {/* Search & Filters - Premium Layout */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-8">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
             <Input
-              placeholder="Search by loan number, borrower, or amount..."
+              placeholder="Search loans by number, borrower, or amount..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-12 h-11 border-slate-300 bg-white shadow-sm focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-48 h-11 border-slate-300 shadow-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -159,68 +193,70 @@ export default function LoansPage() {
           </Select>
         </div>
 
-        {/* Table */}
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        {/* Table - Premium Data Grid */}
+        <Card className="border-0 shadow-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Loan #</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Loan Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Amount</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">LTV / DSCR</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Rate</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Close Date</th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase">Actions</th>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="px-8 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wide">Loan #</th>
+                  <th className="px-8 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wide">Type</th>
+                  <th className="px-8 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wide">Amount</th>
+                  <th className="px-8 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wide">Status</th>
+                  <th className="px-8 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wide">Metrics</th>
+                  <th className="px-8 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wide">Rate</th>
+                  <th className="px-8 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wide">Close Date</th>
+                  <th className="px-8 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {filteredLoans.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
-                      No loans found
+                    <td colSpan="8" className="px-8 py-12 text-center">
+                      <MessageSquare className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                      <p className="text-slate-500 font-medium">No loans found matching your criteria</p>
                     </td>
                   </tr>
                 ) : (
                   filteredLoans.map((loan) => (
                     <tr 
                       key={loan.id} 
-                      className="border-b hover:bg-gray-50 transition-colors cursor-pointer"
+                      className="hover:bg-blue-50 transition-colors cursor-pointer group"
                       onClick={() => setSelectedLoan(loan)}
                     >
-                      <td className="px-6 py-4 font-medium text-blue-600 hover:underline">
+                      <td className="px-8 py-4 font-bold text-blue-600 group-hover:text-blue-700">
                         {loan.deal_number}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 capitalize">
+                      <td className="px-8 py-4 text-sm font-medium text-slate-900 capitalize">
                         {loan.loan_product?.replace(/_/g, ' ')}
                       </td>
-                      <td className="px-6 py-4 font-medium text-gray-900">
-                        ${(loan.loan_amount / 1000).toFixed(0)}K
+                      <td className="px-8 py-4 font-semibold text-slate-900">
+                        ${(loan.loan_amount / 1000000).toFixed(2)}M
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-8 py-4">
                         <Badge className={getStatusColor(loan.stage)}>
                           {loan.stage?.replace(/_/g, ' ')}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        <div className="flex items-center gap-2">
-                          <span>{loan.ltv?.toFixed(1) || '-'}% LTV</span>
-                          <span className="text-gray-400">•</span>
-                          <span>{loan.dscr?.toFixed(2) || '-'} DSCR</span>
+                      <td className="px-8 py-4 text-sm">
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold text-slate-900">{loan.ltv?.toFixed(1) || '-'}%</span>
+                          <span className="text-slate-300">|</span>
+                          <span className="font-semibold text-slate-900">{loan.dscr?.toFixed(2) || '-'}</span>
                         </div>
+                        <p className="text-xs text-slate-500 mt-0.5">LTV • DSCR</p>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 font-medium">
+                      <td className="px-8 py-4 text-sm font-bold text-slate-900">
                         {loan.interest_rate ? `${loan.interest_rate}%` : '-'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {loan.closing_date ? new Date(loan.closing_date).toLocaleDateString() : '-'}
+                      <td className="px-8 py-4 text-sm text-slate-600">
+                        {loan.closing_date ? new Date(loan.closing_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-8 py-4 text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreVertical className="h-4 w-4 text-gray-400" />
+                            <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-slate-200">
+                              <MoreVertical className="h-4 w-4 text-slate-600" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -229,15 +265,18 @@ export default function LoansPage() {
                                 e.stopPropagation();
                                 window.location.href = createPageUrl(`DealDetail?id=${loan.id}`);
                               }}
+                              className="gap-2"
                             >
+                              <ChevronRight className="h-4 w-4" />
                               View Details
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => {
                               e.stopPropagation();
                               setSelectedLoan(loan);
                               setIsEditOpen(true);
-                            }}>
-                              Edit
+                            }} className="gap-2">
+                              <Edit2 className="h-4 w-4" />
+                              Edit Loan
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -248,7 +287,7 @@ export default function LoansPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* Loan Detail Modal */}
