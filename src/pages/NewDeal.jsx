@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   ArrowLeft,
   Building2,
@@ -28,6 +29,9 @@ import {
   Home,
   Plus,
 } from 'lucide-react';
+import DealCalculator from '../components/deal-wizard/DealCalculator';
+import BlanketAllocationPanel from '../components/deal-wizard/BlanketAllocationPanel';
+import BorrowerSelector from '../components/deal-wizard/BorrowerSelector';
 
 export default function NewDeal() {
   const navigate = useNavigate();
@@ -35,36 +39,59 @@ export default function NewDeal() {
   const [activeTab, setActiveTab] = useState('loan');
   
   const [dealData, setDealData] = useState({
-    loan_type: '',
-    loan_purpose: 'purchase',
+    loan_product: 'DSCR',
+    loan_purpose: 'Purchase',
     loan_amount: '',
-    purchase_price: '',
     interest_rate: '',
     loan_term_months: '360',
+    is_blanket: false,
     notes: '',
   });
 
-  const [propertyData, setPropertyData] = useState({
+  const [properties, setProperties] = useState([]);
+  const [currentProperty, setCurrentProperty] = useState({
     address_street: '',
     address_city: '',
     address_state: '',
     address_zip: '',
     property_type: '',
-    monthly_rent: '',
-    annual_taxes: '',
-    annual_insurance: '',
-    monthly_hoa: '',
+    gross_rent_monthly: '',
+    other_income_monthly: '',
+    taxes_monthly: '',
+    insurance_monthly: '',
+    hoa_monthly: '',
+    flood_insurance_monthly: '',
   });
 
-  const [borrowerData, setBorrowerData] = useState({
-    borrower_type: 'individual',
-    first_name: '',
-    last_name: '',
-    email: '',
-    phone: '',
-    entity_name: '',
-    credit_score: '',
-  });
+  const [borrowers, setBorrowers] = useState([]);
+  const [allocations, setAllocations] = useState([]);
+
+  const handleAddProperty = () => {
+    if (!currentProperty.address_street) return;
+    
+    const prop = {
+      id: `prop_${Date.now()}`,
+      ...currentProperty,
+      gross_rent_monthly: parseFloat(currentProperty.gross_rent_monthly) || 0,
+      taxes_monthly: parseFloat(currentProperty.taxes_monthly) / 12 || 0,
+      insurance_monthly: parseFloat(currentProperty.insurance_monthly) / 12 || 0,
+    };
+
+    setProperties([...properties, prop]);
+    setCurrentProperty({
+      address_street: '',
+      address_city: '',
+      address_state: '',
+      address_zip: '',
+      property_type: '',
+      gross_rent_monthly: '',
+      other_income_monthly: '',
+      taxes_monthly: '',
+      insurance_monthly: '',
+      hoa_monthly: '',
+      flood_insurance_monthly: '',
+    });
+  };
 
   const createDealMutation = useMutation({
     mutationFn: async () => {
@@ -73,104 +100,26 @@ export default function NewDeal() {
         throw new Error('Organization not found. Please contact support.');
       }
       const orgId = user.org_id;
-      
-      // Generate deal number
-      const dealNumber = `DL-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
-      
-      // Calculate DSCR and LTV if possible
-      const loanAmount = parseFloat(dealData.loan_amount) || 0;
-      const purchasePrice = parseFloat(dealData.purchase_price) || 0;
-      const rate = parseFloat(dealData.interest_rate) || 0;
-      const termMonths = parseInt(dealData.loan_term_months) || 360;
-      const monthlyRent = parseFloat(propertyData.monthly_rent) || 0;
-      const annualTaxes = parseFloat(propertyData.annual_taxes) || 0;
-      const annualInsurance = parseFloat(propertyData.annual_insurance) || 0;
-      const monthlyHoa = parseFloat(propertyData.monthly_hoa) || 0;
 
-      // Calculate P&I
-      const monthlyRate = rate / 100 / 12;
-      let monthlyPi = 0;
-      if (monthlyRate > 0 && loanAmount > 0) {
-        monthlyPi = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / 
-                    (Math.pow(1 + monthlyRate, termMonths) - 1);
+      if (!borrowers.length || !properties.length) {
+        throw new Error('Please add at least one borrower and property');
       }
 
-      // Calculate total monthly payment (PITI)
-      const monthlyTaxes = annualTaxes / 12;
-      const monthlyInsurance = annualInsurance / 12;
-      const totalMonthly = monthlyPi + monthlyTaxes + monthlyInsurance + monthlyHoa;
-
-      // Calculate DSCR
-      const dscr = totalMonthly > 0 ? monthlyRent / totalMonthly : 0;
-
-      // Calculate LTV
-      const ltv = purchasePrice > 0 ? (loanAmount / purchasePrice) * 100 : 0;
-
-      // Create deal
-      const deal = await base44.entities.Deal.create({
+      // Create deal via backend
+      const response = await base44.functions.invoke('createOrUpdateDeal', {
         org_id: orgId,
-        deal_number: dealNumber,
-        loan_type: dealData.loan_type,
+        loan_product: dealData.loan_product,
         loan_purpose: dealData.loan_purpose,
-        loan_amount: loanAmount,
-        purchase_price: purchasePrice,
-        interest_rate: rate,
-        loan_term_months: termMonths,
-        notes: dealData.notes,
-        status: 'lead',
-        dscr_ratio: parseFloat(dscr.toFixed(3)),
-        ltv_ratio: parseFloat(ltv.toFixed(2)),
-        monthly_pi: parseFloat(monthlyPi.toFixed(2)),
-        total_monthly_payment: parseFloat(totalMonthly.toFixed(2)),
-        calculation_timestamp: new Date().toISOString(),
+        is_blanket: dealData.is_blanket,
+        loan_amount: parseFloat(dealData.loan_amount),
+        interest_rate: parseFloat(dealData.interest_rate),
+        loan_term_months: parseInt(dealData.loan_term_months),
+        assigned_to_user_id: user.id,
+        borrowers,
+        properties
       });
 
-      // Create property if data provided
-      if (propertyData.address_street) {
-        await base44.entities.Property.create({
-          org_id: orgId,
-          deal_id: deal.id,
-          is_subject_property: true,
-          address_street: propertyData.address_street,
-          address_city: propertyData.address_city,
-          address_state: propertyData.address_state,
-          address_zip: propertyData.address_zip,
-          property_type: propertyData.property_type,
-          monthly_rent: monthlyRent,
-          annual_taxes: annualTaxes,
-          annual_insurance: annualInsurance,
-          monthly_hoa: monthlyHoa,
-        });
-      }
-
-      // Create borrower if data provided
-      if (borrowerData.first_name || borrowerData.entity_name) {
-        const borrower = await base44.entities.Borrower.create({
-          org_id: orgId,
-          borrower_type: borrowerData.borrower_type,
-          first_name: borrowerData.first_name,
-          last_name: borrowerData.last_name,
-          email: borrowerData.email,
-          phone: borrowerData.phone,
-          entity_name: borrowerData.entity_name,
-          credit_score: borrowerData.credit_score ? parseInt(borrowerData.credit_score) : null,
-        });
-
-        // Link borrower to deal
-        await base44.entities.DealBorrower.create({
-          org_id: orgId,
-          deal_id: deal.id,
-          borrower_id: borrower.id,
-          role: 'primary',
-        });
-
-        // Update deal with primary borrower
-        await base44.entities.Deal.update(deal.id, {
-          primary_borrower_id: borrower.id,
-        });
-      }
-
-      return deal;
+      return response.data.deal;
     },
     onSuccess: (deal) => {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
@@ -193,6 +142,16 @@ export default function NewDeal() {
         <h1 className="text-2xl font-semibold text-gray-900">Create New Deal</h1>
         <p className="text-gray-500 mt-1">Enter loan, property, and borrower information</p>
       </div>
+
+      {/* Calculator Preview */}
+      {dealData.loan_amount && dealData.interest_rate && properties.length > 0 && (
+        <div className="mb-6">
+          <DealCalculator
+            deal={dealData}
+            properties={properties}
+          />
+        </div>
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6">
@@ -219,24 +178,27 @@ export default function NewDeal() {
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Loan Type *</Label>
+                  <Label>Loan Product *</Label>
                   <Select
-                    value={dealData.loan_type}
-                    onValueChange={(v) => setDealData({ ...dealData, loan_type: v })}
+                    value={dealData.loan_product}
+                    onValueChange={(v) => {
+                      const isBlanket = v === 'DSCR Blanket';
+                      setDealData({ ...dealData, loan_product: v, is_blanket: isBlanket });
+                    }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select loan type" />
+                      <SelectValue placeholder="Select loan product" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="dscr_purchase">DSCR Purchase</SelectItem>
-                      <SelectItem value="dscr_rate_term_refi">DSCR Rate/Term Refi</SelectItem>
-                      <SelectItem value="dscr_cashout_refi">DSCR Cash-Out Refi</SelectItem>
-                      <SelectItem value="dscr_blanket">DSCR Blanket</SelectItem>
+                      <SelectItem value="DSCR">DSCR</SelectItem>
+                      <SelectItem value="DSCR - No Ratio">DSCR - No Ratio</SelectItem>
+                      <SelectItem value="Commercial">Commercial</SelectItem>
+                      <SelectItem value="DSCR Blanket">DSCR Blanket</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Loan Purpose</Label>
+                  <Label>Loan Purpose *</Label>
                   <Select
                     value={dealData.loan_purpose}
                     onValueChange={(v) => setDealData({ ...dealData, loan_purpose: v })}
@@ -245,9 +207,9 @@ export default function NewDeal() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="purchase">Purchase</SelectItem>
-                      <SelectItem value="rate_term_refinance">Rate/Term Refinance</SelectItem>
-                      <SelectItem value="cash_out_refinance">Cash-Out Refinance</SelectItem>
+                      <SelectItem value="Purchase">Purchase</SelectItem>
+                      <SelectItem value="Refinance">Refinance</SelectItem>
+                      <SelectItem value="Cash-Out Refinance">Cash-Out Refinance</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -320,106 +282,167 @@ export default function NewDeal() {
           <Card className="border-gray-200">
             <CardHeader>
               <CardTitle>Property Information</CardTitle>
-              <CardDescription>Enter subject property details</CardDescription>
+              <CardDescription>{dealData.is_blanket ? 'Add multiple properties' : 'Enter subject property details'}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {properties.length > 0 && dealData.is_blanket && (
+                <BlanketAllocationPanel
+                  properties={properties}
+                  loanAmount={parseFloat(dealData.loan_amount) || 0}
+                  interestRate={parseFloat(dealData.interest_rate) || 0}
+                  loanTermMonths={parseInt(dealData.loan_term_months)}
+                  onAllocationsChange={(alloc, metrics) => setAllocations(alloc)}
+                />
+              )}
               <div className="space-y-2">
-                <Label>Street Address</Label>
+                <Label>Street Address *</Label>
                 <Input
                   placeholder="123 Main Street"
-                  value={propertyData.address_street}
-                  onChange={(e) => setPropertyData({ ...propertyData, address_street: e.target.value })}
+                  value={currentProperty.address_street}
+                  onChange={(e) => setCurrentProperty({ ...currentProperty, address_street: e.target.value })}
                 />
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="col-span-2 space-y-2">
-                  <Label>City</Label>
+                  <Label>City *</Label>
                   <Input
                     placeholder="Los Angeles"
-                    value={propertyData.address_city}
-                    onChange={(e) => setPropertyData({ ...propertyData, address_city: e.target.value })}
+                    value={currentProperty.address_city}
+                    onChange={(e) => setCurrentProperty({ ...currentProperty, address_city: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>State</Label>
+                  <Label>State *</Label>
                   <Input
                     placeholder="CA"
                     maxLength={2}
-                    value={propertyData.address_state}
-                    onChange={(e) => setPropertyData({ ...propertyData, address_state: e.target.value.toUpperCase() })}
+                    value={currentProperty.address_state}
+                    onChange={(e) => setCurrentProperty({ ...currentProperty, address_state: e.target.value.toUpperCase() })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>ZIP</Label>
+                  <Label>ZIP *</Label>
                   <Input
                     placeholder="90210"
-                    value={propertyData.address_zip}
-                    onChange={(e) => setPropertyData({ ...propertyData, address_zip: e.target.value })}
+                    value={currentProperty.address_zip}
+                    onChange={(e) => setCurrentProperty({ ...currentProperty, address_zip: e.target.value })}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label>Property Type</Label>
+                <Label>Property Type *</Label>
                 <Select
-                  value={propertyData.property_type}
-                  onValueChange={(v) => setPropertyData({ ...propertyData, property_type: v })}
+                  value={currentProperty.property_type}
+                  onValueChange={(v) => setCurrentProperty({ ...currentProperty, property_type: v })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select property type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sfr">Single Family</SelectItem>
-                    <SelectItem value="condo">Condo</SelectItem>
-                    <SelectItem value="townhouse">Townhouse</SelectItem>
-                    <SelectItem value="2_4_unit">2-4 Unit</SelectItem>
-                    <SelectItem value="multifamily">Multifamily (5+)</SelectItem>
+                    <SelectItem value="SFR">Single Family</SelectItem>
+                    <SelectItem value="Condo">Condo</SelectItem>
+                    <SelectItem value="Townhouse">Townhouse</SelectItem>
+                    <SelectItem value="2-Unit">2-Unit</SelectItem>
+                    <SelectItem value="5+ Unit">Multifamily (5+)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Monthly Rent ($)</Label>
+                  <Label>Gross Monthly Rent ($)</Label>
                   <Input
                     type="number"
                     placeholder="3500"
-                    value={propertyData.monthly_rent}
-                    onChange={(e) => setPropertyData({ ...propertyData, monthly_rent: e.target.value })}
+                    value={currentProperty.gross_rent_monthly}
+                    onChange={(e) => setCurrentProperty({ ...currentProperty, gross_rent_monthly: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Annual Taxes ($)</Label>
+                  <Label>Other Income (monthly)</Label>
                   <Input
                     type="number"
-                    placeholder="6000"
-                    value={propertyData.annual_taxes}
-                    onChange={(e) => setPropertyData({ ...propertyData, annual_taxes: e.target.value })}
+                    placeholder="0"
+                    value={currentProperty.other_income_monthly}
+                    onChange={(e) => setCurrentProperty({ ...currentProperty, other_income_monthly: e.target.value })}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
+                  <Label>Annual Taxes ($)</Label>
+                  <Input
+                    type="number"
+                    placeholder="6000"
+                    value={currentProperty.taxes_monthly}
+                    onChange={(e) => setCurrentProperty({ ...currentProperty, taxes_monthly: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label>Annual Insurance ($)</Label>
                   <Input
                     type="number"
                     placeholder="2400"
-                    value={propertyData.annual_insurance}
-                    onChange={(e) => setPropertyData({ ...propertyData, annual_insurance: e.target.value })}
+                    value={currentProperty.insurance_monthly}
+                    onChange={(e) => setCurrentProperty({ ...currentProperty, insurance_monthly: e.target.value })}
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Monthly HOA ($)</Label>
                   <Input
                     type="number"
                     placeholder="0"
-                    value={propertyData.monthly_hoa}
-                    onChange={(e) => setPropertyData({ ...propertyData, monthly_hoa: e.target.value })}
+                    value={currentProperty.hoa_monthly}
+                    onChange={(e) => setCurrentProperty({ ...currentProperty, hoa_monthly: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Monthly Flood Insurance ($)</Label>
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={currentProperty.flood_insurance_monthly}
+                    onChange={(e) => setCurrentProperty({ ...currentProperty, flood_insurance_monthly: e.target.value })}
                   />
                 </div>
               </div>
+
+              <Button
+                onClick={handleAddProperty}
+                variant="outline"
+                className="w-full gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                {properties.length > 0 ? 'Add Another Property' : 'Add Property'}
+              </Button>
+
+              {properties.length > 0 && (
+                <div className="space-y-2 pt-4">
+                  <h3 className="font-medium text-gray-900">Added Properties ({properties.length})</h3>
+                  {properties.map((prop, idx) => (
+                    <div key={prop.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{prop.address_street}</p>
+                        <p className="text-xs text-gray-500">{prop.address_city}, {prop.address_state}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setProperties(properties.filter((_, i) => i !== idx))}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -427,87 +450,11 @@ export default function NewDeal() {
         <TabsContent value="borrower">
           <Card className="border-gray-200">
             <CardHeader>
-              <CardTitle>Borrower Information</CardTitle>
-              <CardDescription>Enter primary borrower details</CardDescription>
+              <CardTitle>Borrowers</CardTitle>
+              <CardDescription>Add primary and co-borrowers</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label>Borrower Type</Label>
-                <Select
-                  value={borrowerData.borrower_type}
-                  onValueChange={(v) => setBorrowerData({ ...borrowerData, borrower_type: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="individual">Individual</SelectItem>
-                    <SelectItem value="entity">Business Entity (LLC, Corp, etc.)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {borrowerData.borrower_type === 'individual' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>First Name</Label>
-                    <Input
-                      placeholder="John"
-                      value={borrowerData.first_name}
-                      onChange={(e) => setBorrowerData({ ...borrowerData, first_name: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Last Name</Label>
-                    <Input
-                      placeholder="Smith"
-                      value={borrowerData.last_name}
-                      onChange={(e) => setBorrowerData({ ...borrowerData, last_name: e.target.value })}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Label>Entity Name</Label>
-                  <Input
-                    placeholder="ABC Investments LLC"
-                    value={borrowerData.entity_name}
-                    onChange={(e) => setBorrowerData({ ...borrowerData, entity_name: e.target.value })}
-                  />
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input
-                    type="email"
-                    placeholder="john@example.com"
-                    value={borrowerData.email}
-                    onChange={(e) => setBorrowerData({ ...borrowerData, email: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Phone</Label>
-                  <Input
-                    placeholder="(555) 123-4567"
-                    value={borrowerData.phone}
-                    onChange={(e) => setBorrowerData({ ...borrowerData, phone: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Credit Score</Label>
-                <Input
-                  type="number"
-                  placeholder="720"
-                  min="300"
-                  max="850"
-                  value={borrowerData.credit_score}
-                  onChange={(e) => setBorrowerData({ ...borrowerData, credit_score: e.target.value })}
-                />
-              </div>
+            <CardContent>
+              <BorrowerSelector onBorrowersChange={setBorrowers} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -521,7 +468,7 @@ export default function NewDeal() {
         <Button 
           className="bg-blue-600 hover:bg-blue-500 gap-2"
           onClick={() => createDealMutation.mutate()}
-          disabled={!dealData.loan_type || createDealMutation.isPending}
+          disabled={!dealData.loan_product || !borrowers.length || !properties.length || createDealMutation.isPending}
         >
           <Save className="h-4 w-4" />
           {createDealMutation.isPending ? 'Creating...' : 'Create Deal'}
