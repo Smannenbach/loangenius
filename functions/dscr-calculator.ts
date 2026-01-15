@@ -33,27 +33,27 @@ export function calculateMonthlyPI(loanAmount, annualRate, termMonths) {
 }
 
 /**
- * Calculate monthly PITIA (Principal, Interest, Taxes, Insurance, HOA, Flood)
+ * Calculate monthly PITIA (Principal, Interest, Taxes, Insurance, HOA, Flood) with precision
  */
 export function calculateMonthlyPITIA(loanAmount, annualRate, termMonths, property) {
-  const pi = calculateMonthlyPI(loanAmount, annualRate, termMonths);
+  const pi = toDecimal(calculateMonthlyPI(loanAmount, annualRate, termMonths));
 
-  const taxes = property?.taxes_monthly || 0;
-  const insurance = property?.insurance_monthly || 0;
-  const hoa = property?.hoa_monthly || 0;
-  const flood = property?.flood_insurance_monthly || 0;
+  const taxes = toDecimal(property?.taxes_monthly || 0);
+  const insurance = toDecimal(property?.insurance_monthly || 0);
+  const hoa = toDecimal(property?.hoa_monthly || 0);
+  const flood = toDecimal(property?.flood_insurance_monthly || 0);
 
-  const total = pi + taxes + insurance + hoa + flood;
+  const total = pi.plus(taxes).plus(insurance).plus(hoa).plus(flood);
 
   return {
-    monthly_pi: pi,
-    monthly_pitia: parseFloat(total.toFixed(2)),
+    monthly_pi: parseFloat(pi.toDecimalPlaces(2).toString()),
+    monthly_pitia: parseFloat(total.toDecimalPlaces(2).toString()),
     breakdown: {
-      pi,
-      taxes,
-      insurance,
-      hoa,
-      flood
+      pi: parseFloat(pi.toDecimalPlaces(2).toString()),
+      taxes: parseFloat(taxes.toDecimalPlaces(2).toString()),
+      insurance: parseFloat(insurance.toDecimalPlaces(2).toString()),
+      hoa: parseFloat(hoa.toDecimalPlaces(2).toString()),
+      flood: parseFloat(flood.toDecimalPlaces(2).toString())
     }
   };
 }
