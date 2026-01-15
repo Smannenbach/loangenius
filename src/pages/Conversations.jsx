@@ -129,6 +129,16 @@ export default function Conversations() {
     return msgDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  const getContactInfo = (contact) => {
+    // Parse contact name and type
+    const [name, domain] = contact.split('@');
+    return {
+      name: name.replace(/[._]/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+      email: contact,
+      domain: domain || 'unknown'
+    };
+  };
+
   return (
     <div className="h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col">
       {/* Header */}
@@ -184,67 +194,71 @@ export default function Conversations() {
 
       {/* Main Grid */}
       <div className="flex flex-1 overflow-hidden gap-0">
-        {/* Sidebar - Conversations List */}
-        <div className="w-96 bg-white border-r border-slate-200 flex flex-col shadow-sm">
+        {/* Sidebar - Conversations List (GoHighLevel style) */}
+        <div className="w-80 bg-slate-900 border-r border-slate-800 flex flex-col">
           {/* Search */}
-          <div className="p-5 border-b border-slate-200 sticky top-0 bg-white z-10">
+          <div className="p-4 border-b border-slate-700 sticky top-0 bg-slate-900 z-10">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
               <Input
-                placeholder="Search by name, email..."
+                placeholder="Search conversations..."
                 value={conversationSearch}
                 onChange={(e) => setConversationSearch(e.target.value)}
-                className="pl-10 h-11 text-sm border-slate-300 focus:ring-blue-500"
+                className="pl-10 h-10 text-sm bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:ring-blue-500"
               />
             </div>
           </div>
 
-          {/* Conversations */}
+          {/* Conversations - GoHighLevel Dark Theme */}
           <div className="flex-1 overflow-y-auto">
             {filtered.length === 0 ? (
-              <div className="p-8 text-center text-slate-400 mt-20">
-                <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                <p className="text-sm font-medium">No conversations yet</p>
-                <p className="text-xs mt-1">Start a new conversation to begin</p>
+              <div className="p-8 text-center text-slate-500 mt-20">
+                <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                <p className="text-sm font-medium">No conversations</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
-                {filtered.map((conv) => (
+              <div className="divide-y divide-slate-800">
+                {filtered.map((conv) => {
+                  const info = getContactInfo(conv.contact);
+                  const isSelected = selectedConversation?.contact === conv.contact;
+                  return (
                   <button
                     key={conv.contact}
                     onClick={() => setSelectedConversation(conv)}
-                    className={`w-full px-4 py-3 hover:bg-slate-50 transition-all text-left border-l-4 ${
-                      selectedConversation?.contact === conv.contact
-                        ? 'bg-blue-50 border-l-blue-600 shadow-sm'
-                        : 'border-l-transparent hover:border-l-slate-300'
+                    className={`w-full px-4 py-3.5 hover:bg-slate-800 transition-all text-left ${
+                      isSelected ? 'bg-blue-600 border-l-4 border-l-blue-400' : 'border-l-4 border-l-transparent'
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`h-11 w-11 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${
-                        selectedConversation?.contact === conv.contact
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-slate-200 text-slate-700'
+                      <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                        isSelected
+                          ? 'bg-white text-blue-600'
+                          : 'bg-slate-700 text-white'
                       }`}>
                         {getInitials(conv.contact)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                          <p className={`truncate ${selectedConversation?.contact === conv.contact ? 'font-bold text-slate-900' : 'font-semibold text-slate-900'}`}>
-                            {conv.contact}
+                          <p className={`truncate font-semibold ${isSelected ? 'text-white' : 'text-slate-200'}`}>
+                            {info.name}
                           </p>
                           {conv.unread > 0 && (
-                            <Badge className="bg-red-500 text-white text-xs">{conv.unread}</Badge>
+                            <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold flex-shrink-0">
+                              {conv.unread}
+                            </span>
                           )}
                         </div>
-                        <p className="text-sm text-slate-600 truncate mt-0.5 line-clamp-1">{conv.lastMessage?.body || 'No messages'}</p>
-                        <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
+                        <p className={`text-xs truncate mt-1 line-clamp-1 ${isSelected ? 'text-blue-100' : 'text-slate-400'}`}>
+                          {conv.lastMessage?.body || 'No messages'}
+                        </p>
+                        <p className={`text-xs mt-1.5 ${isSelected ? 'text-blue-200' : 'text-slate-500'}`}>
                           {formatTime(conv.lastMessage?.created_date)}
                         </p>
                       </div>
                     </div>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -253,18 +267,15 @@ export default function Conversations() {
         {/* Chat Panel */}
         {selectedConversation ? (
           <div className="flex-1 flex flex-col bg-white">
-            {/* Chat Header */}
-            <div className="border-b border-slate-200 px-8 py-5 flex items-center justify-between bg-gradient-to-r from-white via-blue-50 to-white shadow-sm">
+            {/* Chat Header - GoHighLevel style */}
+            <div className="border-b border-slate-200 px-8 py-4 flex items-center justify-between bg-white">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white flex items-center justify-center font-bold text-lg shadow-md">
+                <div className="h-14 w-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white flex items-center justify-center font-bold text-xl shadow-lg">
                   {getInitials(selectedConversation.contact)}
                 </div>
                 <div>
-                  <h2 className="font-bold text-slate-900 text-lg">{selectedConversation.contact}</h2>
-                  <p className="text-xs text-slate-500 flex items-center gap-2">
-                    <span className="inline-block h-2 w-2 bg-green-500 rounded-full"></span>
-                    {selectedConversation.messages.length} messages
-                  </p>
+                  <h2 className="font-bold text-slate-900 text-lg">{getContactInfo(selectedConversation.contact).name}</h2>
+                  <p className="text-sm text-slate-500">{selectedConversation.contact}</p>
                 </div>
               </div>
               <div className="flex gap-2">
