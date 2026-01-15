@@ -1,82 +1,137 @@
 /**
- * DSCR Calculator Backend Function
- * Handles calculation and storage of DSCR values
+ * DSCR Calculator Engine
+ * Computes DSCR, LTV, PITIA from deal and property data
  */
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-export function calculateMonthlyPI(loanAmount, annualRate, amortizationMonths, isInterestOnly = false) {
-  const monthlyRate = (annualRate / 100) / 12;
+/**
+ * Calculate monthly P&I using standard amortization formula
+ * P&I = (Loan Amount * Monthly Rate) / (1 - (1 + Monthly Rate)^(-n))
+ */
+export function calculateMonthlyPI(loanAmount, annualRate, termMonths) {
+  if (!loanAmount || !annualRate || !termMonths) return 0;
 
-  if (isInterestOnly) {
-    return loanAmount * monthlyRate;
-  }
+  const monthlyRate = annualRate / 100 / 12;
+  const numerator = loanAmount * monthlyRate;
+  const denominator = 1 - Math.pow(1 + monthlyRate, -termMonths);
 
-  const numerator = monthlyRate * Math.pow(1 + monthlyRate, amortizationMonths);
-  const denominator = Math.pow(1 + monthlyRate, amortizationMonths) - 1;
-  return loanAmount * (numerator / denominator);
+  return parseFloat((numerator / denominator).toFixed(2));
 }
 
-export function calculateSinglePropertyDSCR({
-  loanAmount,
-  interestRate,
-  loanTermMonths = 360,
-  amortizationMonths = 360,
-  isInterestOnly = false,
-  ioPeriodsMonths = 0,
-  monthlyRent,
-  propertyTaxesAnnual,
-  insuranceAnnual,
-  floodInsuranceAnnual = 0,
-  hoaDuesMonthly = 0,
-}) {
-  // P&I calculation
-  const monthlyPI = calculateMonthlyPI(loanAmount, interestRate, amortizationMonths, isInterestOnly);
+/**
+ * Calculate monthly PITIA (Principal, Interest, Taxes, Insurance, HOA, Flood)
+ */
+export function calculateMonthlyPITIA(loanAmount, annualRate, termMonths, property) {
+  const pi = calculateMonthlyPI(loanAmount, annualRate, termMonths);
 
-  // Monthly expenses
-  const monthlyTaxes = propertyTaxesAnnual / 12;
-  const monthlyInsurance = insuranceAnnual / 12;
-  const monthlyFlood = floodInsuranceAnnual / 12;
+  const taxes = property?.taxes_monthly || 0;
+  const insurance = property?.insurance_monthly || 0;
+  const hoa = property?.hoa_monthly || 0;
+  const flood = property?.flood_insurance_monthly || 0;
 
-  // Total PITIA
-  const monthlyPITIA = monthlyPI + monthlyTaxes + monthlyInsurance + monthlyFlood + hoaDuesMonthly;
-
-  // DSCR
-  const dscrRatio = monthlyRent / monthlyPITIA;
+  const total = pi + taxes + insurance + hoa + flood;
 
   return {
-    dscrRatio: Math.round(dscrRatio * 100) / 100,
-    monthlyRent: Math.round(monthlyRent * 100) / 100,
-    monthlyPI: Math.round(monthlyPI * 100) / 100,
-    monthlyTaxes: Math.round(monthlyTaxes * 100) / 100,
-    monthlyInsurance: Math.round(monthlyInsurance * 100) / 100,
-    monthlyFlood: Math.round(monthlyFlood * 100) / 100,
-    monthlyHOA: Math.round(hoaDuesMonthly * 100) / 100,
-    monthlyPITIA: Math.round(monthlyPITIA * 100) / 100,
-    qualifies: dscrRatio >= 1.0,
-    qualifiesStandard: dscrRatio >= 1.25,
+    monthly_pi: pi,
+    monthly_pitia: parseFloat(total.toFixed(2)),
+    breakdown: {
+      pi,
+      taxes,
+      insurance,
+      hoa,
+      flood
+    }
   };
 }
 
-Deno.serve(async (req) => {
-  try {
-    const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
+/**
+ * Calculate DSCR
+ * DSCR = Gross Monthly Rental Income / (P&I + Taxes + Insurance + HOA + Flood)
+ */
+export function calculateDSCR(property, loanAmount, annualRate, termMonths) {
+  if (!property) return 0;
 
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  const grossRent = (property.gross_rent_monthly || 0) + (property.other_income_monthly || 0);
+  const pitiaData = calculateMonthlyPITIA(loanAmount, annualRate, termMonths, property);
 
-    const body = await req.json();
-    const { operation, params } = body;
+  if (pitiaData.monthly_pitia === 0) return 0;
 
-    if (operation === 'calculateSingleProperty') {
-      const result = calculateSinglePropertyDSCR(params);
-      return Response.json(result);
-    }
+  return parseFloat((grossRent / pitiaData.monthly_pitia).toFixed(2));
+}
 
-    return Response.json({ error: 'Unknown operation' }, { status: 400 });
-  } catch (error) {
-    console.error('DSCR Calculator Error:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+/**
+ * Calculate LTV
+ * LTV = Loan Amount / Property Value (or Purchase Price)
+ */
+export function calculateLTV(loanAmount, propertyValue) {
+  if (!loanAmount || !propertyValue || propertyValue === 0) return 0;
+
+  const ltv = (loanAmount / propertyValue) * 100;
+  return parseFloat(ltv.toFixed(2));
+}
+
+/**
+ * Full deal calculation
+ */
+export function calculateDealMetrics(deal, properties) {
+  if (!deal || !properties || properties.length === 0) {
+    return {
+      dscr: 0,
+      ltv: 0,
+      monthly_pitia: 0,
+      monthly_pi: 0
+    };
   }
-});
+
+  // For single property deals
+  if (!deal.is_blanket && properties.length === 1) {
+    const property = properties[0];
+    const dscr = calculateDSCR(property, deal.loan_amount, deal.interest_rate, deal.loan_term_months);
+    const ltv = calculateLTV(deal.loan_amount, property.appraised_value || property.purchase_price);
+    const pitiaData = calculateMonthlyPITIA(deal.loan_amount, deal.interest_rate, deal.loan_term_months, property);
+
+    return {
+      dscr,
+      ltv,
+      monthly_pitia: pitiaData.monthly_pitia,
+      monthly_pi: pitiaData.monthly_pi
+    };
+  }
+
+  // For blanket deals: aggregate calculations
+  if (deal.is_blanket && properties.length > 1) {
+    let totalGrossRent = 0;
+    let totalExpenses = 0;
+    let totalValue = 0;
+    let totalPI = 0;
+
+    properties.forEach(prop => {
+      totalGrossRent += (prop.gross_rent_monthly || 0) + (prop.other_income_monthly || 0);
+      totalExpenses += (prop.taxes_monthly || 0) + (prop.insurance_monthly || 0) + 
+                       (prop.hoa_monthly || 0) + (prop.flood_insurance_monthly || 0);
+      totalValue += prop.appraised_value || prop.purchase_price || 0;
+      totalPI += calculateMonthlyPI(
+        deal.loan_amount / properties.length, // simplified: equal allocation
+        deal.interest_rate,
+        deal.loan_term_months
+      );
+    });
+
+    const totalPITIA = totalPI + totalExpenses;
+    const dscr = totalPITIA > 0 ? parseFloat((totalGrossRent / totalPITIA).toFixed(2)) : 0;
+    const ltv = calculateLTV(deal.loan_amount, totalValue);
+
+    return {
+      dscr,
+      ltv,
+      monthly_pitia: totalPITIA,
+      monthly_pi: totalPI
+    };
+  }
+
+  return {
+    dscr: 0,
+    ltv: 0,
+    monthly_pitia: 0,
+    monthly_pi: 0
+  };
+}
