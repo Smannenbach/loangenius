@@ -17,13 +17,25 @@ Deno.serve(async (req) => {
     const { deal_id, org_id } = await req.json();
 
     if (!deal_id || !org_id) {
-      return Response.json({ error: 'Missing deal_id or org_id' }, { status: 400 });
+     return Response.json({ error: 'Missing deal_id or org_id' }, { status: 400 });
     }
 
-    // Fetch deal + supporting data
-    const deals = await base44.asServiceRole.entities.Deal.filter({ id: deal_id });
+    // Verify user belongs to org
+    const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+     user_id: user.email,
+     org_id
+    });
+    if (memberships.length === 0) {
+     return Response.json({ error: 'Unauthorized: not in this organization' }, { status: 403 });
+    }
+
+    // Fetch deal + supporting data with org isolation
+    const deals = await base44.asServiceRole.entities.Deal.filter({ 
+     id: deal_id,
+     org_id 
+    });
     if (!deals.length) {
-      return Response.json({ error: 'Deal not found' }, { status: 404 });
+     return Response.json({ error: 'Deal not found' }, { status: 404 });
     }
 
     const deal = deals[0];
