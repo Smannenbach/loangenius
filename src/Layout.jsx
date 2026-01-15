@@ -47,8 +47,7 @@ import {
   Building,
   Mail,
   Rocket,
-  FileText,
-} from 'lucide-react';
+  } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
