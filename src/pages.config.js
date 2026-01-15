@@ -15,6 +15,9 @@ import Communications from './pages/Communications';
 import Users from './pages/Users';
 import Lenders from './pages/Lenders';
 import Settings from './pages/Settings';
+import AIOrchestrator from './pages/AIOrchestrator';
+import LeadIntelligence from './pages/LeadIntelligence';
+import VRTours from './pages/VRTours';
 import __Layout from './Layout.jsx';
 
 
@@ -36,6 +39,9 @@ export const PAGES = {
     "Users": Users,
     "Lenders": Lenders,
     "Settings": Settings,
+    "AIOrchestrator": AIOrchestrator,
+    "LeadIntelligence": LeadIntelligence,
+    "VRTours": VRTours,
 }
 
 export const pagesConfig = {
