@@ -53,6 +53,7 @@ import { COUNTRY_CODES } from '@/components/formatters';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import QuoteGeneratorModal from '@/components/QuoteGeneratorModal';
 import LeadDetailModal from '@/components/LeadDetailModal';
+import GoogleSheetsSync from '@/components/GoogleSheetsSync';
 
 export default function Leads() {
   const queryClient = useQueryClient();
@@ -755,10 +756,7 @@ export default function Leads() {
 
       {/* Google Sheets Sync */}
       <div className="mb-6">
-        <Button variant="outline" className="gap-2" onClick={() => alert('Sync with Google Sheets coming soon')}>
-          <Sheet className="h-4 w-4" />
-          Sync with Google Sheets
-        </Button>
+        <GoogleSheetsSync />
       </div>
 
       {/* Filters & Controls */}
