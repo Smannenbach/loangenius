@@ -25,9 +25,9 @@ import {
   Building2,
   Lock,
 } from 'lucide-react';
-import PortalDocumentsTab from '../components/portal/PortalDocumentsTab';
-import PortalMessagesTab from '../components/portal/PortalMessagesTab';
-import PortalStatusTab from '../components/portal/PortalStatusTab';
+import PortalDocumentsTab from '@/components/portal/PortalDocumentsTab';
+import PortalMessagesTab from '@/components/portal/PortalMessagesTab';
+import PortalStatusTab from '@/components/portal/PortalStatusTab';
 
 export default function BorrowerPortal() {
   const [sessionId, setSessionId] = useState('');
