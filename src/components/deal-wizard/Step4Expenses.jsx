@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { calculateSinglePropertyDSCR } from '@/lib/dscr-helpers';
+import { calculateSinglePropertyDSCR } from './dscr-utils';
 import WizardStep from './WizardStep';
 
 export default function Step4Expenses({ data, onChange, onNext, onPrev }) {

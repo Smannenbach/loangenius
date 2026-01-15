@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { calculateSinglePropertyDSCR, calculateLTV } from '@/lib/dscr-helpers';
+import { calculateSinglePropertyDSCR, calculateLTV } from './dscr-utils';
 import WizardStep from './WizardStep';
 
 export default function Step6Review({ data, onChange, onNext, onPrev, loading = false }) {

@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Card } from '@/components/ui/card';
-import { calculateLoanAmount, calculateLTV } from '@/lib/dscr-helpers';
+import { calculateLoanAmount, calculateLTV } from './dscr-utils';
 import WizardStep from './WizardStep';
 
 export default function Step3Valuation({ data, onChange, onNext, onPrev, loanPurpose }) {
