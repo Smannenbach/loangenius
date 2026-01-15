@@ -1,182 +1,209 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, AlertCircle, TestTube, Eye, EyeOff } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Zap,
+  Mail,
+  MessageSquare,
+  Cloud,
+  Brain,
+  Database,
+  FileText,
+  Link as LinkIcon,
+  Check,
+  AlertCircle,
+  Trash2
+} from 'lucide-react';
 
-export default function AdminIntegrationsPage() {
-  const [showValues, setShowValues] = useState({});
+const INTEGRATION_CATEGORIES = {
+  'AI Models': [
+    { name: 'Claude', icon: Brain, requiresApiKey: true, description: 'Anthropic Claude API' },
+    { name: 'Google_Gemini', icon: Brain, requiresApiKey: true, description: 'Google Gemini LLM' },
+    { name: 'Grok', icon: Brain, requiresApiKey: true, description: 'xAI Grok API' },
+    { name: 'Perplexity', icon: Brain, requiresApiKey: true, description: 'Perplexity AI' },
+    { name: 'Moonshot_AI', icon: Brain, requiresApiKey: true, description: 'Moonshot AI (Kimi)' },
+    { name: 'QWEN', icon: Brain, requiresApiKey: true, description: 'Alibaba QWEN LLM' }
+  ],
+  'Cloud & Storage': [
+    { name: 'Google_Cloud', icon: Cloud, requiresOAuth: true, description: 'Google Cloud Platform' },
+    { name: 'Google_Drive', icon: Cloud, requiresOAuth: true, description: 'Google Drive' },
+    { name: 'Google_Sheets', icon: Database, requiresOAuth: true, description: 'Google Sheets' },
+    { name: 'Google_Docs', icon: FileText, requiresOAuth: true, description: 'Google Docs' },
+    { name: 'Adobe', icon: Cloud, requiresApiKey: true, description: 'Adobe Creative Cloud' }
+  ],
+  'Communication': [
+    { name: 'Gmail', icon: Mail, requiresOAuth: true, description: 'Gmail' },
+    { name: 'Twilio', icon: MessageSquare, requiresApiKey: true, description: 'Twilio SMS/Voice' },
+    { name: 'SendGrid', icon: Mail, requiresApiKey: true, description: 'SendGrid Email' }
+  ],
+  'Marketing & CRM': [
+    { name: 'GoHighLevel', icon: Zap, requiresApiKey: true, description: 'GoHighLevel CRM' },
+    { name: 'Facebook_Lead_Ads', icon: Zap, requiresOAuth: true, description: 'Facebook Lead Ads' }
+  ],
+  'Automation': [
+    { name: 'Zapier', icon: Zap, requiresApiKey: true, description: 'Zapier Webhooks' },
+    { name: 'Stripe', icon: Zap, requiresApiKey: true, description: 'Stripe Payments' },
+    { name: 'DocuSign', icon: FileText, requiresOAuth: true, description: 'DocuSign eSignature' }
+  ]
+};
 
-  // TODO: Load actual integration status from backend
-  const integrations = [
-    {
-      name: 'Twilio (SMS)',
-      category: 'Communications',
-      status: 'configured',
-      secretKey: 'TWILIO_ACCOUNT_SID',
-      maskedValue: 'AC••••••••••••••••5d',
-      lastTested: '2026-01-15',
-    },
-    {
-      name: 'SendGrid (Email)',
-      category: 'Communications',
-      status: 'configured',
-      secretKey: 'SENDGRID_API_KEY',
-      maskedValue: 'SG.••••••••••••••••••••',
-      lastTested: '2026-01-15',
-    },
-    {
-      name: 'DocuSign (E-Signatures)',
-      category: 'E-Signatures',
-      status: 'missing',
-      secretKey: 'DOCUSIGN_INTEGRATION_KEY',
-      maskedValue: null,
-      lastTested: null,
-    },
-    {
-      name: 'LeadConnector (CRM)',
-      category: 'CRM',
-      status: 'missing',
-      secretKey: 'LEADCONNECTOR_API_KEY',
-      maskedValue: null,
-      lastTested: null,
-    },
-    {
-      name: 'OpenAI (AI Services)',
-      category: 'AI',
-      status: 'configured',
-      secretKey: 'OPENAI_API_KEY',
-      maskedValue: 'sk-••••••••••••••••••••',
-      lastTested: '2026-01-14',
-    },
-    {
-      name: 'AWS S3 (File Storage)',
-      category: 'Storage',
-      status: 'configured',
-      secretKey: 'STORAGE_ACCESS_KEY',
-      maskedValue: 'AKIA••••••••••••••••••',
-      lastTested: '2026-01-15',
-    },
-  ];
+export default function AdminIntegrations() {
+  const [selectedCategory, setSelectedCategory] = useState('AI Models');
+  const [apiKeyInputs, setApiKeyInputs] = useState({});
+  const queryClient = useQueryClient();
 
-  const toggleShowValue = (key) => {
-    setShowValues(prev => ({ ...prev, [key]: !prev[key] }));
+  const { data: integrations = [] } = useQuery({
+    queryKey: ['integrations'],
+    queryFn: () => base44.entities.IntegrationConfig.filter({})
+  });
+
+  const connectMutation = useMutation({
+    mutationFn: async (data) => {
+      return await base44.functions.invoke('connectIntegration', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['integrations'] });
+      setApiKeyInputs({});
+    }
+  });
+
+  const disconnectMutation = useMutation({
+    mutationFn: async (integrationId) => {
+      return await base44.entities.IntegrationConfig.delete(integrationId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['integrations'] });
+    }
+  });
+
+  const handleConnect = (integrationName, requiresApiKey) => {
+    if (requiresApiKey) {
+      const apiKey = apiKeyInputs[integrationName];
+      if (!apiKey) {
+        alert('Please enter API key');
+        return;
+      }
+      connectMutation.mutate({ integration_name: integrationName, api_key: apiKey });
+    } else {
+      // OAuth flow would trigger here
+      connectMutation.mutate({ integration_name: integrationName });
+    }
   };
 
-  const handleTestConnection = (name) => {
-    // TODO: Call backend to test connection
-    alert(`Testing ${name}... (implement actual test)`);
-  };
+  const categories = Object.keys(INTEGRATION_CATEGORIES);
 
   return (
-    <div className="p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Admin: Integrations</h1>
-          <p className="text-gray-500 mt-2">Configure and manage external service integrations</p>
-        </div>
+    <div className="space-y-6 p-6">
+      <div>
+        <h1 className="text-3xl font-bold mb-2">Integrations</h1>
+        <p className="text-slate-600">Connect your LoanGenius instance to external services</p>
+      </div>
 
-        {/* Integration Cards */}
-        <div className="space-y-4">
-          {integrations.map((integration) => (
-            <Card key={integration.secretKey} className="border border-gray-200">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <CardTitle className="text-lg">{integration.name}</CardTitle>
-                      <Badge variant="outline" className="text-xs">
-                        {integration.category}
-                      </Badge>
-                      {integration.status === 'configured' ? (
-                        <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Configured
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-red-100 text-red-800 flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          Missing
+      <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
+        <TabsList className="grid w-full grid-cols-5">
+          {categories.map(cat => (
+            <TabsTrigger key={cat} value={cat} className="text-xs">
+              {cat}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {categories.map(category => (
+          <TabsContent key={category} value={category} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {INTEGRATION_CATEGORIES[category].map(integration => {
+                const Icon = integration.icon;
+                const connected = integrations.some(
+                  i => i.integration_name === integration.name && i.status === 'connected'
+                );
+                const config = integrations.find(i => i.integration_name === integration.name);
+
+                return (
+                  <Card key={integration.name}>
+                    <CardHeader className="flex flex-row items-start justify-between">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-lg bg-blue-100">
+                          <Icon className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-base">{integration.name.replace(/_/g, ' ')}</CardTitle>
+                          <p className="text-xs text-slate-500 mt-1">{integration.description}</p>
+                        </div>
+                      </div>
+                      {connected && (
+                        <Badge className="bg-green-100 text-green-800">
+                          <Check className="h-3 w-3 mr-1" />
+                          Connected
                         </Badge>
                       )}
-                    </div>
-                    {integration.lastTested && (
-                      <p className="text-sm text-gray-500 mt-2">Last tested: {new Date(integration.lastTested).toLocaleDateString()}</p>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              {integration.status === 'configured' && (
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 block mb-2">Secret Key</label>
-                      <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                        <code className="text-sm font-mono text-gray-900 flex-1">
-                          {showValues[integration.secretKey] ? integration.maskedValue : integration.maskedValue}
-                        </code>
-                        <button
-                          onClick={() => toggleShowValue(integration.secretKey)}
-                          className="text-gray-400 hover:text-gray-600"
-                        >
-                          {showValues[integration.secretKey] ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-2">Only last 4 characters visible for security</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleTestConnection(integration.name)}
-                        className="gap-2"
-                      >
-                        <TestTube className="h-4 w-4" />
-                        Test Connection
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        Edit
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              )}
-              {integration.status === 'missing' && (
-                <CardContent>
-                  <p className="text-sm text-gray-600 mb-4">Set the environment variable to enable this integration:</p>
-                  <code className="text-sm bg-gray-50 p-2 rounded block font-mono text-gray-900 mb-4">
-                    {integration.secretKey}=your-secret-key
-                  </code>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => alert('Redirect to dashboard settings to add secret')}
-                  >
-                    Add Secret
-                  </Button>
-                </CardContent>
-              )}
-            </Card>
-          ))}
-        </div>
+                    </CardHeader>
 
-        {/* Documentation */}
-        <Card className="mt-8 bg-blue-50 border-blue-200">
-          <CardHeader>
-            <CardTitle>How to Add Integrations</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-gray-700 space-y-2">
-            <p>1. Go to App Settings → Environment Variables</p>
-            <p>2. Add the secret key from your third-party service</p>
-            <p>3. Refresh this page to see the updated status</p>
-            <p>4. Test the connection to verify it works</p>
-          </CardContent>
-        </Card>
-      </div>
+                    <CardContent>
+                      {connected ? (
+                        <div className="space-y-3">
+                          {config?.last_tested_at && (
+                            <p className="text-xs text-slate-500">
+                              Last tested: {new Date(config.last_tested_at).toLocaleString()}
+                            </p>
+                          )}
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                // Test connection
+                              }}
+                            >
+                              Test
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => disconnectMutation.mutate(config.id)}
+                            >
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Disconnect
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {integration.requiresApiKey && (
+                            <Input
+                              type="password"
+                              placeholder="API Key"
+                              value={apiKeyInputs[integration.name] || ''}
+                              onChange={(e) =>
+                                setApiKeyInputs(prev => ({
+                                  ...prev,
+                                  [integration.name]: e.target.value
+                                }))
+                              }
+                            />
+                          )}
+                          <Button
+                            size="sm"
+                            className="w-full bg-blue-600 hover:bg-blue-700"
+                            onClick={() => handleConnect(integration.name, integration.requiresApiKey)}
+                            disabled={connectMutation.isPending}
+                          >
+                            {integration.requiresApiKey ? 'Connect' : 'Authorize'}
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </TabsContent>
+        ))}
+      </Tabs>
     </div>
   );
 }
