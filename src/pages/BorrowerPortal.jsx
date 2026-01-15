@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, FileText, CheckCircle2, AlertCircle, MessageSquare, Home, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2, FileText, MessageSquare, ClipboardList, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import PortalProgressBar from '@/components/portal/PortalProgressBar';
 import PortalDocumentsTab from '@/components/portal/PortalDocumentsTab';
-import PortalStatusTracker from '@/components/portal/PortalStatusTracker';
 import PortalSecureMessaging from '@/components/portal/PortalSecureMessaging';
+import PortalRequirementsTab from '@/components/portal/PortalRequirementsTab';
 
 export default function BorrowerPortal() {
-  const [activeTab, setActiveTab] = useState('timeline');
+  const [activeTab, setActiveTab] = useState('status');
   const [sessionId, setSessionId] = useState(null);
   const [dealId, setDealId] = useState(null);
-  const [borrowerId, setBorrowerId] = useState(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -22,7 +21,6 @@ export default function BorrowerPortal() {
     }
   }, []);
 
-  // Get session data
   const { data: session, isLoading: loadingSession } = useQuery({
     queryKey: ['portalSession', sessionId],
     queryFn: async () => {
@@ -36,9 +34,8 @@ export default function BorrowerPortal() {
   });
 
   useEffect(() => {
-    if (session) {
+    if (session?.dealId) {
       setDealId(session.dealId);
-      setBorrowerId(session.borrowerId);
     }
   }, [session]);
 
@@ -54,10 +51,10 @@ export default function BorrowerPortal() {
     enabled: !!sessionId && !!dealId,
   });
 
-  const { data: tasks } = useQuery({
-    queryKey: ['borrower-tasks', dealId],
+  const { data: requirements } = useQuery({
+    queryKey: ['borrower-requirements', dealId],
     queryFn: async () => {
-      if (!sessionId) return [];
+      if (!sessionId) return {};
       const response = await base44.functions.invoke('portalRequirements', {
         sessionId,
       });
@@ -81,7 +78,7 @@ export default function BorrowerPortal() {
 
   if (loadingSession || loadingDeal) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     );
@@ -89,13 +86,13 @@ export default function BorrowerPortal() {
 
   if (!sessionId || !session) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 flex items-center justify-center">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
+        <Card className="w-full max-w-md border-red-200 bg-red-50">
           <CardContent className="pt-6 text-center">
             <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
-            <p className="text-lg font-semibold mb-2">Session Invalid</p>
-            <p className="text-gray-600 mb-4">Your portal session has expired or is invalid.</p>
-            <Button onClick={() => (window.location.href = '/BorrowerPortalLogin')}>
+            <p className="text-lg font-semibold text-slate-900 mb-2">Session Expired</p>
+            <p className="text-slate-600 mb-6">Your portal session has expired. Please request a new access link.</p>
+            <Button onClick={() => (window.location.href = '/BorrowerPortalLogin')} className="w-full bg-red-600 hover:bg-red-700">
               Request New Link
             </Button>
           </CardContent>
@@ -116,101 +113,122 @@ export default function BorrowerPortal() {
 
   const progress = stageProgress[deal?.stage] || 0;
 
+  // Calculate requirements stats
+  const allRequirements = Object.values(requirements || {}).flat();
+  const completedCount = allRequirements.filter(r => r.status === 'approved').length;
+  const pendingCount = allRequirements.filter(r => r.status === 'pending' || r.status === 'requested').length;
+  const uploadedCount = allRequirements.filter(r => r.status === 'uploaded' || r.status === 'under_review').length;
+
+  const tabs = [
+    { id: 'status', label: 'Status', icon: ClipboardList, count: null },
+    { id: 'documents', label: 'Documents', icon: FileText, count: pendingCount },
+    { id: 'messages', label: 'Messages', icon: MessageSquare, count: messages?.length || 0 },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Your Loan Application</h1>
-          <p className="text-slate-600">Track your application status, upload documents, and communicate securely</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Header */}
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
+        <div className="max-w-5xl mx-auto px-6 py-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">Your Loan Application</h1>
+              <p className="text-sm text-slate-600 mt-1">Deal #{deal?.deal_number || 'Loading...'}</p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => (window.location.href = '/BorrowerPortalLogin')}
+              className="text-sm"
+            >
+              Sign Out
+            </Button>
+          </div>
         </div>
-
-        {/* Real-Time Status Tracker */}
-        <div className="mb-8">
-          <PortalStatusTracker sessionId={sessionId} />
-        </div>
-
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="documents">Documents</TabsTrigger>
-            <TabsTrigger value="messages">Messages</TabsTrigger>
-            <TabsTrigger value="requirements">Requirements</TabsTrigger>
-          </TabsList>
-
-          {/* Documents Tab */}
-          <TabsContent value="documents" className="space-y-4">
-            <PortalDocumentsTab sessionId={sessionId} />
-          </TabsContent>
-
-          {/* Secure Messaging Tab */}
-          <TabsContent value="messages" className="space-y-4">
-            <PortalSecureMessaging sessionId={sessionId} />
-          </TabsContent>
-
-          {/* Requirements Tab */}
-          <TabsContent value="requirements" className="space-y-4">
-            {Object.entries(tasks || {}).map(([category, items]) => (
-              <div key={category}>
-                <h3 className="text-lg font-semibold mb-3 capitalize">{category}</h3>
-                {items.map(task => (
-                  <Card key={task.id} className="mb-3">
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
-                        <span>{task.name || task.display_name}</span>
-                        <StatusBadge status={task.status} />
-                      </CardTitle>
-                    </CardHeader>
-                  </Card>
-                ))}
-              </div>
-            ))}
-          </TabsContent>
-        </Tabs>
       </div>
-    </div>
-  );
-}
 
-function TimelineEvent({ stage, label, completed, current }) {
-  return (
-    <div className="flex gap-4">
-      <div className="flex flex-col items-center">
-        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-          completed ? 'bg-green-100' : current ? 'bg-blue-100' : 'bg-slate-100'
-        }`}>
-          {completed ? (
-            <CheckCircle2 className="h-6 w-6 text-green-600" />
-          ) : current ? (
-            <Clock className="h-6 w-6 text-blue-600 animate-pulse" />
-          ) : (
-            <div className="h-4 w-4 rounded-full bg-slate-300" />
+      {/* Main Content */}
+      <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
+        {/* Progress Section */}
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg">Application Progress</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <PortalProgressBar
+              stage={deal?.stage}
+              progress={progress}
+              stageLabel={deal?.stage?.replace(/_/g, ' ').toUpperCase()}
+            />
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{completedCount}</div>
+                <p className="text-sm text-slate-600 mt-1">Approved</p>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">{uploadedCount}</div>
+                <p className="text-sm text-slate-600 mt-1">Under Review</p>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">{pendingCount}</div>
+                <p className="text-sm text-slate-600 mt-1">Pending</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Alerts */}
+        {pendingCount > 0 && (
+          <div className="flex gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-medium text-amber-900">Action Required</p>
+              <p className="text-sm text-amber-800 mt-1">You have {pendingCount} pending document requirement{pendingCount !== 1 ? 's' : ''}. Please upload them as soon as possible to keep your application moving.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Tab Navigation */}
+        <div className="flex gap-2 bg-white p-1 rounded-lg border border-slate-200">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-md font-medium text-sm transition-all ${
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                <span>{tab.label}</span>
+                {tab.count !== null && tab.count > 0 && (
+                  <span className={`ml-1 px-2 py-0.5 text-xs rounded-full font-semibold ${
+                    isActive ? 'bg-blue-500' : 'bg-slate-200 text-slate-700'
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tab Content */}
+        <div className="space-y-6">
+          {activeTab === 'status' && (
+            <PortalRequirementsTab requirements={requirements} sessionId={sessionId} />
+          )}
+          {activeTab === 'documents' && (
+            <PortalDocumentsTab sessionId={sessionId} />
+          )}
+          {activeTab === 'messages' && (
+            <PortalSecureMessaging sessionId={sessionId} />
           )}
         </div>
-        {false && <div className="w-1 h-12 bg-slate-200 my-1" />}
-      </div>
-      <div className="flex-1 pt-2">
-        <p className={`font-medium ${completed || current ? 'text-slate-900' : 'text-slate-500'}`}>
-          {label}
-        </p>
       </div>
     </div>
-  );
-}
-
-function StatusBadge({ status }) {
-  const colors = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    uploaded: 'bg-blue-100 text-blue-800',
-    approved: 'bg-green-100 text-green-800',
-    rejected: 'bg-red-100 text-red-800',
-    in_progress: 'bg-purple-100 text-purple-800',
-    completed: 'bg-green-100 text-green-800'
-  };
-
-  return (
-    <span className={`px-3 py-1 rounded-full text-xs font-medium ${colors[status] || 'bg-slate-100'}`}>
-      {status?.replace(/_/g, ' ')}
-    </span>
   );
 }
