@@ -25,6 +25,7 @@ import Underwriting from './pages/Underwriting';
 import Users from './pages/Users';
 import BorrowerPortalLogin from './pages/BorrowerPortalLogin';
 import Reports from './pages/Reports';
+import AdminSettings from './pages/AdminSettings';
 import __Layout from './Layout.jsx';
 
 
@@ -56,6 +57,7 @@ export const PAGES = {
     "Users": Users,
     "BorrowerPortalLogin": BorrowerPortalLogin,
     "Reports": Reports,
+    "AdminSettings": AdminSettings,
 }
 
 export const pagesConfig = {
