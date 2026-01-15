@@ -5,6 +5,8 @@ import Deals from './pages/Deals';
 import NewDeal from './pages/NewDeal';
 import DealDetail from './pages/DealDetail';
 import Borrowers from './pages/Borrowers';
+import Documents from './pages/Documents';
+import Tasks from './pages/Tasks';
 import __Layout from './Layout.jsx';
 
 
@@ -16,6 +18,8 @@ export const PAGES = {
     "NewDeal": NewDeal,
     "DealDetail": DealDetail,
     "Borrowers": Borrowers,
+    "Documents": Documents,
+    "Tasks": Tasks,
 }
 
 export const pagesConfig = {
