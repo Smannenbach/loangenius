@@ -26,6 +26,10 @@ import {
   Zap,
   User,
   ChevronDown,
+  Facebook,
+  MessageCircle,
+  Contact,
+  BookOpen,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -46,6 +50,9 @@ export default function Conversations() {
   const [searchTerm, setSearchTerm] = useState('');
   const [messageInput, setMessageInput] = useState('');
   const [conversationSearch, setConversationSearch] = useState('');
+  const [contactMethod, setContactMethod] = useState('email'); // email, sms, facebook
+  const [showContactMethodModal, setShowContactMethodModal] = useState(false);
+  const [selectedContact, setSelectedContact] = useState(null);
   const queryClient = useQueryClient();
   const messagesEndRef = useRef(null);
   const [autoScroll, setAutoScroll] = useState(true);
@@ -137,6 +144,18 @@ export default function Conversations() {
       email: contact,
       domain: domain || 'unknown'
     };
+  };
+
+  const startConversationWithMethod = (contact, method) => {
+    setSelectedContact(contact);
+    setContactMethod(method);
+    setShowContactMethodModal(false);
+    setSelectedConversation({
+      contact,
+      messages: [],
+      unread: 0,
+      method,
+    });
   };
 
   return (
@@ -278,20 +297,58 @@ export default function Conversations() {
                   <p className="text-sm text-slate-500">{selectedConversation.contact}</p>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" className="text-slate-600 hover:bg-slate-100">
-                  {selectedConversation.contact.includes('@') ? <Mail className="h-5 w-5" /> : <Phone className="h-5 w-5" />}
-                </Button>
-                <Button variant="ghost" size="sm" className="text-slate-600 hover:bg-slate-100">
-                  <Bell className="h-5 w-5" />
-                </Button>
+              <div className="flex items-center gap-1">
+                {/* Contact Method Badge */}
+                <Badge className={`gap-1.5 ${
+                  contactMethod === 'email' ? 'bg-blue-100 text-blue-700' :
+                  contactMethod === 'sms' ? 'bg-green-100 text-green-700' :
+                  'bg-blue-500 text-white'
+                }`}>
+                  {contactMethod === 'email' && <Mail className="h-3 w-3" />}
+                  {contactMethod === 'sms' && <Phone className="h-3 w-3" />}
+                  {contactMethod === 'facebook' && <Facebook className="h-3 w-3" />}
+                  <span className="text-xs font-semibold capitalize">{contactMethod}</span>
+                </Badge>
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="text-slate-600 hover:bg-slate-100">
-                      <MoreVertical className="h-5 w-5" />
+                    <Button variant="ghost" size="sm" className="text-slate-600 hover:bg-slate-100 h-8 w-8">
+                      <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="w-48">
+                    <div className="p-2 border-b border-slate-200">
+                      <p className="text-xs font-semibold text-slate-700 mb-2">Switch Contact Method</p>
+                      <div className="space-y-1">
+                        <button
+                          onClick={() => setContactMethod('email')}
+                          className={`w-full px-3 py-2 rounded text-sm flex items-center gap-2 transition-colors ${
+                            contactMethod === 'email' ? 'bg-blue-100 text-blue-700' : 'hover:bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          <Mail className="h-4 w-4" />
+                          Email
+                        </button>
+                        <button
+                          onClick={() => setContactMethod('sms')}
+                          className={`w-full px-3 py-2 rounded text-sm flex items-center gap-2 transition-colors ${
+                            contactMethod === 'sms' ? 'bg-green-100 text-green-700' : 'hover:bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          <Phone className="h-4 w-4" />
+                          SMS
+                        </button>
+                        <button
+                          onClick={() => setContactMethod('facebook')}
+                          className={`w-full px-3 py-2 rounded text-sm flex items-center gap-2 transition-colors ${
+                            contactMethod === 'facebook' ? 'bg-blue-500 text-white' : 'hover:bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          <Facebook className="h-4 w-4" />
+                          Messenger
+                        </button>
+                      </div>
+                    </div>
                     <DropdownMenuItem><Archive className="h-4 w-4 mr-2" />Archive</DropdownMenuItem>
                     <DropdownMenuItem className="text-red-600"><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
                   </DropdownMenuContent>
