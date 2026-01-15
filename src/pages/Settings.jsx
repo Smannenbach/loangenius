@@ -12,9 +12,6 @@ import {
   User,
   Building2,
   Bell,
-  Shield,
-  Palette,
-  Link,
   Save,
 } from 'lucide-react';
 
@@ -61,10 +58,6 @@ export default function SettingsPage() {
           <TabsTrigger value="notifications" className="gap-2">
             <Bell className="h-4 w-4" />
             Notifications
-          </TabsTrigger>
-          <TabsTrigger value="integrations" className="gap-2">
-            <Link className="h-4 w-4" />
-            Integrations
           </TabsTrigger>
         </TabsList>
 
@@ -208,55 +201,6 @@ export default function SettingsPage() {
                 <Save className="h-4 w-4" />
                 Save Preferences
               </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="integrations">
-          <Card className="border-gray-200">
-            <CardHeader>
-              <CardTitle>Integrations</CardTitle>
-              <CardDescription>Connect external services</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                      <span className="font-bold text-blue-600">TW</span>
-                    </div>
-                    <div>
-                      <p className="font-medium">Twilio</p>
-                      <p className="text-sm text-gray-500">SMS messaging</p>
-                    </div>
-                  </div>
-                  <Button variant="outline">Configure</Button>
-                </div>
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                      <span className="font-bold text-blue-600">SG</span>
-                    </div>
-                    <div>
-                      <p className="font-medium">SendGrid</p>
-                      <p className="text-sm text-gray-500">Email delivery</p>
-                    </div>
-                  </div>
-                  <Button variant="outline">Configure</Button>
-                </div>
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-lg bg-orange-100 flex items-center justify-center">
-                      <span className="font-bold text-orange-600">Z</span>
-                    </div>
-                    <div>
-                      <p className="font-medium">Zapier</p>
-                      <p className="text-sm text-gray-500">Workflow automation</p>
-                    </div>
-                  </div>
-                  <Button variant="outline">Configure</Button>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
