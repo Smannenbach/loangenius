@@ -23,7 +23,7 @@ export default function LeadsImportModal({ trigger, onImportComplete }) {
 
   const previewMutation = useMutation({
     mutationFn: async () => {
-      const response = await base44.functions.invoke('sheetsImport', {
+      const response = await base44.functions.invoke('sheetsImportPreview', {
         source_type: 'csv',
         sheet_url: sheetUrl
       });
@@ -42,8 +42,7 @@ export default function LeadsImportModal({ trigger, onImportComplete }) {
 
   const importMutation = useMutation({
     mutationFn: async () => {
-      const response = await base44.functions.invoke('leadsImport', {
-        org_id: user.org_id,
+      const response = await base44.functions.invoke('sheetsImportLeads', {
         source_type: 'csv',
         sheet_url: sheetUrl,
         mapping

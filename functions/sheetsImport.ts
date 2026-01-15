@@ -183,10 +183,10 @@ async function handleImport(req) {
 Deno.serve(async (req) => {
   const path = new URL(req.url).pathname;
 
-  if (req.method === 'POST' && path === '/functions/sheetsPreview') {
+  if (req.method === 'POST' && path === '/functions/sheetsImportPreview') {
     return handlePreview(req);
   }
-  if (req.method === 'POST' && path === '/functions/leadsImport') {
+  if (req.method === 'POST' && path === '/functions/sheetsImportLeads') {
     return handleImport(req);
   }
 
