@@ -480,7 +480,108 @@ export default function DealDetail() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="portal" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Borrower Portal Access</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {dealBorrowers?.map((db) => (
+                <div key={db.id} className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-medium">{db.borrower?.first_name} {db.borrower?.last_name}</p>
+                      <p className="text-sm text-gray-600">{db.borrower?.email}</p>
+                      <p className="text-sm text-gray-600">{db.borrower?.phone}</p>
+                    </div>
+                    <Badge>Primary</Badge>
+                  </div>
+                  
+                  <div className="flex gap-2 flex-wrap">
+                    <Button size="sm" variant="outline" onClick={() => {
+                      setSelectedBorrower(db.borrower_id);
+                      setShowPortalInviteModal(true);
+                    }}>
+                      <Send className="h-4 w-4 mr-2" />
+                      Send Invite
+                    </Button>
+                    <Button size="sm" variant="outline">
+                      <Eye className="h-4 w-4 mr-2" />
+                      Preview
+                    </Button>
+                    <Button size="sm" variant="outline">
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Resend
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Document Checklist</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {documentRequirements?.map((req) => (
+                <div key={req.id} className="border-b py-3 last:border-0 flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{req.display_name}</p>
+                    <Badge variant={req.status === 'approved' ? 'default' : 'secondary'}>
+                      {req.status}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {showPortalInviteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Send Portal Invite</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Sending invite to {borrowers?.find(b => b.id === selectedBorrower)?.email}
+              </p>
+              <div className="space-y-3">
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" defaultChecked className="w-4 h-4" />
+                  <span className="text-sm">Send via Email</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" defaultChecked className="w-4 h-4" />
+                  <span className="text-sm">Send via SMS</span>
+                </label>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowPortalInviteModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    sendPortalInviteMutation.mutate(selectedBorrower);
+                    setShowPortalInviteModal(false);
+                  }}
+                  className="bg-blue-600"
+                  disabled={sendPortalInviteMutation.isPending}
+                >
+                  Send Invite
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
