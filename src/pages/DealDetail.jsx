@@ -150,7 +150,7 @@ export default function DealDetail() {
               </Badge>
             </div>
             <p className="text-gray-500 mt-1 capitalize">
-              {deal.loan_type?.replace(/_/g, ' ')} • ${(deal.loan_amount || 0).toLocaleString()}
+              {deal.loan_product?.replace(/_/g, ' ')} • ${(deal.loan_amount || 0).toLocaleString()}
             </p>
           </div>
           <div className="flex gap-2">
@@ -209,8 +209,8 @@ export default function DealDetail() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Type</span>
-                  <span className="font-medium capitalize">{deal.loan_type?.replace(/_/g, ' ')}</span>
+                  <span className="text-gray-500">Product</span>
+                  <span className="font-medium capitalize">{deal.loan_product?.replace(/_/g, ' ')}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Purpose</span>
@@ -257,11 +257,11 @@ export default function DealDetail() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Monthly Rent</span>
-                      <span className="font-medium">${property.monthly_rent?.toLocaleString() || '-'}</span>
+                      <span className="font-medium">${property.gross_rent_monthly?.toLocaleString() || '-'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Annual Taxes</span>
-                      <span className="font-medium">${property.annual_taxes?.toLocaleString() || '-'}</span>
+                      <span className="text-gray-500">Monthly Taxes</span>
+                      <span className="font-medium">${(property.taxes_monthly * 12)?.toLocaleString() || '-'}</span>
                     </div>
                   </div>
                 ) : (
@@ -430,11 +430,11 @@ export default function DealDetail() {
                         </div>
                         <div>
                           <p className="text-sm text-gray-500">Monthly Rent</p>
-                          <p className="font-medium">${(property.monthly_rent || 0).toLocaleString()}</p>
+                          <p className="font-medium">${(property.gross_rent_monthly || 0).toLocaleString()}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-500">Annual Taxes</p>
-                          <p className="font-medium">${(property.annual_taxes || 0).toLocaleString()}</p>
+                          <p className="font-medium">${((property.taxes_monthly || 0) * 12).toLocaleString()}</p>
                         </div>
                       </div>
                     </div>

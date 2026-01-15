@@ -1,7 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { calculateDealMetrics } from './dscr-calculator.js';
-import { logAudit } from './auditLogger.js';
-import { createOutboxEvent } from './createOutboxEvent.js';
 
 /**
  * Create or update a DSCR deal with multi-borrower and property support
@@ -72,8 +70,7 @@ Deno.serve(async (req) => {
         assigned_to_user_id
       });
 
-      await logAudit(base44, org_id, user.email, 'update', 'Deal', deal_id, existingDeal[0], deal, req);
-      await createOutboxEvent(base44, org_id, 'deal.updated', 'Deal', deal_id, { deal });
+      // Audit and event logging handled by automations
     } else {
       // Create new deal
       // Generate deal number: LG-YYYYMM-XXXX
@@ -100,8 +97,7 @@ Deno.serve(async (req) => {
         status: 'draft'
       });
 
-      await logAudit(base44, org_id, user.email, 'create', 'Deal', deal.id, null, deal, req);
-      await createOutboxEvent(base44, org_id, 'deal.created', 'Deal', deal.id, { deal });
+      // Audit and event logging handled by automations
     }
 
     // Handle borrowers
