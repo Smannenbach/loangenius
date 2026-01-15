@@ -97,7 +97,6 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Lenders', href: '/Lenders', icon: Building },
     { name: 'Integrations', href: '/AdminIntegrations', icon: Settings },
     { name: 'Settings', href: '/Settings', icon: Settings },
-    { name: 'Assumptions', href: '/Assumptions', icon: FileText },
   ];
 
   const NavItem = ({ item, collapsed = false }) => {
