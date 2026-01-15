@@ -1,75 +1,67 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
+/**
+ * Get portal requirements for borrower
+ */
 Deno.serve(async (req) => {
-  if (req.method !== 'GET') {
-    return Response.json({ error: 'Method not allowed' }, { status: 405 });
-  }
-
   try {
+    if (req.method === 'GET') {
+      return Response.json({ error: 'POST only' }, { status: 405 });
+    }
+
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
+    const { sessionId } = await req.json();
 
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!sessionId) {
+      return Response.json({ error: 'Session ID required' }, { status: 400 });
     }
 
-    const url = new URL(req.url);
-    const dealId = url.pathname.split('/')[3];
-
-    if (!dealId) {
-      return Response.json({ error: 'Missing deal ID' }, { status: 400 });
+    // Validate session
+    const session = await base44.asServiceRole.entities.PortalSession.get(sessionId);
+    if (!session || session.is_revoked || new Date(session.expires_at) < new Date()) {
+      return Response.json({ error: 'Invalid session' }, { status: 401 });
     }
 
-    // Verify deal exists and borrower has access
-    const deal = await base44.entities.Deal.get(dealId);
-    if (!deal) {
-      return Response.json({ error: 'Deal not found' }, { status: 404 });
-    }
-
-    // Get visible requirements
-    const requirements = await base44.entities.DealDocumentRequirement.filter({
-      deal_id: dealId,
-      visible_to_borrower: true
+    // Get requirements grouped by type
+    const requirements = await base44.asServiceRole.entities.DealDocumentRequirement.filter({
+      org_id: session.org_id,
+      deal_id: session.deal_id,
+      is_visible_to_borrower: true,
     });
 
-    // Get documents
-    const documents = await base44.entities.Document.filter({
-      deal_id: dealId
+    // Get documents for these requirements
+    const documents = await base44.asServiceRole.entities.Document.filter({
+      org_id: session.org_id,
+      deal_id: session.deal_id,
     });
 
-    // Group requirements by category
+    // Group by document type
     const grouped = {};
-    requirements.forEach(req => {
-      if (!grouped[req.category]) {
-        grouped[req.category] = [];
+    requirements.forEach((req) => {
+      const type = req.document_type || 'Other';
+      if (!grouped[type]) {
+        grouped[type] = [];
       }
-      
-      const relatedDocs = documents.filter(d => d.document_requirement_id === req.id);
-      
-      grouped[req.category].push({
+
+      const linkedDocs = documents.filter((doc) => doc.requirement_id === req.id);
+      grouped[type].push({
         id: req.id,
-        name: req.name,
-        category: req.category,
+        name: req.display_name,
         status: req.status,
-        due_at: req.due_at,
-        instructions: req.instructions_text,
-        documents: relatedDocs.map(d => ({
-          id: d.id,
-          name: d.file_name,
-          status: d.status,
-          created_at: d.created_at
-        })),
-        reviewer_notes: req.reviewer_notes
+        due_date: req.due_date,
+        instructions: req.instructions,
+        is_required: req.is_required,
+        documents: linkedDocs,
       });
     });
 
     return Response.json({
-      deal_id: dealId,
       requirements_by_category: grouped,
-      total_count: requirements.length,
-      completed_count: requirements.filter(r => r.status === 'approved').length
+      total_required: requirements.filter((r) => r.is_required).length,
+      total_completed: requirements.filter((r) => r.status === 'approved').length,
     });
   } catch (error) {
+    console.error('Portal requirements error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

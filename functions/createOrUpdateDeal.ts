@@ -1,12 +1,14 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { calculateDealMetrics, calculatePropertyMetrics, validateDSCRDeal } from './dscrCalculator.js';
-import { logAudit, logActivity } from './auditLogHelper.js';
 
 /**
- * Create or update a DSCR deal with multi-borrower and property support
+ * Create or update a deal with full org isolation
  */
 Deno.serve(async (req) => {
   try {
+    if (req.method === 'GET') {
+      return Response.json({ error: 'POST only' }, { status: 405 });
+    }
+
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
 
@@ -14,199 +16,175 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { 
-      deal_id,
-      org_id,
-      loan_product,
-      loan_purpose,
-      is_blanket,
-      loan_amount,
-      interest_rate,
-      loan_term_months,
-      amortization_type,
-      application_date,
-      assigned_to_user_id,
-      borrowers,
-      properties
-    } = await req.json();
+    const { action, dealData } = await req.json();
 
-    if (!org_id || !loan_product || !loan_purpose) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!action || !dealData) {
+      return Response.json({ error: 'Missing action or dealData' }, { status: 400 });
     }
 
-    // Validate borrowers
-    if (!borrowers || borrowers.length === 0) {
-      return Response.json({ error: 'At least one borrower required' }, { status: 400 });
-    }
-
-    // Validate properties
-    if (!properties || properties.length === 0) {
-      return Response.json({ error: 'At least one property required' }, { status: 400 });
-    }
-
-    // Validate blanket rules
-    if (is_blanket && properties.length < 2) {
-      return Response.json({ error: 'Blanket deals require 2+ properties' }, { status: 400 });
-    }
-
-    // Validate DSCR deal
-    const dealValidation = validateDSCRDeal({ loan_amount, interest_rate, loan_term_months }, properties);
-    if (!dealValidation.valid) {
-      return Response.json({ 
-        error: 'Deal validation failed',
-        issues: dealValidation.issues
-      }, { status: 400 });
-    }
-
-    let deal;
-    const startTime = Date.now();
-
-    if (deal_id) {
-      // Update existing deal
-      const existingDeal = await base44.asServiceRole.entities.Deal.filter({ id: deal_id });
-      if (!existingDeal.length) {
-        return Response.json({ error: 'Deal not found' }, { status: 404 });
-      }
-
-      deal = await base44.asServiceRole.entities.Deal.update(deal_id, {
+    if (action === 'create') {
+      const {
         loan_product,
         loan_purpose,
         is_blanket,
         loan_amount,
         interest_rate,
         loan_term_months,
-        amortization_type: amortization_type || 'fixed',
-        application_date,
-        assigned_to_user_id
+        amortization_type,
+        properties,
+        borrowers,
+      } = dealData;
+
+      if (!loan_product || !loan_purpose) {
+        return Response.json({ error: 'Missing loan_product or loan_purpose' }, { status: 400 });
+      }
+
+      // Get user's org from OrgMembership
+      const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+        user_id: user.email,
       });
 
-      // Audit and event logging handled by automations
-    } else {
-      // Create new deal
+      if (memberships.length === 0) {
+        return Response.json({ error: 'User not part of any organization' }, { status: 403 });
+      }
+
+      const org_id = memberships[0].org_id;
+
       // Generate deal number: LG-YYYYMM-XXXX
       const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const allDeals = await base44.asServiceRole.entities.Deal.filter({ org_id });
-      const sequence = (allDeals.length % 10000) + 1;
-      const deal_number = `LG-${year}${month}-${String(sequence).padStart(4, '0')}`;
+      const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const counter = Math.floor(Math.random() * 10000)
+        .toString()
+        .padStart(4, '0');
+      const deal_number = `LG-${yearMonth}-${counter}`;
 
-      deal = await base44.asServiceRole.entities.Deal.create({
+      // Create deal
+      const deal = await base44.asServiceRole.entities.Deal.create({
         org_id,
         deal_number,
         loan_product,
         loan_purpose,
         is_blanket: is_blanket || false,
-        loan_amount,
-        interest_rate,
+        stage: 'inquiry',
+        status: 'active',
+        application_date: new Date().toISOString().split('T')[0],
+        assigned_to_user_id: user.email,
+        loan_amount: loan_amount || 0,
+        interest_rate: interest_rate || 0,
         loan_term_months: loan_term_months || 360,
         amortization_type: amortization_type || 'fixed',
-        application_date: application_date || new Date().toISOString().split('T')[0],
-        assigned_to_user_id,
-        stage: 'inquiry',
-        status: 'draft'
       });
 
-      // Audit and event logging handled by automations
-    }
-
-    // Handle borrowers
-    for (const borrower of borrowers) {
-      const existingLinks = await base44.asServiceRole.entities.DealBorrower.filter({
-        deal_id: deal.id,
-        borrower_id: borrower.id
-      });
-
-      if (existingLinks.length === 0) {
-        await base44.asServiceRole.entities.DealBorrower.create({
-          org_id,
-          deal_id: deal.id,
-          borrower_id: borrower.id,
-          role: borrower.role || 'primary',
-          ownership_percent: borrower.ownership_percent
-        });
+      // Create properties if provided
+      if (properties && properties.length > 0) {
+        for (const prop of properties) {
+          await base44.asServiceRole.entities.Property.create({
+            org_id,
+            address_street: prop.street,
+            address_unit: prop.unit,
+            address_city: prop.city,
+            address_state: prop.state,
+            address_zip: prop.zip,
+            property_type: prop.propertyType || 'SFR',
+            occupancy_type: prop.occupancyType || 'investment',
+            year_built: prop.yearBuilt,
+            sqft: prop.squareFeet,
+            gross_rent_monthly: prop.monthlyRent,
+          });
+        }
       }
-    }
 
-    // Handle properties and calculate per-property metrics
-    for (const property of properties) {
-      const existingLinks = await base44.asServiceRole.entities.DealProperty.filter({
-        deal_id: deal.id,
-        property_id: property.id
-      });
+      // Create borrowers if provided
+      if (borrowers && borrowers.length > 0) {
+        for (const borrower of borrowers) {
+          const borrowerRecord = await base44.asServiceRole.entities.Borrower.create({
+            org_id,
+            first_name: borrower.firstName,
+            last_name: borrower.lastName,
+            email: borrower.email,
+            phone: borrower.phone,
+            borrower_type: 'individual',
+          });
 
-      const propMetrics = is_blanket 
-        ? calculatePropertyMetrics(property, property.loan_amount_allocated || loan_amount / properties.length, interest_rate, loan_term_months)
-        : calculatePropertyMetrics(property, loan_amount, interest_rate, loan_term_months);
-
-      if (existingLinks.length === 0) {
-        await base44.asServiceRole.entities.DealProperty.create({
-          org_id,
-          deal_id: deal.id,
-          property_id: property.id,
-          role: property.role || 'primary',
-          loan_amount_allocated: property.loan_amount_allocated || (is_blanket ? loan_amount / properties.length : loan_amount),
-          dscr_ratio: propMetrics.dscr_ratio,
-          ltv_ratio: propMetrics.ltv_ratio,
-          monthly_pi: propMetrics.monthly_pi,
-          monthly_pitia: propMetrics.monthly_pitia
-        });
-      } else {
-        await base44.asServiceRole.entities.DealProperty.update(existingLinks[0].id, {
-          loan_amount_allocated: property.loan_amount_allocated || (is_blanket ? loan_amount / properties.length : loan_amount),
-          dscr_ratio: propMetrics.dscr_ratio,
-          ltv_ratio: propMetrics.ltv_ratio,
-          monthly_pi: propMetrics.monthly_pi,
-          monthly_pitia: propMetrics.monthly_pitia
-        });
+          // Link to deal
+          await base44.asServiceRole.entities.DealBorrower.create({
+            org_id,
+            deal_id: deal.id,
+            borrower_id: borrowerRecord.id,
+            role: borrower.role || 'primary',
+            ownership_percent: borrower.ownershipPercent || 100,
+          });
+        }
       }
-    }
 
-    // Calculate and update deal metrics
-    const metrics = calculateDealMetrics(deal, properties);
-    const updatedDeal = await base44.asServiceRole.entities.Deal.update(deal.id, {
-      dscr: metrics.dscr,
-      ltv: metrics.ltv,
-      monthly_pitia: metrics.monthly_pitia,
-      monthly_pi: metrics.monthly_pi
-    });
-
-    // Audit log
-    await logAudit(base44, {
-      action_type: deal_id ? 'Update' : 'Create',
-      entity_type: 'Deal',
-      entity_id: updatedDeal.id,
-      entity_name: updatedDeal.deal_number,
-      description: `${deal_id ? 'Updated' : 'Created'} ${loan_product} deal for ${loan_purpose}`,
-      severity: 'Info',
-      metadata: {
+      // Log audit event
+      await base44.asServiceRole.entities.AuditLog.create({
         org_id,
-        user_id: user.id,
-        dscr: metrics.dscr,
-        ltv: metrics.ltv
+        user_id: user.email,
+        action_type: 'Create',
+        entity_type: 'Deal',
+        entity_id: deal.id,
+        entity_name: deal.deal_number,
+        description: `Deal created: ${deal.deal_number} (${loan_product})`,
+      });
+
+      return Response.json({
+        success: true,
+        deal: {
+          id: deal.id,
+          deal_number: deal.deal_number,
+          org_id,
+        },
+      });
+    }
+
+    if (action === 'update') {
+      const { deal_id, updates } = dealData;
+
+      if (!deal_id) {
+        return Response.json({ error: 'Missing deal_id' }, { status: 400 });
       }
-    });
 
-    // Activity log
-    await logActivity(base44, {
-      deal_id: updatedDeal.id,
-      activity_type: deal_id ? 'Status_Change' : 'Note',
-      title: `${deal_id ? 'Updated' : 'Created'} deal`,
-      description: `${loan_product} ${loan_purpose} | DSCR: ${metrics.dscr.toFixed(2)} | LTV: ${metrics.ltv.toFixed(1)}%`,
-      icon: deal_id ? '✏️' : '➕',
-      color: 'blue'
-    });
+      // Verify deal exists and belongs to user's org
+      const deal = await base44.asServiceRole.entities.Deal.get(deal_id);
+      if (!deal) {
+        return Response.json({ error: 'Deal not found' }, { status: 404 });
+      }
 
-    const execTime = Date.now() - startTime;
+      // Check org access
+      const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+        user_id: user.email,
+        org_id: deal.org_id,
+      });
 
-    return Response.json({
-      success: true,
-      deal: updatedDeal,
-      metrics,
-      execution_ms: execTime
-    });
+      if (memberships.length === 0) {
+        return Response.json({ error: 'Unauthorized: not in deal org' }, { status: 403 });
+      }
+
+      // Update deal
+      const updated = await base44.asServiceRole.entities.Deal.update(deal_id, updates);
+
+      // Log audit
+      await base44.asServiceRole.entities.AuditLog.create({
+        org_id: deal.org_id,
+        user_id: user.email,
+        action_type: 'Update',
+        entity_type: 'Deal',
+        entity_id: deal_id,
+        entity_name: deal.deal_number,
+        description: `Deal updated: ${Object.keys(updates).join(', ')}`,
+        new_values: updates,
+      });
+
+      return Response.json({
+        success: true,
+        deal: updated,
+      });
+    }
+
+    return Response.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
-    console.error('Error creating/updating deal:', error);
+    console.error('Create/update deal error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

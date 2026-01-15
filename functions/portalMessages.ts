@@ -1,81 +1,91 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
+/**
+ * Get portal messages for borrower
+ */
 Deno.serve(async (req) => {
-  const base44 = createClientFromRequest(req);
-  const user = await base44.auth.me();
+  try {
+    if (req.method === 'GET') {
+      return Response.json({ error: 'POST only' }, { status: 405 });
+    }
 
-  if (!user) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+    const base44 = createClientFromRequest(req);
+    const { sessionId, action } = await req.json();
 
-  const url = new URL(req.url);
-  const dealId = url.pathname.split('/')[3];
+    if (!sessionId) {
+      return Response.json({ error: 'Session ID required' }, { status: 400 });
+    }
 
-  if (!dealId) {
-    return Response.json({ error: 'Missing deal ID' }, { status: 400 });
-  }
+    // Validate session
+    const session = await base44.asServiceRole.entities.PortalSession.get(sessionId);
+    if (!session || session.is_revoked || new Date(session.expires_at) < new Date()) {
+      return Response.json({ error: 'Invalid session' }, { status: 401 });
+    }
 
-  if (req.method === 'GET') {
-    try {
-      const messages = await base44.entities.Communication.filter({
-        deal_id: dealId,
-        channel: 'Portal_Message'
+    if (action === 'getMessages') {
+      // Get communications for this deal
+      const messages = await base44.asServiceRole.entities.CommunicationsLog.filter({
+        org_id: session.org_id,
+        deal_id: session.deal_id,
       });
+
+      // Sort by date descending
+      const sorted = messages.sort(
+        (a, b) => new Date(b.created_date) - new Date(a.created_date)
+      );
 
       return Response.json({
-        deal_id: dealId,
-        messages: messages.map(m => ({
+        messages: sorted.map((m) => ({
           id: m.id,
-          direction: m.direction,
-          from: m.from_address,
-          to: m.to_address,
+          subject: m.subject,
           body: m.body,
-          created_at: m.created_at,
-          status: m.status
-        }))
+          from: m.from,
+          direction: m.direction,
+          channel: m.channel,
+          created_at: m.created_date,
+        })),
       });
-    } catch (error) {
-      return Response.json({ error: error.message }, { status: 500 });
     }
-  }
 
-  if (req.method === 'POST') {
-    try {
+    if (action === 'sendMessage') {
       const { body } = await req.json();
 
       if (!body) {
         return Response.json({ error: 'Message body required' }, { status: 400 });
       }
 
-      const message = await base44.entities.Communication.create({
-        org_id: user.org_id || 'default',
-        deal_id: dealId,
-        channel: 'Portal_Message',
-        direction: 'Inbound',
-        from_address: user.email,
-        to_address: 'support@loangenius.local',
-        body,
-        status: 'Sent'
-      });
+      // Get deal to find LO
+      const deal = await base44.asServiceRole.entities.Deal.get(session.deal_id);
+      if (!deal) {
+        return Response.json({ error: 'Deal not found' }, { status: 404 });
+      }
 
-      // Log activity
-      await base44.asServiceRole.entities.ActivityLog.create({
-        org_id: user.org_id || 'default',
-        deal_id: dealId,
-        contact_id: user.email,
-        action_type: 'message_sent',
-        description: 'Borrower sent portal message',
-        metadata_json: {}
+      // Create message
+      const message = await base44.asServiceRole.entities.CommunicationsLog.create({
+        org_id: session.org_id,
+        deal_id: session.deal_id,
+        channel: 'in_app',
+        direction: 'inbound',
+        from: session.borrower_id,
+        to: deal.assigned_to_user_id,
+        body,
+        status: 'delivered',
       });
 
       return Response.json({
-        message_id: message.id,
-        created_at: message.created_at
+        success: true,
+        message: {
+          id: message.id,
+          body: message.body,
+          direction: 'inbound',
+          created_at: message.created_date,
+        },
       });
-    } catch (error) {
-      return Response.json({ error: error.message }, { status: 500 });
     }
-  }
 
-  return Response.json({ error: 'Method not allowed' }, { status: 405 });
+    return Response.json({ error: 'Invalid action' }, { status: 400 });
+  } catch (error) {
+    console.error('Portal messages error:', error);
+    return Response.json({ error: error.message }, { status: 500 });
+  }
 });

@@ -1,37 +1,106 @@
-import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, FileText, CheckCircle2, AlertCircle, MessageSquare, Home } from 'lucide-react';
+import { Clock, FileText, CheckCircle2, AlertCircle, MessageSquare, Home, Loader2 } from 'lucide-react';
+import PortalDocumentsTab from '@/components/portal/PortalDocumentsTab';
 
 export default function BorrowerPortal() {
-  const { dealId } = useParams();
   const [activeTab, setActiveTab] = useState('timeline');
+  const [sessionId, setSessionId] = useState(null);
+  const [dealId, setDealId] = useState(null);
+  const [borrowerId, setBorrowerId] = useState(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      setSessionId(urlParams.get('sessionId'));
+    }
+  }, []);
+
+  // Get session data
+  const { data: session, isLoading: loadingSession } = useQuery({
+    queryKey: ['portalSession', sessionId],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('portalAuth', {
+        action: 'getSession',
+        sessionId,
+      });
+      return response.data;
+    },
+    enabled: !!sessionId,
+  });
+
+  useEffect(() => {
+    if (session) {
+      setDealId(session.dealId);
+      setBorrowerId(session.borrowerId);
+    }
+  }, [session]);
 
   const { data: deal, isLoading: loadingDeal } = useQuery({
     queryKey: ['deal', dealId],
-    queryFn: () => base44.entities.Deal.filter({ id: dealId }).then(d => d[0])
+    queryFn: async () => {
+      if (!sessionId || !dealId) return null;
+      const response = await base44.functions.invoke('portalSummary', {
+        sessionId,
+      });
+      return response.data;
+    },
+    enabled: !!sessionId && !!dealId,
   });
 
   const { data: tasks } = useQuery({
     queryKey: ['borrower-tasks', dealId],
-    queryFn: () => base44.entities.Task.filter({ deal_id: dealId, is_visible_to_borrower: true })
-  });
-
-  const { data: documents } = useQuery({
-    queryKey: ['borrower-documents', dealId],
-    queryFn: () => base44.entities.DealDocumentRequirement.filter({ deal_id: dealId })
+    queryFn: async () => {
+      if (!sessionId) return [];
+      const response = await base44.functions.invoke('portalRequirements', {
+        sessionId,
+      });
+      return response.data?.requirements_by_category || {};
+    },
+    enabled: !!sessionId,
   });
 
   const { data: messages } = useQuery({
-    queryKey: ['borrower-messages', dealId],
-    queryFn: () => base44.entities.Communication.filter({ deal_id: dealId })
+    queryKey: ['borrower-messages', sessionId],
+    queryFn: async () => {
+      if (!sessionId) return [];
+      const response = await base44.functions.invoke('portalMessages', {
+        sessionId,
+        action: 'getMessages',
+      });
+      return response.data?.messages || [];
+    },
+    enabled: !!sessionId,
   });
 
-  if (loadingDeal) return <div className="p-8">Loading...</div>;
+  if (loadingSession || loadingDeal) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  if (!sessionId || !session) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6 text-center">
+            <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
+            <p className="text-lg font-semibold mb-2">Session Invalid</p>
+            <p className="text-gray-600 mb-4">Your portal session has expired or is invalid.</p>
+            <Button onClick={() => (window.location.href = '/BorrowerPortalLogin')}>
+              Request New Link
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const stageProgress = {
     inquiry: 10,
@@ -40,7 +109,7 @@ export default function BorrowerPortal() {
     underwriting: 75,
     approved: 90,
     closing: 95,
-    funded: 100
+    funded: 100,
   };
 
   const progress = stageProgress[deal?.stage] || 0;
@@ -51,7 +120,7 @@ export default function BorrowerPortal() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Your Loan Portal</h1>
-          <p className="text-slate-600">Deal: {deal?.deal_number}</p>
+          <p className="text-slate-600">Status: {deal?.stage?.replace(/_/g, ' ')}</p>
         </div>
 
         {/* Progress */}
@@ -133,60 +202,52 @@ export default function BorrowerPortal() {
 
           {/* Documents Tab */}
           <TabsContent value="documents" className="space-y-4">
-            {documents?.map(doc => (
-              <Card key={doc.id}>
-                <CardHeader className="flex flex-row items-start justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-blue-600" />
-                      {doc.name}
-                    </CardTitle>
-                    {doc.instructions_text && (
-                      <p className="text-sm text-slate-600 mt-2">{doc.instructions_text}</p>
-                    )}
-                  </div>
-                  <StatusBadge status={doc.status} />
-                </CardHeader>
-              </Card>
-            ))}
+            <PortalDocumentsTab sessionId={sessionId} />
           </TabsContent>
 
           {/* Tasks Tab */}
           <TabsContent value="tasks" className="space-y-4">
-            {tasks?.map(task => (
-              <Card key={task.id}>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>{task.title}</span>
-                    <StatusBadge status={task.status} />
-                  </CardTitle>
-                  {task.description && <p className="text-sm text-slate-600">{task.description}</p>}
-                </CardHeader>
-                {task.due_date && (
-                  <CardContent>
-                    <p className="text-sm text-slate-500">Due: {new Date(task.due_date).toLocaleDateString()}</p>
-                  </CardContent>
-                )}
-              </Card>
+            {Object.entries(tasks || {}).map(([category, items]) => (
+              <div key={category}>
+                <h3 className="text-lg font-semibold mb-3 capitalize">{category}</h3>
+                {items.map(task => (
+                  <Card key={task.id} className="mb-3">
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <span>{task.name || task.display_name}</span>
+                        <StatusBadge status={task.status} />
+                      </CardTitle>
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
             ))}
           </TabsContent>
 
           {/* Messages Tab */}
           <TabsContent value="messages" className="space-y-4">
-            {messages?.map(msg => (
-              <Card key={msg.id}>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <MessageSquare className="h-5 w-5" />
-                    {msg.subject}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-slate-700 mb-2">{msg.body}</p>
-                  <p className="text-xs text-slate-500">{new Date(msg.sent_at).toLocaleString()}</p>
+            {messages?.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6 text-center text-slate-600">
+                  No messages yet
                 </CardContent>
               </Card>
-            ))}
+            ) : (
+              messages?.map(msg => (
+                <Card key={msg.id}>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <MessageSquare className="h-5 w-5" />
+                      Message
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-slate-700 mb-2">{msg.body}</p>
+                    <p className="text-xs text-slate-500">{new Date(msg.created_at).toLocaleString()}</p>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </TabsContent>
         </Tabs>
       </div>
