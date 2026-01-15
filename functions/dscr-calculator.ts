@@ -59,18 +59,21 @@ export function calculateMonthlyPITIA(loanAmount, annualRate, termMonths, proper
 }
 
 /**
- * Calculate DSCR
+ * Calculate DSCR with precision
  * DSCR = Gross Monthly Rental Income / (P&I + Taxes + Insurance + HOA + Flood)
  */
 export function calculateDSCR(property, loanAmount, annualRate, termMonths) {
   if (!property) return 0;
 
-  const grossRent = (property.gross_rent_monthly || 0) + (property.other_income_monthly || 0);
+  const grossRent = toDecimal(property.gross_rent_monthly || 0)
+    .plus(toDecimal(property.other_income_monthly || 0));
+  
   const pitiaData = calculateMonthlyPITIA(loanAmount, annualRate, termMonths, property);
+  const pitia = toDecimal(pitiaData.monthly_pitia);
 
-  if (pitiaData.monthly_pitia === 0) return 0;
+  if (pitia.isZero()) return 0;
 
-  return parseFloat((grossRent / pitiaData.monthly_pitia).toFixed(2));
+  return parseFloat(grossRent.dividedBy(pitia).toDecimalPlaces(2).toString());
 }
 
 /**
