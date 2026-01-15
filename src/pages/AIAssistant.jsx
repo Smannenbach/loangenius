@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Send, Loader2, Sparkles, AlertCircle, Zap, FileText } from 'lucide-react';
+import { Send, Loader2, Sparkles, AlertCircle, Zap, FileText, RotateCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 const urlParams = new URLSearchParams(window.location.search);
 const dealId = urlParams.get('deal_id');
@@ -42,7 +43,15 @@ export default function AIAssistant() {
         content: data.data.response
       }]);
       setInput('');
-    }
+    },
+    onError: (error) => {
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: '❌ Sorry, I encountered an error processing your request. Please try again.',
+        isError: true
+      }]);
+    },
+    retry: 1
   });
 
   useEffect(() => {
@@ -61,17 +70,18 @@ export default function AIAssistant() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
+     <ErrorBoundary>
+       <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+         <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div>
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-blue-600" />
-            <h1 className="text-3xl font-bold">LoanGenius AI Assistant</h1>
-          </div>
-          <p className="text-gray-600 mt-1">Get instant answers about loan origination, documents, and compliance</p>
-          {dealId && <Badge className="mt-3">Deal: {dealId}</Badge>}
-        </div>
+         <div>
+           <div className="flex items-center gap-2 flex-wrap">
+             <Sparkles className="h-6 w-6 text-blue-600" />
+             <h1 className="text-2xl md:text-3xl font-bold">LoanGenius AI Assistant</h1>
+           </div>
+           <p className="text-gray-600 mt-1 text-sm md:text-base">Get instant answers about loan origination, documents, and compliance</p>
+           {dealId && <Badge className="mt-3">Deal: {dealId}</Badge>}
+         </div>
 
         {/* AI Status Alert */}
         {!statusLoading && aiStatus?.data?.status === 'degraded' && (
@@ -85,24 +95,26 @@ export default function AIAssistant() {
         )}
 
         {/* Chat Container */}
-        <Card className="h-[600px] flex flex-col">
-          <CardHeader className="border-b">
-            <CardTitle>Chat</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
+         <Card className="flex flex-col" style={{ height: 'min(600px, 60vh)' }}>
+           <CardHeader className="border-b">
+             <CardTitle>Chat</CardTitle>
+           </CardHeader>
+           <CardContent className="flex-1 overflow-y-auto p-3 md:p-4 space-y-4">
             {messages.map((msg, idx) => (
               <div
                 key={idx}
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-xs lg:max-w-md rounded-lg px-4 py-2 ${
-                    msg.role === 'user'
+                  className={`max-w-xs md:max-w-md rounded-lg px-3 py-2 md:px-4 ${
+                    msg.isError
+                      ? 'bg-red-100 text-red-900'
+                      : msg.role === 'user'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-900'
                   }`}
                 >
-                  <p className="text-sm leading-relaxed">{msg.content}</p>
+                  <p className="text-sm leading-relaxed break-words">{msg.content}</p>
                 </div>
               </div>
             ))}
@@ -118,19 +130,21 @@ export default function AIAssistant() {
           </CardContent>
 
           {/* Input */}
-          <div className="border-t p-4">
+          <div className="border-t p-3 md:p-4 bg-white">
             <div className="flex gap-2">
               <Input
                 placeholder="Ask a question..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                disabled={chatMutation.isPending}
+                onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                disabled={chatMutation.isPending || aiStatus?.data?.status === 'degraded'}
+                className="text-sm"
               />
               <Button
                 onClick={handleSend}
                 disabled={chatMutation.isPending || !input.trim() || aiStatus?.data?.status === 'degraded'}
-                className="gap-2"
+                size="icon"
+                className="flex-shrink-0"
               >
                 {chatMutation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -174,7 +188,7 @@ export default function AIAssistant() {
                 <Button
                   key={idx}
                   variant="outline"
-                  className="justify-start h-auto py-2 px-3 text-left text-sm"
+                  className="justify-start h-auto py-2 px-3 text-left text-xs md:text-sm"
                   onClick={() => {
                     setInput(q);
                     setTimeout(() => handleSend(), 0);
@@ -187,7 +201,7 @@ export default function AIAssistant() {
             </div>
           </CardContent>
         </Card>
-      </div>
-    </div>
+        </div>
+        </ErrorBoundary>
   );
 }

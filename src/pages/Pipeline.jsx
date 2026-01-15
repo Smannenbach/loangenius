@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import ErrorBoundary from '@/components/ErrorBoundary';
+import { ListItemSkeleton } from '@/components/LoadingSkeletons';
 import {
   Search,
   Filter,
@@ -23,10 +25,12 @@ export default function Pipeline() {
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
   
-  const { data: deals = [], isLoading } = useQuery({
-    queryKey: ['deals'],
-    queryFn: () => base44.entities.Deal.filter({ is_deleted: false }),
-  });
+  const { data: deals = [], isLoading, error } = useQuery({
+     queryKey: ['deals'],
+     queryFn: () => base44.entities.Deal.filter({ is_deleted: false }),
+     retry: 2,
+     staleTime: 5 * 60 * 1000,
+   });
 
   const updateStage = useMutation({
     mutationFn: ({ dealId, newStage }) => 
@@ -51,43 +55,53 @@ export default function Pipeline() {
     return deals.filter(d => d.stage === stageId);
   };
 
-  const filteredDeals = deals.filter(deal => {
-    if (!searchTerm) return true;
-    const search = searchTerm.toLowerCase();
-    return (
-      deal.deal_number?.toLowerCase().includes(search) ||
-      deal.loan_type?.toLowerCase().includes(search)
-    );
-  });
+  const filteredDeals = useMemo(() => {
+     return deals.filter(deal => {
+       if (!searchTerm) return true;
+       const search = searchTerm.toLowerCase();
+       return (
+         deal.deal_number?.toLowerCase().includes(search) ||
+         deal.loan_type?.toLowerCase().includes(search)
+       );
+     });
+   }, [deals, searchTerm]);
 
   return (
-    <div className="p-6 lg:p-8">
+     <ErrorBoundary>
+       <div className="p-4 md:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div className="flex flex-col gap-3 md:gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Pipeline</h1>
-          <p className="text-gray-500 mt-1">Track deals through the origination process</p>
+          <h1 className="text-2xl md:text-3xl font-semibold text-gray-900">Pipeline</h1>
+          <p className="text-gray-500 mt-1 text-sm md:text-base">Track deals through the origination process</p>
         </div>
-        <Link to={createPageUrl('NewDeal')}>
-          <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
+        <Link to={createPageUrl('NewDeal')} className="self-start">
+          <Button className="bg-blue-600 hover:bg-blue-500 gap-2 w-full md:w-auto">
             <Plus className="h-4 w-4" />
             New Deal
           </Button>
         </Link>
       </div>
 
+      {/* Error State */}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 mb-6">
+          Failed to load pipeline. Please try refreshing.
+        </div>
+      )}
+
       {/* Search & Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="relative flex-1">
+      <div className="flex flex-col gap-3 md:gap-4 mb-6">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Search deals..."
+            placeholder="Search deals by number or type..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2 md:w-auto w-full">
           <Filter className="h-4 w-4" />
           Filters
         </Button>
@@ -95,13 +109,25 @@ export default function Pipeline() {
 
       {/* Pipeline Board */}
       <div className="overflow-x-auto pb-4">
-        <div className="flex gap-4 min-w-max">
-          {stages.map((stage) => {
-            const stageDeals = getDealsByStage(stage.id);
-            const stageTotal = stageDeals.reduce((sum, d) => sum + (d.loan_amount || 0), 0);
-            
-            return (
-              <div key={stage.id} className="w-72 flex-shrink-0">
+        {isLoading ? (
+          <div className="flex gap-4 min-w-max">
+            {Array(4).fill(0).map((_, i) => (
+              <div key={i} className="w-64 md:w-72 flex-shrink-0 space-y-3">
+                <div className="h-8 bg-gray-200 rounded animate-pulse w-1/3" />
+                {Array(3).fill(0).map((_, j) => (
+                  <ListItemSkeleton key={j} />
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex gap-4 min-w-max">
+            {stages.map((stage) => {
+              const stageDeals = getDealsByStage(stage.id);
+              const stageTotal = stageDeals.reduce((sum, d) => sum + (d.loan_amount || 0), 0);
+
+              return (
+                <div key={stage.id} className="w-64 md:w-72 flex-shrink-0">
                 {/* Stage Header */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
@@ -163,9 +189,11 @@ export default function Pipeline() {
                 </div>
               </div>
             );
-          })}
-        </div>
-      </div>
-    </div>
-  );
+            })}
+            </div>
+            )}
+            </div>
+            </div>
+            </ErrorBoundary>
+            );
 }
