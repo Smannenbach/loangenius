@@ -1,18 +1,34 @@
 /**
  * DSCR Calculation Utilities (Frontend)
- * Mirror of backend calculations for instant UI updates
+ * Uses Decimal.js for floating-point precision
+ * Eliminates rounding errors: 0.1 + 0.2 = 0.3 exactly
  */
 
+import Decimal from 'decimal.js';
+
+// Configure Decimal precision
+Decimal.set({ precision: 28, rounding: Decimal.ROUND_HALF_UP });
+
+function toDecimal(value) {
+  if (value === null || value === undefined || value === '') return new Decimal(0);
+  return new Decimal(String(value));
+}
+
 export function calculateMonthlyPI(loanAmount, annualRate, amortizationMonths, isInterestOnly = false) {
-  const monthlyRate = (annualRate / 100) / 12;
+  const loan = toDecimal(loanAmount);
+  const rate = toDecimal(annualRate).dividedBy(100).dividedBy(12);
+  const months = toDecimal(amortizationMonths);
 
   if (isInterestOnly) {
-    return loanAmount * monthlyRate;
+    return parseFloat(loan.times(rate).toDecimalPlaces(2).toString());
   }
 
-  const numerator = monthlyRate * Math.pow(1 + monthlyRate, amortizationMonths);
-  const denominator = Math.pow(1 + monthlyRate, amortizationMonths) - 1;
-  return loanAmount * (numerator / denominator);
+  // P&I = (Loan * Rate) / (1 - (1 + Rate)^-months)
+  const numerator = rate.times(new Decimal(1).plus(rate).pow(months));
+  const denominator = new Decimal(1).plus(rate).pow(months).minus(1);
+  const pi = loan.times(numerator.dividedBy(denominator));
+  
+  return parseFloat(pi.toDecimalPlaces(2).toString());
 }
 
 export function calculateSinglePropertyDSCR({
