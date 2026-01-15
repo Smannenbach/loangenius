@@ -104,6 +104,32 @@ export default function AdminIntegrations() {
         <p className="text-slate-600">Connect your LoanGenius instance to external services</p>
       </div>
 
+      {/* Use Cases Section */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Zap className="h-5 w-5 text-blue-600" />
+            Popular Use Cases
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-3 bg-white rounded-lg border border-blue-100">
+              <h3 className="font-semibold text-sm mb-1">📊 Import Leads to LoanGenius</h3>
+              <p className="text-xs text-slate-600">Sync leads from Google Sheets directly into your pipeline</p>
+            </div>
+            <div className="p-3 bg-white rounded-lg border border-blue-100">
+              <h3 className="font-semibold text-sm mb-1">📝 Auto-Generate Documents</h3>
+              <p className="text-xs text-slate-600">Create closing documents from deal data in Google Docs</p>
+            </div>
+            <div className="p-3 bg-white rounded-lg border border-blue-100">
+              <h3 className="font-semibold text-sm mb-1">✉️ Email Notifications</h3>
+              <p className="text-xs text-slate-600">Send deal updates via Gmail and receive confirmations</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
         <TabsList className="grid w-full grid-cols-5">
           {categories.map(cat => (
