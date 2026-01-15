@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -22,11 +22,21 @@ export default function SettingsPage() {
   });
 
   const [profile, setProfile] = useState({
-    full_name: user?.full_name || '',
-    email: user?.email || '',
+    full_name: '',
+    email: '',
     phone: '',
     nmls_id: '',
   });
+
+  useEffect(() => {
+    if (user) {
+      setProfile(prev => ({
+        ...prev,
+        full_name: user.full_name || '',
+        email: user.email || '',
+      }));
+    }
+  }, [user]);
 
   const [notifications, setNotifications] = useState({
     email_new_lead: true,
