@@ -290,67 +290,98 @@ export default function LoansPage() {
         </Card>
       </div>
 
-      {/* Loan Detail Modal */}
-      {selectedLoan && (
-        <Dialog open={!!selectedLoan} onOpenChange={(open) => {
-          if (!open) setSelectedLoan(null);
-        }}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{selectedLoan.deal_number} - {selectedLoan.loan_product}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-6 mt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-600">Loan Amount</div>
-                  <div className="text-2xl font-bold text-gray-900 mt-1">
-                    ${(selectedLoan.loan_amount / 1000).toFixed(0)}K
-                  </div>
-                </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-600">Status</div>
-                  <div className="mt-1">
-                    <Badge className={getStatusColor(selectedLoan.stage)}>
-                      {selectedLoan.stage?.replace(/_/g, ' ')}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-600">Interest Rate</div>
-                  <div className="text-2xl font-bold text-gray-900 mt-1">
-                    {selectedLoan.interest_rate}%
-                  </div>
-                </div>
-                <div className="bg-orange-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-600">Loan Term</div>
-                  <div className="text-2xl font-bold text-gray-900 mt-1">
-                    {selectedLoan.loan_term_months} months
-                  </div>
-                </div>
-              </div>
+      {/* Loan Detail Modal - Premium */}
+       {selectedLoan && (
+         <Dialog open={!!selectedLoan} onOpenChange={(open) => {
+           if (!open) setSelectedLoan(null);
+         }}>
+           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+             <DialogHeader>
+               <DialogTitle className="text-2xl flex items-center gap-3">
+                 <DollarSign className="h-6 w-6 text-blue-600" />
+                 {selectedLoan.deal_number} • {selectedLoan.loan_product}
+               </DialogTitle>
+             </DialogHeader>
+             <div className="space-y-6 mt-6">
+               <div className="grid grid-cols-2 gap-4">
+                 <Card className="border-0 bg-gradient-to-br from-blue-50 to-blue-100">
+                   <CardContent className="pt-6">
+                     <p className="text-sm font-medium text-slate-700">Loan Amount</p>
+                     <p className="text-3xl font-bold text-blue-900 mt-2">
+                       ${(selectedLoan.loan_amount / 1000000).toFixed(2)}M
+                     </p>
+                   </CardContent>
+                 </Card>
+                 <Card className="border-0 bg-gradient-to-br from-green-50 to-green-100">
+                   <CardContent className="pt-6">
+                     <p className="text-sm font-medium text-slate-700">Status</p>
+                     <div className="mt-2">
+                       <Badge className={getStatusColor(selectedLoan.stage)}>
+                         {selectedLoan.stage?.replace(/_/g, ' ')}
+                       </Badge>
+                     </div>
+                   </CardContent>
+                 </Card>
+                 <Card className="border-0 bg-gradient-to-br from-purple-50 to-purple-100">
+                   <CardContent className="pt-6">
+                     <p className="text-sm font-medium text-slate-700">Interest Rate</p>
+                     <p className="text-3xl font-bold text-purple-900 mt-2">
+                       {selectedLoan.interest_rate}%
+                     </p>
+                   </CardContent>
+                 </Card>
+                 <Card className="border-0 bg-gradient-to-br from-orange-50 to-orange-100">
+                   <CardContent className="pt-6">
+                     <p className="text-sm font-medium text-slate-700">Loan Term</p>
+                     <p className="text-3xl font-bold text-orange-900 mt-2">
+                       {selectedLoan.loan_term_months} months
+                     </p>
+                   </CardContent>
+                 </Card>
+               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm text-gray-600">LTV</Label>
-                  <div className="text-lg font-semibold mt-1">{selectedLoan.ltv?.toFixed(1)}%</div>
-                </div>
-                <div>
-                  <Label className="text-sm text-gray-600">DSCR</Label>
-                  <div className="text-lg font-semibold mt-1">{selectedLoan.dscr?.toFixed(2)}</div>
-                </div>
-              </div>
+               <Card className="border-0 bg-slate-50">
+                 <CardContent className="pt-6">
+                   <div className="grid grid-cols-3 gap-6">
+                     <div>
+                       <p className="text-xs uppercase font-bold text-slate-600 tracking-wide">LTV</p>
+                       <p className="text-2xl font-bold text-slate-900 mt-2">{selectedLoan.ltv?.toFixed(1) || '-'}%</p>
+                     </div>
+                     <div>
+                       <p className="text-xs uppercase font-bold text-slate-600 tracking-wide">DSCR</p>
+                       <p className="text-2xl font-bold text-slate-900 mt-2">{selectedLoan.dscr?.toFixed(2) || '-'}</p>
+                     </div>
+                     <div>
+                       <p className="text-xs uppercase font-bold text-slate-600 tracking-wide">Closing Date</p>
+                       <p className="text-lg font-bold text-slate-900 mt-2">
+                         {selectedLoan.closing_date ? new Date(selectedLoan.closing_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD'}
+                       </p>
+                     </div>
+                   </div>
+                 </CardContent>
+               </Card>
 
-              <Button 
-                onClick={() => setIsEditOpen(true)}
-                className="w-full bg-blue-600 hover:bg-blue-500"
-              >
-                <Edit2 className="h-4 w-4 mr-2" />
-                Edit Loan
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+               <div className="flex gap-3">
+                 <Button 
+                   onClick={() => setIsEditOpen(true)}
+                   className="flex-1 bg-blue-600 hover:bg-blue-700 h-11"
+                 >
+                   <Edit2 className="h-4 w-4 mr-2" />
+                   Edit Loan Details
+                 </Button>
+                 <Button 
+                   variant="outline"
+                   onClick={() => window.location.href = createPageUrl(`DealDetail?id=${selectedLoan.id}`)}
+                   className="flex-1 h-11"
+                 >
+                   <ChevronRight className="h-4 w-4 mr-2" />
+                   Full Details
+                 </Button>
+               </div>
+             </div>
+           </DialogContent>
+         </Dialog>
+       )}
 
       {/* Edit Loan Modal */}
       {isEditOpen && selectedLoan && (
