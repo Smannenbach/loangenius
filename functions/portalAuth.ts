@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (action === 'validateToken') {
+    if (action === 'validateToken' || action === 'validateAndCreateSession') {
       if (!token) {
         return Response.json({ error: 'Token required' }, { status: 400 });
       }
@@ -76,19 +76,19 @@ Deno.serve(async (req) => {
       });
 
       if (sessions.length === 0) {
-        return Response.json({ error: 'Invalid token' }, { status: 401 });
+        return Response.json({ error: 'Invalid token', valid: false }, { status: 401 });
       }
 
       const session = sessions[0];
 
       // Check expiration
       if (new Date(session.expires_at) < new Date()) {
-        return Response.json({ error: 'Token expired' }, { status: 401 });
+        return Response.json({ error: 'Token expired', valid: false }, { status: 401 });
       }
 
       // Check if revoked
       if (session.is_revoked) {
-        return Response.json({ error: 'Token revoked' }, { status: 401 });
+        return Response.json({ error: 'Token revoked', valid: false }, { status: 401 });
       }
 
       // Update last accessed
@@ -102,6 +102,34 @@ Deno.serve(async (req) => {
         orgId: session.org_id,
         dealId: session.deal_id,
         borrowerId: session.borrower_id,
+      });
+    }
+
+    if (action === 'getSession') {
+      const { sessionId } = await req.json();
+      if (!sessionId) {
+        return Response.json({ error: 'Session ID required' }, { status: 400 });
+      }
+
+      const session = await base44.asServiceRole.entities.PortalSession.get(sessionId);
+      if (!session) {
+        return Response.json({ error: 'Session not found' }, { status: 404 });
+      }
+
+      if (session.is_revoked || new Date(session.expires_at) < new Date()) {
+        return Response.json({ error: 'Session expired or revoked' }, { status: 401 });
+      }
+
+      const deal = await base44.asServiceRole.entities.Deal.get(session.deal_id);
+      const borrower = await base44.asServiceRole.entities.Borrower.get(session.borrower_id);
+
+      return Response.json({
+        sessionId: session.id,
+        dealId: session.deal_id,
+        borrowerId: session.borrower_id,
+        orgId: session.org_id,
+        deal: deal ? { id: deal.id, deal_number: deal.deal_number, stage: deal.stage } : null,
+        borrower: borrower ? { id: borrower.id, first_name: borrower.first_name, last_name: borrower.last_name, email: borrower.email } : null,
       });
     }
 
