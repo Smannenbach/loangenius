@@ -16,11 +16,12 @@ export default function QuoteGenerator() {
   const [quoteData, setQuoteData] = useState({
     borrowerName: '',
     propertyAddress: '',
+    propertyValue: '',
     loanAmount: '',
-    loanType: '',
+    loanProduct: '',
+    loanPurpose: 'Purchase',
     interestRate: '',
     term: '30',
-    loanPurpose: 'purchase',
   });
 
   const [generatedQuote, setGeneratedQuote] = useState(null);
@@ -37,13 +38,19 @@ export default function QuoteGenerator() {
                        (Math.pow(1 + monthlyRate, termMonths) - 1);
     }
 
+    const propertyValue = parseFloat(quoteData.propertyValue) || loanAmount;
+    const ltv = loanAmount > 0 ? ((loanAmount / propertyValue) * 100) : 0;
+
     setGeneratedQuote({
       borrowerName: quoteData.borrowerName,
       propertyAddress: quoteData.propertyAddress,
+      propertyValue: propertyValue,
       loanAmount: loanAmount,
-      loanType: quoteData.loanType,
+      loanProduct: quoteData.loanProduct,
+      loanPurpose: quoteData.loanPurpose,
       interestRate: quoteData.interestRate,
       term: quoteData.term,
+      ltv: ltv.toFixed(2),
       monthlyPayment: monthlyPayment.toFixed(2),
       totalPayment: (monthlyPayment * termMonths).toFixed(2),
       generatedAt: new Date().toLocaleString(),
@@ -94,19 +101,44 @@ export default function QuoteGenerator() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Loan Type</Label>
+              <Label>Property Value ($)</Label>
+              <Input
+                type="number"
+                placeholder="625,000"
+                value={quoteData.propertyValue}
+                onChange={(e) => setQuoteData({...quoteData, propertyValue: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Loan Product</Label>
               <Select
-                value={quoteData.loanType}
-                onValueChange={(v) => setQuoteData({...quoteData, loanType: v})}
+                value={quoteData.loanProduct}
+                onValueChange={(v) => setQuoteData({...quoteData, loanProduct: v})}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select loan type" />
+                  <SelectValue placeholder="Select loan product" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="dscr_purchase">DSCR Purchase</SelectItem>
-                  <SelectItem value="dscr_refi">DSCR Refinance</SelectItem>
-                  <SelectItem value="dscr_cashout">DSCR Cash-Out</SelectItem>
-                  <SelectItem value="conventional">Conventional</SelectItem>
+                  <SelectItem value="DSCR">DSCR</SelectItem>
+                  <SelectItem value="DSCR - No Ratio">DSCR - No Ratio</SelectItem>
+                  <SelectItem value="Commercial">Commercial</SelectItem>
+                  <SelectItem value="DSCR Blanket">DSCR Blanket</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Loan Purpose</Label>
+              <Select
+                value={quoteData.loanPurpose}
+                onValueChange={(v) => setQuoteData({...quoteData, loanPurpose: v})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select purpose" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Purchase">Purchase</SelectItem>
+                  <SelectItem value="Refinance">Refinance</SelectItem>
+                  <SelectItem value="Cash-Out Refinance">Cash-Out Refinance</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -177,16 +209,28 @@ export default function QuoteGenerator() {
                     <span className="font-medium text-right max-w-48 truncate">{generatedQuote.propertyAddress}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Loan Type</span>
-                    <span className="font-medium capitalize">{generatedQuote.loanType?.replace(/_/g, ' ')}</span>
+                    <span className="text-gray-500">Loan Product</span>
+                    <span className="font-medium capitalize">{generatedQuote.loanProduct}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Loan Purpose</span>
+                    <span className="font-medium capitalize">{generatedQuote.loanPurpose}</span>
                   </div>
                 </div>
 
                 {/* Financial Details */}
                 <div className="bg-blue-50 rounded-lg p-4 space-y-3">
                   <div className="flex justify-between">
+                    <span className="text-gray-600">Property Value</span>
+                    <span className="font-bold text-gray-900">${parseFloat(generatedQuote.propertyValue).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-gray-600">Loan Amount</span>
                     <span className="font-bold text-gray-900">${generatedQuote.loanAmount.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">LTV</span>
+                    <span className="font-bold text-gray-900">{generatedQuote.ltv}%</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Interest Rate</span>
