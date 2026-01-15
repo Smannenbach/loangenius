@@ -45,23 +45,28 @@ export function calculateSinglePropertyDSCR({
   hoaDuesMonthly = 0,
 }) {
   const monthlyPI = calculateMonthlyPI(loanAmount, interestRate, amortizationMonths, isInterestOnly);
-  const monthlyTaxes = propertyTaxesAnnual / 12;
-  const monthlyInsurance = insuranceAnnual / 12;
-  const monthlyFlood = floodInsuranceAnnual / 12;
-  const monthlyPITIA = monthlyPI + monthlyTaxes + monthlyInsurance + monthlyFlood + hoaDuesMonthly;
-  const dscrRatio = monthlyRent / monthlyPITIA;
+  
+  const taxes = toDecimal(propertyTaxesAnnual).dividedBy(12);
+  const insurance = toDecimal(insuranceAnnual).dividedBy(12);
+  const flood = toDecimal(floodInsuranceAnnual).dividedBy(12);
+  const hoa = toDecimal(hoaDuesMonthly);
+  const rent = toDecimal(monthlyRent);
+  const pi = toDecimal(monthlyPI);
+  
+  const monthlyPITIA = pi.plus(taxes).plus(insurance).plus(flood).plus(hoa);
+  const dscrRatio = monthlyPITIA.isZero() ? new Decimal(0) : rent.dividedBy(monthlyPITIA);
 
   return {
-    dscrRatio: Math.round(dscrRatio * 100) / 100,
-    monthlyRent: Math.round(monthlyRent * 100) / 100,
-    monthlyPI: Math.round(monthlyPI * 100) / 100,
-    monthlyTaxes: Math.round(monthlyTaxes * 100) / 100,
-    monthlyInsurance: Math.round(monthlyInsurance * 100) / 100,
-    monthlyFlood: Math.round(monthlyFlood * 100) / 100,
-    monthlyHOA: Math.round(hoaDuesMonthly * 100) / 100,
-    monthlyPITIA: Math.round(monthlyPITIA * 100) / 100,
-    qualifies: dscrRatio >= 1.0,
-    qualifiesStandard: dscrRatio >= 1.25,
+    dscrRatio: parseFloat(dscrRatio.toDecimalPlaces(2).toString()),
+    monthlyRent: parseFloat(rent.toDecimalPlaces(2).toString()),
+    monthlyPI: parseFloat(pi.toDecimalPlaces(2).toString()),
+    monthlyTaxes: parseFloat(taxes.toDecimalPlaces(2).toString()),
+    monthlyInsurance: parseFloat(insurance.toDecimalPlaces(2).toString()),
+    monthlyFlood: parseFloat(flood.toDecimalPlaces(2).toString()),
+    monthlyHOA: parseFloat(hoa.toDecimalPlaces(2).toString()),
+    monthlyPITIA: parseFloat(monthlyPITIA.toDecimalPlaces(2).toString()),
+    qualifies: dscrRatio.greaterThanOrEqualTo(1.0),
+    qualifiesStandard: dscrRatio.greaterThanOrEqualTo(1.25),
   };
 }
 
