@@ -18,16 +18,17 @@ export default function DealCalculator({ deal, properties = [] }) {
   useEffect(() => {
     if (!deal || !properties.length) return;
 
-    // Client-side calculation for preview
+    // Client-side calculation for preview with Decimal.js precision
     const calculateMetrics = () => {
       if (!deal.loan_amount || !deal.interest_rate || !deal.loan_term_months) {
         return { dscr: 0, ltv: 0, monthly_pi: 0, monthly_pitia: 0 };
       }
 
-      // P&I calculation
-      const rate = deal.interest_rate / 100 / 12;
-      const n = deal.loan_term_months;
-      const pi = (deal.loan_amount * rate) / (1 - Math.pow(1 + rate, -n));
+      // Import precision calculator functions
+      const { calculateMonthlyPI, calculateDSCR, calculateLTV } = require('@/components/deal-wizard/dscr-utils');
+
+      // Calculate using precision functions
+      const pi = calculateMonthlyPI(deal.loan_amount, deal.interest_rate, deal.loan_term_months, false);
 
       // For blanket: aggregate; for single: use first property
       const totalGrossRent = properties.reduce((sum, p) => 
