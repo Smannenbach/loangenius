@@ -285,15 +285,58 @@ export default function Leads() {
             </DialogTrigger>
             <DialogContent className="max-w-sm">
               <DialogHeader>
-                <DialogTitle>Quick Add Lead</DialogTitle>
+                <DialogTitle className="text-lg">Quick Add Lead</DialogTitle>
+                <p className="text-xs text-slate-500 mt-1">Get a lead into the system fast</p>
               </DialogHeader>
-              <div className="space-y-4">
-                <Input placeholder="First Name" value={newLead.first_name} onChange={(e) => setNewLead({ ...newLead, first_name: e.target.value })} />
-                <Input placeholder="Last Name" value={newLead.last_name} onChange={(e) => setNewLead({ ...newLead, last_name: e.target.value })} />
-                <Input type="email" placeholder="Email" value={newLead.home_email} onChange={(e) => setNewLead({ ...newLead, home_email: e.target.value })} />
-                <Input placeholder="Phone" value={newLead.mobile_phone} onChange={(e) => setNewLead({ ...newLead, mobile_phone: e.target.value })} />
-                <Input type="number" placeholder="Loan Amount" value={newLead.loan_amount} onChange={(e) => setNewLead({ ...newLead, loan_amount: e.target.value })} />
-                <Button className="w-full bg-blue-600" onClick={() => { createLeadMutation.mutate(newLead); setIsQuickAddOpen(false); }}>Add Lead</Button>
+              <div className="space-y-3 mt-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">First Name</Label>
+                  <Input 
+                    placeholder="First name" 
+                    value={newLead.first_name} 
+                    onChange={(e) => setNewLead({ ...newLead, first_name: e.target.value })}
+                    className="h-10"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Last Name</Label>
+                  <Input 
+                    placeholder="Last name" 
+                    value={newLead.last_name} 
+                    onChange={(e) => setNewLead({ ...newLead, last_name: e.target.value })}
+                    className="h-10"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Home Email</Label>
+                  <Input 
+                    type="email" 
+                    placeholder="john@example.com" 
+                    value={newLead.home_email} 
+                    onChange={(e) => setNewLead({ ...newLead, home_email: e.target.value })}
+                    className="h-10"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Mobile Phone</Label>
+                  <Input 
+                    placeholder="(555) 555-5555" 
+                    value={newLead.mobile_phone} 
+                    onChange={(e) => setNewLead({ ...newLead, mobile_phone: e.target.value })}
+                    className="h-10"
+                  />
+                </div>
+                <Button 
+                  className="w-full bg-blue-600 hover:bg-blue-700 h-10 mt-2" 
+                  onClick={() => { 
+                    createLeadMutation.mutate(newLead); 
+                    setIsQuickAddOpen(false);
+                    setNewLead({...newLead, first_name: '', last_name: '', home_email: '', mobile_phone: ''});
+                  }}
+                  disabled={createLeadMutation.isPending}
+                >
+                  {createLeadMutation.isPending ? 'Adding...' : 'Add Lead'}
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
