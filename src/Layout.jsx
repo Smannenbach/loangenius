@@ -280,11 +280,12 @@ export default function Layout({ children, currentPageName }) {
 
         {/* Actions */}
         <div className="flex items-center gap-4">
-          <Link to={createPageUrl('NewDeal')}>
-            <Button className="bg-blue-600 hover:bg-blue-500 text-white gap-2">
-              <Plus className="h-4 w-4" />
-              New Deal
-            </Button>
+          <Link 
+            to={createPageUrl('NewDeal')}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            New Deal
           </Link>
 
           {/* Notifications */}
@@ -327,8 +328,8 @@ export default function Layout({ children, currentPageName }) {
                 <p className="font-medium text-white">{user?.full_name || 'User'}</p>
                 <p className="text-xs text-slate-400">{user?.email}</p>
               </div>
-              <DropdownMenuItem asChild className="hover:bg-slate-700 cursor-pointer">
-                <Link to={createPageUrl('Settings')} className="text-white">
+              <DropdownMenuItem asChild>
+                <Link to={createPageUrl('Settings')} className="flex items-center text-white cursor-pointer hover:bg-slate-700 px-2 py-1.5 rounded">
                   <Settings className="h-4 w-4 mr-2" />
                   Settings
                 </Link>

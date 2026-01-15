@@ -77,11 +77,12 @@ export default function Deals() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Link to={createPageUrl('NewDeal')}>
-            <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
-              <Plus className="h-4 w-4" />
-              New Deal
-            </Button>
+          <Link 
+            to={createPageUrl('NewDeal')}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            New Deal
           </Link>
         </div>
       </div>
@@ -126,10 +127,11 @@ export default function Deals() {
             <div className="py-12 text-center">
               <FileText className="h-8 w-8 mx-auto mb-3 text-gray-300" />
               <p className="text-gray-500">No deals found</p>
-              <Link to={createPageUrl('NewDeal')}>
-                <Button variant="link" className="text-blue-600">
-                  Create your first deal
-                </Button>
+              <Link 
+                to={createPageUrl('NewDeal')}
+                className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+              >
+                Create your first deal
               </Link>
             </div>
           ) : (
@@ -178,11 +180,12 @@ export default function Deals() {
                       }
                     </TableCell>
                     <TableCell>
-                      <Link to={createPageUrl(`DealDetail?id=${deal.id}`)}>
-                        <Button variant="ghost" size="sm">
-                          View
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
+                      <Link 
+                        to={createPageUrl(`DealDetail?id=${deal.id}`)}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-gray-700 text-sm transition-colors"
+                      >
+                        View
+                        <ChevronRight className="h-4 w-4" />
                       </Link>
                     </TableCell>
                   </TableRow>

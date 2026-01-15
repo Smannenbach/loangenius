@@ -45,11 +45,12 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold text-gray-900">Welcome, {user?.full_name || 'User'}!</h1>
           <p className="text-sm text-gray-500 mt-1">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
         </div>
-        <Link to={createPageUrl('NewDeal')}>
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-            <Plus className="h-5 w-5" />
-            New Deal
-          </Button>
+        <Link 
+          to={createPageUrl('NewDeal')}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors"
+        >
+          <Plus className="h-5 w-5" />
+          New Deal
         </Link>
       </div>
 
