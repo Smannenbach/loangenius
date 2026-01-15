@@ -19,7 +19,10 @@ Deno.serve(async (req) => {
     }
 
     // Get the lead
-    const leads = await base44.entities.Lead.filter({ is_deleted: false });
+    const leads = await base44.entities.Lead.filter({ 
+      org_id: user.org_id,
+      is_deleted: false 
+    });
     const lead = leads.find(l => l.id === lead_id);
 
     if (!lead) {
@@ -63,7 +66,7 @@ Deno.serve(async (req) => {
 
     // Create loan application
     const loanApp = await base44.entities.LoanApplication.create({
-      org_id: user.org_id || 'default',
+      org_id: user.org_id || user.id,
       primary_borrower_email: borrowerData.email,
       status: 'draft',
       current_step: 1,
