@@ -80,8 +80,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Dashboard', href: '/Dashboard', icon: LayoutDashboard },
     { name: 'Pipeline', href: '/Pipeline', icon: TrendingUp },
     { name: 'Leads', href: '/Leads', icon: Users },
-    { name: 'Deals', href: '/Deals', icon: Briefcase },
-    { name: 'Borrowers', href: '/Borrowers', icon: User },
+    { name: 'Loans', href: '/Loans', icon: Briefcase },
     { name: 'Documents', href: '/Documents', icon: FolderOpen },
     { name: 'Tasks', href: '/Tasks', icon: ClipboardList },
   ];
@@ -98,6 +97,7 @@ export default function Layout({ children, currentPageName }) {
   const adminNav = [
     { name: 'Users', href: '/Users', icon: Users },
     { name: 'Lenders', href: '/Lenders', icon: Building },
+    { name: 'Integrations', href: '/AdminIntegrations', icon: Settings },
     { name: 'Settings', href: '/Settings', icon: Settings },
     { name: 'Assumptions', href: '/Assumptions', icon: FileText },
   ];
