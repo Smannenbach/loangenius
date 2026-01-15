@@ -51,41 +51,32 @@ export default function ImportFromGoogleSheets({ onImportSuccess }) {
     importMutation.mutate();
   };
 
+  const autoImportMutation = useMutation({
+    mutationFn: async (data) => {
+      const response = await base44.functions.invoke('setupGoogleSheetsAutoImport', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      setAutoImport(true);
+      alert('Auto-import enabled! Leads will sync daily at 6 AM.');
+    },
+    onError: (error) => {
+      alert('Failed to enable auto-import: ' + error.message);
+      setAutoImport(false);
+    },
+  });
+
   const handleAutoImportToggle = async (checked) => {
-    setAutoImport(checked);
     if (checked && !spreadsheetId.trim()) {
       alert('Please enter a spreadsheet ID first');
-      setAutoImport(false);
       return;
     }
     
     if (checked) {
-      // Save auto-import config to database
-      try {
-        const orgUser = await base44.auth.me();
-        const configs = await base44.entities.GoogleSheetsSync.filter({
-          org_id: orgUser.org_id,
-          spreadsheet_id: spreadsheetId,
-        });
-
-        if (configs.length > 0) {
-          await base44.entities.GoogleSheetsSync.update(configs[0].id, {
-            is_active: true,
-            sync_direction: 'import',
-          });
-        } else {
-          await base44.entities.GoogleSheetsSync.create({
-            org_id: orgUser.org_id,
-            spreadsheet_id: spreadsheetId,
-            sheet_name: sheetName,
-            is_active: true,
-            sync_direction: 'import',
-          });
-        }
-      } catch (error) {
-        alert('Failed to enable auto-import: ' + error.message);
-        setAutoImport(false);
-      }
+      autoImportMutation.mutate({
+        spreadsheet_id: spreadsheetId,
+        sheet_name: sheetName,
+      });
     }
   };
 
