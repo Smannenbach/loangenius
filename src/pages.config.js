@@ -1,6 +1,7 @@
 import AIAssistant from './pages/AIAssistant';
 import AIOrchestrator from './pages/AIOrchestrator';
 import AdminAIProviders from './pages/AdminAIProviders';
+import AdminAgents from './pages/AdminAgents';
 import AdminAuditLogs from './pages/AdminAuditLogs';
 import AdminIntegrations from './pages/AdminIntegrations';
 import AdminLoginHistory from './pages/AdminLoginHistory';
@@ -8,9 +9,14 @@ import AdminOrganization from './pages/AdminOrganization';
 import AdminPortalPreview from './pages/AdminPortalPreview';
 import AdminSettings from './pages/AdminSettings';
 import AdminWebhooks from './pages/AdminWebhooks';
+import AgentExecutionViewer from './pages/AgentExecutionViewer';
+import AgentKnowledgeBase from './pages/AgentKnowledgeBase';
+import AgentOrchestrator from './pages/AgentOrchestrator';
+import AgentPerformanceDashboard from './pages/AgentPerformanceDashboard';
 import AlertsNotifications from './pages/AlertsNotifications';
 import Analytics from './pages/Analytics';
 import Assumptions from './pages/Assumptions';
+import AuditComplianceViewer from './pages/AuditComplianceViewer';
 import BorrowerPortal from './pages/BorrowerPortal';
 import BorrowerPortalHome from './pages/BorrowerPortalHome';
 import BorrowerPortalLogin from './pages/BorrowerPortalLogin';
@@ -22,6 +28,7 @@ import CoborrowerPortal from './pages/CoborrowerPortal';
 import Communications from './pages/Communications';
 import ComplianceDashboard from './pages/ComplianceDashboard';
 import ConsentManagement from './pages/ConsentManagement';
+import ContactCreate from './pages/ContactCreate';
 import ContactDetail from './pages/ContactDetail';
 import Contacts from './pages/Contacts';
 import Conversations from './pages/Conversations';
@@ -51,18 +58,11 @@ import Settings from './pages/Settings';
 import SubmissionPrep from './pages/SubmissionPrep';
 import SuperAdmin from './pages/SuperAdmin';
 import Tasks from './pages/Tasks';
+import TestingValidationHub from './pages/TestingValidationHub';
 import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
-import AgentOrchestrator from './pages/AgentOrchestrator';
-import AdminAgents from './pages/AdminAgents';
-import AgentExecutionViewer from './pages/AgentExecutionViewer';
-import AgentPerformanceDashboard from './pages/AgentPerformanceDashboard';
-import TestingValidationHub from './pages/TestingValidationHub';
-import AuditComplianceViewer from './pages/AuditComplianceViewer';
-import AgentKnowledgeBase from './pages/AgentKnowledgeBase';
-import ContactCreate from './pages/ContactCreate';
 import __Layout from './Layout.jsx';
 
 
@@ -70,6 +70,7 @@ export const PAGES = {
     "AIAssistant": AIAssistant,
     "AIOrchestrator": AIOrchestrator,
     "AdminAIProviders": AdminAIProviders,
+    "AdminAgents": AdminAgents,
     "AdminAuditLogs": AdminAuditLogs,
     "AdminIntegrations": AdminIntegrations,
     "AdminLoginHistory": AdminLoginHistory,
@@ -77,9 +78,14 @@ export const PAGES = {
     "AdminPortalPreview": AdminPortalPreview,
     "AdminSettings": AdminSettings,
     "AdminWebhooks": AdminWebhooks,
+    "AgentExecutionViewer": AgentExecutionViewer,
+    "AgentKnowledgeBase": AgentKnowledgeBase,
+    "AgentOrchestrator": AgentOrchestrator,
+    "AgentPerformanceDashboard": AgentPerformanceDashboard,
     "AlertsNotifications": AlertsNotifications,
     "Analytics": Analytics,
     "Assumptions": Assumptions,
+    "AuditComplianceViewer": AuditComplianceViewer,
     "BorrowerPortal": BorrowerPortal,
     "BorrowerPortalHome": BorrowerPortalHome,
     "BorrowerPortalLogin": BorrowerPortalLogin,
@@ -91,6 +97,7 @@ export const PAGES = {
     "Communications": Communications,
     "ComplianceDashboard": ComplianceDashboard,
     "ConsentManagement": ConsentManagement,
+    "ContactCreate": ContactCreate,
     "ContactDetail": ContactDetail,
     "Contacts": Contacts,
     "Conversations": Conversations,
@@ -120,18 +127,11 @@ export const PAGES = {
     "SubmissionPrep": SubmissionPrep,
     "SuperAdmin": SuperAdmin,
     "Tasks": Tasks,
+    "TestingValidationHub": TestingValidationHub,
     "Underwriting": Underwriting,
     "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
-    "AgentOrchestrator": AgentOrchestrator,
-    "AdminAgents": AdminAgents,
-    "AgentExecutionViewer": AgentExecutionViewer,
-    "AgentPerformanceDashboard": AgentPerformanceDashboard,
-    "TestingValidationHub": TestingValidationHub,
-    "AuditComplianceViewer": AuditComplianceViewer,
-    "AgentKnowledgeBase": AgentKnowledgeBase,
-    "ContactCreate": ContactCreate,
 }
 
 export const pagesConfig = {

@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Clock, FileText, CheckCircle2, AlertCircle, MessageSquare, Home, Loader2 } from 'lucide-react';
 import PortalDocumentsTab from '@/components/portal/PortalDocumentsTab';
+import PortalStatusTracker from '@/components/portal/PortalStatusTracker';
+import PortalSecureMessaging from '@/components/portal/PortalSecureMessaging';
 
 export default function BorrowerPortal() {
   const [activeTab, setActiveTab] = useState('timeline');
@@ -119,94 +121,35 @@ export default function BorrowerPortal() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Your Loan Portal</h1>
-          <p className="text-slate-600">Status: {deal?.stage?.replace(/_/g, ' ')}</p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Your Loan Application</h1>
+          <p className="text-slate-600">Track your application status, upload documents, and communicate securely</p>
         </div>
 
-        {/* Progress */}
-        <Card className="mb-6 bg-white">
-          <CardHeader>
-            <CardTitle className="text-sm uppercase tracking-wider">Application Progress</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="w-full bg-slate-200 rounded-full h-3">
-                <div
-                  className="bg-blue-600 h-3 rounded-full transition-all duration-500"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <p className="text-sm text-slate-600">
-                Status: <span className="font-semibold capitalize">{deal?.stage?.replace(/_/g, ' ')}</span>
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Real-Time Status Tracker */}
+        <div className="mb-8">
+          <PortalStatusTracker sessionId={sessionId} />
+        </div>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="documents">Documents</TabsTrigger>
-            <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="messages">Messages</TabsTrigger>
+            <TabsTrigger value="requirements">Requirements</TabsTrigger>
           </TabsList>
-
-          {/* Timeline Tab */}
-          <TabsContent value="timeline" className="space-y-4">
-            <div className="space-y-4">
-              <TimelineEvent
-                stage="inquiry"
-                label="Application Started"
-                completed={true}
-                current={deal?.stage === 'inquiry'}
-              />
-              <TimelineEvent
-                stage="application"
-                label="Application Submitted"
-                completed={['application', 'processing', 'underwriting', 'approved', 'closing', 'funded'].includes(deal?.stage)}
-                current={deal?.stage === 'application'}
-              />
-              <TimelineEvent
-                stage="processing"
-                label="Processing"
-                completed={['processing', 'underwriting', 'approved', 'closing', 'funded'].includes(deal?.stage)}
-                current={deal?.stage === 'processing'}
-              />
-              <TimelineEvent
-                stage="underwriting"
-                label="Underwriting Review"
-                completed={['underwriting', 'approved', 'closing', 'funded'].includes(deal?.stage)}
-                current={deal?.stage === 'underwriting'}
-              />
-              <TimelineEvent
-                stage="approved"
-                label="Loan Approved"
-                completed={['approved', 'closing', 'funded'].includes(deal?.stage)}
-                current={deal?.stage === 'approved'}
-              />
-              <TimelineEvent
-                stage="closing"
-                label="Closing"
-                completed={['closing', 'funded'].includes(deal?.stage)}
-                current={deal?.stage === 'closing'}
-              />
-              <TimelineEvent
-                stage="funded"
-                label="Funded"
-                completed={deal?.stage === 'funded'}
-                current={deal?.stage === 'funded'}
-              />
-            </div>
-          </TabsContent>
 
           {/* Documents Tab */}
           <TabsContent value="documents" className="space-y-4">
             <PortalDocumentsTab sessionId={sessionId} />
           </TabsContent>
 
-          {/* Tasks Tab */}
-          <TabsContent value="tasks" className="space-y-4">
+          {/* Secure Messaging Tab */}
+          <TabsContent value="messages" className="space-y-4">
+            <PortalSecureMessaging sessionId={sessionId} />
+          </TabsContent>
+
+          {/* Requirements Tab */}
+          <TabsContent value="requirements" className="space-y-4">
             {Object.entries(tasks || {}).map(([category, items]) => (
               <div key={category}>
                 <h3 className="text-lg font-semibold mb-3 capitalize">{category}</h3>
@@ -222,32 +165,6 @@ export default function BorrowerPortal() {
                 ))}
               </div>
             ))}
-          </TabsContent>
-
-          {/* Messages Tab */}
-          <TabsContent value="messages" className="space-y-4">
-            {messages?.length === 0 ? (
-              <Card>
-                <CardContent className="pt-6 text-center text-slate-600">
-                  No messages yet
-                </CardContent>
-              </Card>
-            ) : (
-              messages?.map(msg => (
-                <Card key={msg.id}>
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <MessageSquare className="h-5 w-5" />
-                      Message
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-slate-700 mb-2">{msg.body}</p>
-                    <p className="text-xs text-slate-500">{new Date(msg.created_at).toLocaleString()}</p>
-                  </CardContent>
-                </Card>
-              ))
-            )}
           </TabsContent>
         </Tabs>
       </div>
