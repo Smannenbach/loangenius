@@ -29,6 +29,7 @@ import {
   Clock,
   AlertCircle,
 } from 'lucide-react';
+import FeesTab from '@/components/deal-detail/FeesTab';
 
 export default function DealDetail() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -197,6 +198,7 @@ export default function DealDetail() {
           <TabsTrigger value="borrowers">Borrowers</TabsTrigger>
           <TabsTrigger value="property">Property</TabsTrigger>
           <TabsTrigger value="terms">Loan Terms</TabsTrigger>
+          <TabsTrigger value="fees">Fees</TabsTrigger>
           <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
           <TabsTrigger value="conditions">Conditions ({conditions.length})</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
@@ -275,6 +277,10 @@ export default function DealDetail() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="fees">
+          <FeesTab dealId={dealId} deal={deal} />
         </TabsContent>
 
         <TabsContent value="activity">
