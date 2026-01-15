@@ -18,8 +18,18 @@ export default function AddressAutocomplete({
   // Parse address using Google Geocoding API
   const parseAddress = async (address) => {
     try {
-      const mapsApiKey = 'AIzaSyDEw_OW80r_t-WsCPJqPV3VivVXaX-jSfk'; // Using existing secret
+      // Get API key from backend function (avoid exposing key in frontend)
       const response = await fetch(
+        `/functions/getGoogleMapsKey`
+      ).catch(() => ({ json: async () => ({ key: '' }) }));
+      const { key: mapsApiKey } = await response.json();
+      
+      if (!mapsApiKey) {
+        console.error('Google Maps API key not available');
+        return;
+      }
+      
+      const geocodeResponse = await fetch(
         `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${mapsApiKey}`
       );
       const data = await response.json();
@@ -85,7 +95,16 @@ export default function AddressAutocomplete({
     if (val.length > 2) {
       setIsLoading(true);
       try {
-        const mapsApiKey = 'AIzaSyDEw_OW80r_t-WsCPJqPV3VivVXaX-jSfk';
+        // Get API key from backend
+        const keyResponse = await fetch(`/functions/getGoogleMapsKey`).catch(() => ({ json: async () => ({ key: '' }) }));
+        const { key: mapsApiKey } = await keyResponse.json();
+        
+        if (!mapsApiKey) {
+          console.error('Google Maps API key not available');
+          setIsLoading(false);
+          return;
+        }
+        
         const response = await fetch(
           `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(val)}&key=${mapsApiKey}&components=country:us`
         );
