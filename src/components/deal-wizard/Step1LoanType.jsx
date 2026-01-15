@@ -5,15 +5,17 @@ import WizardStep from './WizardStep';
 
 export default function Step1LoanType({ data, onChange, onNext, onPrev }) {
   const loanTypes = [
-    { value: 'DSCR', label: 'DSCR Loan', description: 'Debt Service Coverage Ratio' },
-    { value: 'Conventional', label: 'Conventional', description: 'Coming Soon', disabled: true },
-    { value: 'Bridge', label: 'Bridge Loan', description: 'Coming Soon', disabled: true },
+    { value: 'DSCR', label: 'DSCR', description: 'Debt Service Coverage Ratio' },
+    { value: 'DSCR_No_Ratio', label: 'DSCR No-Ratio', description: 'Flexible qualification' },
+    { value: 'DSCR_Blanket', label: 'DSCR Blanket', description: 'Multi-property portfolio' },
   ];
 
   const purposes = [
     { value: 'Purchase', label: 'Purchase' },
-    { value: 'Rate_Term_Refinance', label: 'Rate/Term Refinance' },
+    { value: 'Rate_Term_Refinance', label: 'Rate & Term Refinance' },
     { value: 'Cash_Out_Refinance', label: 'Cash-Out Refinance' },
+    { value: 'Second_Mortgage', label: 'Second Mortgage' },
+    { value: 'HELOC', label: 'HELOC' },
   ];
 
   const isValid = data.loanType && data.loanPurpose;
