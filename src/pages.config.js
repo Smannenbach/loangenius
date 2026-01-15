@@ -54,6 +54,7 @@ import ValidationDashboard from './pages/ValidationDashboard';
 import PortalSettings from './pages/PortalSettings';
 import Conversations from './pages/Conversations';
 import LoanApplicationWizard from './pages/LoanApplicationWizard';
+import BrandStudio from './pages/BrandStudio';
 import __Layout from './Layout.jsx';
 
 
@@ -114,6 +115,7 @@ export const PAGES = {
     "PortalSettings": PortalSettings,
     "Conversations": Conversations,
     "LoanApplicationWizard": LoanApplicationWizard,
+    "BrandStudio": BrandStudio,
 }
 
 export const pagesConfig = {
