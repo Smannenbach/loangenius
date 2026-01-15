@@ -90,7 +90,7 @@ export function calculateLTV(loanAmount, propertyValue) {
 }
 
 /**
- * Full deal calculation
+ * Full deal calculation with precision
  */
 export function calculateDealMetrics(deal, properties) {
   if (!deal || !properties || properties.length === 0) {
@@ -117,34 +117,42 @@ export function calculateDealMetrics(deal, properties) {
     };
   }
 
-  // For blanket deals: aggregate calculations
+  // For blanket deals: aggregate calculations with precision
   if (deal.is_blanket && properties.length > 1) {
-    let totalGrossRent = 0;
-    let totalExpenses = 0;
-    let totalValue = 0;
-    let totalPI = 0;
+    let totalGrossRent = new Decimal(0);
+    let totalExpenses = new Decimal(0);
+    let totalValue = new Decimal(0);
+    let totalPI = new Decimal(0);
 
     properties.forEach(prop => {
-      totalGrossRent += (prop.gross_rent_monthly || 0) + (prop.other_income_monthly || 0);
-      totalExpenses += (prop.taxes_monthly || 0) + (prop.insurance_monthly || 0) + 
-                       (prop.hoa_monthly || 0) + (prop.flood_insurance_monthly || 0);
-      totalValue += prop.appraised_value || prop.purchase_price || 0;
-      totalPI += calculateMonthlyPI(
-        deal.loan_amount / properties.length, // simplified: equal allocation
+      totalGrossRent = totalGrossRent
+        .plus(toDecimal(prop.gross_rent_monthly || 0))
+        .plus(toDecimal(prop.other_income_monthly || 0));
+      
+      totalExpenses = totalExpenses
+        .plus(toDecimal(prop.taxes_monthly || 0))
+        .plus(toDecimal(prop.insurance_monthly || 0))
+        .plus(toDecimal(prop.hoa_monthly || 0))
+        .plus(toDecimal(prop.flood_insurance_monthly || 0));
+      
+      totalValue = totalValue.plus(toDecimal(prop.appraised_value || prop.purchase_price || 0));
+      
+      totalPI = totalPI.plus(toDecimal(calculateMonthlyPI(
+        deal.loan_amount / properties.length,
         deal.interest_rate,
         deal.loan_term_months
-      );
+      )));
     });
 
-    const totalPITIA = totalPI + totalExpenses;
-    const dscr = totalPITIA > 0 ? parseFloat((totalGrossRent / totalPITIA).toFixed(2)) : 0;
-    const ltv = calculateLTV(deal.loan_amount, totalValue);
+    const totalPITIA = totalPI.plus(totalExpenses);
+    const dscr = totalPITIA.isZero() ? 0 : parseFloat(totalGrossRent.dividedBy(totalPITIA).toDecimalPlaces(2).toString());
+    const ltv = calculateLTV(deal.loan_amount, parseFloat(totalValue.toString()));
 
     return {
       dscr,
       ltv,
-      monthly_pitia: totalPITIA,
-      monthly_pi: totalPI
+      monthly_pitia: parseFloat(totalPITIA.toDecimalPlaces(2).toString()),
+      monthly_pi: parseFloat(totalPI.toDecimalPlaces(2).toString())
     };
   }
 
