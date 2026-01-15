@@ -1,58 +1,74 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
+import Decimal from 'npm:decimal.js@^10.4.3';
+
+// Configure Decimal precision
+Decimal.set({ precision: 28, rounding: Decimal.ROUND_HALF_UP });
+
+function toDecimal(value) {
+  if (value === null || value === undefined || value === '') return new Decimal(0);
+  return new Decimal(String(value));
+}
+
 function calculateDSCR(input) {
-  const monthlyGrossRent = input.monthlyRent + (input.otherIncome || 0);
-  const vacancyRate = input.vacancyRate || 0.05;
-  const vacancyLoss = monthlyGrossRent * vacancyRate;
-  const effectiveGrossIncome = monthlyGrossRent - vacancyLoss;
+  const rent = toDecimal(input.monthlyRent).plus(toDecimal(input.otherIncome || 0));
+  const vacancyRate = toDecimal(input.vacancyRate || 0.05);
+  const vacancyLoss = rent.times(vacancyRate);
+  const effectiveIncome = rent.minus(vacancyLoss);
 
-  const monthlyTaxes = input.propertyTaxes / 12;
-  const monthlyInsurance = input.insurance / 12;
-  const monthlyHOA = input.hoa || 0;
-  const monthlyManagement = input.managementFee ?? input.monthlyRent * 0.08;
-  const monthlyRepairs = input.repairs ?? input.monthlyRent * 0.05;
-  const monthlyUtilities = input.utilities || 0;
+  const taxes = toDecimal(input.propertyTaxes).dividedBy(12);
+  const insurance = toDecimal(input.insurance).dividedBy(12);
+  const hoa = toDecimal(input.hoa || 0);
+  const mgmt = toDecimal(input.managementFee ?? toDecimal(input.monthlyRent || 0).times(0.08));
+  const repairs = toDecimal(input.repairs ?? toDecimal(input.monthlyRent || 0).times(0.05));
+  const utilities = toDecimal(input.utilities || 0);
 
-  const totalExpenses = monthlyTaxes + monthlyInsurance + monthlyHOA + monthlyManagement + monthlyRepairs + monthlyUtilities;
-  const monthlyNOI = effectiveGrossIncome - totalExpenses;
+  const totalExpenses = taxes.plus(insurance).plus(hoa).plus(mgmt).plus(repairs).plus(utilities);
+  const noi = effectiveIncome.minus(totalExpenses);
 
-  let monthlyDebtService;
+  let debtService;
   if (input.interestOnly) {
-    monthlyDebtService = (input.loanAmount * input.interestRate) / 12;
+    const loanDecimal = toDecimal(input.loanAmount);
+    const ratePercent = toDecimal(input.interestRate);
+    debtService = loanDecimal.times(ratePercent).dividedBy(12).dividedBy(100);
   } else {
-    const monthlyRate = input.interestRate / 12;
-    const n = input.loanTermMonths;
-    monthlyDebtService = input.loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, n)) / (Math.pow(1 + monthlyRate, n) - 1);
+    const loan = toDecimal(input.loanAmount);
+    const monthlyRate = toDecimal(input.interestRate).dividedBy(100).dividedBy(12);
+    const n = toDecimal(input.loanTermMonths);
+    
+    const numerator = monthlyRate.times(new Decimal(1).plus(monthlyRate).pow(n));
+    const denominator = new Decimal(1).plus(monthlyRate).pow(n).minus(1);
+    debtService = loan.times(numerator.dividedBy(denominator));
   }
 
-  const dscr = monthlyNOI / monthlyDebtService;
-  const annualNOI = monthlyNOI * 12;
-  const annualDebtService = monthlyDebtService * 12;
+  const dscr = debtService.isZero() ? new Decimal(0) : noi.dividedBy(debtService);
+  const annualNOI = noi.times(12);
+  const annualDebtService = debtService.times(12);
 
   return {
-    dscr: Number(dscr.toFixed(3)),
-    dscrFormatted: dscr.toFixed(2) + 'x',
-    monthlyNOI: Number(monthlyNOI.toFixed(2)),
-    annualNOI: Number(annualNOI.toFixed(2)),
-    monthlyDebtService: Number(monthlyDebtService.toFixed(2)),
-    annualDebtService: Number(annualDebtService.toFixed(2)),
-    effectiveGrossIncome: Number(effectiveGrossIncome.toFixed(2)),
-    totalExpenses: Number(totalExpenses.toFixed(2)),
-    meetsMinimum: dscr >= 1.0,
+    dscr: parseFloat(dscr.toDecimalPlaces(3).toString()),
+    dscrFormatted: dscr.toDecimalPlaces(2).toString() + 'x',
+    monthlyNOI: parseFloat(noi.toDecimalPlaces(2).toString()),
+    annualNOI: parseFloat(annualNOI.toDecimalPlaces(2).toString()),
+    monthlyDebtService: parseFloat(debtService.toDecimalPlaces(2).toString()),
+    annualDebtService: parseFloat(annualDebtService.toDecimalPlaces(2).toString()),
+    effectiveGrossIncome: parseFloat(effectiveIncome.toDecimalPlaces(2).toString()),
+    totalExpenses: parseFloat(totalExpenses.toDecimalPlaces(2).toString()),
+    meetsMinimum: dscr.greaterThanOrEqualTo(1.0),
     minimumRequired: 1.0,
     breakdown: {
-      grossRent: Number(monthlyGrossRent.toFixed(2)),
-      vacancyLoss: Number(vacancyLoss.toFixed(2)),
-      effectiveIncome: Number(effectiveGrossIncome.toFixed(2)),
-      taxes: Number(monthlyTaxes.toFixed(2)),
-      insurance: Number(monthlyInsurance.toFixed(2)),
-      hoa: Number(monthlyHOA.toFixed(2)),
-      management: Number(monthlyManagement.toFixed(2)),
-      repairs: Number(monthlyRepairs.toFixed(2)),
-      utilities: Number(monthlyUtilities.toFixed(2)),
-      totalExpenses: Number(totalExpenses.toFixed(2)),
-      noi: Number(monthlyNOI.toFixed(2)),
-      debtService: Number(monthlyDebtService.toFixed(2))
+      grossRent: parseFloat(rent.toDecimalPlaces(2).toString()),
+      vacancyLoss: parseFloat(vacancyLoss.toDecimalPlaces(2).toString()),
+      effectiveIncome: parseFloat(effectiveIncome.toDecimalPlaces(2).toString()),
+      taxes: parseFloat(taxes.toDecimalPlaces(2).toString()),
+      insurance: parseFloat(insurance.toDecimalPlaces(2).toString()),
+      hoa: parseFloat(hoa.toDecimalPlaces(2).toString()),
+      management: parseFloat(mgmt.toDecimalPlaces(2).toString()),
+      repairs: parseFloat(repairs.toDecimalPlaces(2).toString()),
+      utilities: parseFloat(utilities.toDecimalPlaces(2).toString()),
+      totalExpenses: parseFloat(totalExpenses.toDecimalPlaces(2).toString()),
+      noi: parseFloat(noi.toDecimalPlaces(2).toString()),
+      debtService: parseFloat(debtService.toDecimalPlaces(2).toString())
     }
   };
 }
