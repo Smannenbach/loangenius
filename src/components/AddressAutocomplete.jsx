@@ -32,7 +32,7 @@ export default function AddressAutocomplete({
       const geocodeResponse = await fetch(
         `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${mapsApiKey}`
       );
-      const data = await response.json();
+      const data = await geocodeResponse.json();
 
       if (data.results && data.results.length > 0) {
         const result = data.results[0];

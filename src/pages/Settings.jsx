@@ -26,6 +26,7 @@ export default function SettingsPage() {
     email: '',
     phone: '',
     nmls_id: '',
+    headshot_url: '',
   });
 
   useEffect(() => {
@@ -34,6 +35,7 @@ export default function SettingsPage() {
         ...prev,
         full_name: user.full_name || '',
         email: user.email || '',
+        headshot_url: user.headshot_url || '',
       }));
     }
   }, [user]);
@@ -82,6 +84,32 @@ export default function SettingsPage() {
               <CardDescription>Update your personal information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Headshot Upload */}
+              <div className="space-y-2">
+                <Label>Professional Headshot</Label>
+                <div className="flex items-center gap-4">
+                  {profile.headshot_url && (
+                    <img src={profile.headshot_url} alt="Headshot" className="h-24 w-24 rounded-lg object-cover border border-gray-200" />
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        try {
+                          const { data } = await base44.functions.invoke('uploadUserHeadshot', { file });
+                          setProfile({ ...profile, headshot_url: data.url });
+                        } catch (err) {
+                          console.error('Upload failed:', err);
+                        }
+                      }
+                    }}
+                    className="block"
+                  />
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Full Name</Label>
@@ -132,6 +160,33 @@ export default function SettingsPage() {
               <CardDescription>Configure your company information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Logo Upload */}
+              <div className="space-y-2">
+                <Label>Company Logo</Label>
+                <div className="flex items-center gap-4">
+                  <div className="h-24 w-24 border border-gray-200 rounded-lg bg-gray-50 flex items-center justify-center">
+                    {/* Logo preview would go here */}
+                    <p className="text-xs text-gray-500">Logo</p>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        try {
+                          const { data } = await base44.functions.invoke('uploadOrgLogo', { file });
+                          console.log('Logo uploaded:', data.url);
+                        } catch (err) {
+                          console.error('Upload failed:', err);
+                        }
+                      }
+                    }}
+                    className="block"
+                  />
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Company Name</Label>
