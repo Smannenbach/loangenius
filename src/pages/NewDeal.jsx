@@ -69,7 +69,10 @@ export default function NewDeal() {
   const createDealMutation = useMutation({
     mutationFn: async () => {
       const user = await base44.auth.me();
-      const orgId = user.org_id || 'default';
+      if (!user?.org_id) {
+        throw new Error('Organization not found. Please contact support.');
+      }
+      const orgId = user.org_id;
       
       // Generate deal number
       const dealNumber = `DL-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
