@@ -12,6 +12,9 @@ import QuoteGenerator from './pages/QuoteGenerator';
 import AIAssistant from './pages/AIAssistant';
 import Underwriting from './pages/Underwriting';
 import Communications from './pages/Communications';
+import Users from './pages/Users';
+import Lenders from './pages/Lenders';
+import Settings from './pages/Settings';
 import __Layout from './Layout.jsx';
 
 
@@ -30,6 +33,9 @@ export const PAGES = {
     "AIAssistant": AIAssistant,
     "Underwriting": Underwriting,
     "Communications": Communications,
+    "Users": Users,
+    "Lenders": Lenders,
+    "Settings": Settings,
 }
 
 export const pagesConfig = {

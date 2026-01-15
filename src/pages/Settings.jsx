@@ -1,0 +1,266 @@
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Settings,
+  User,
+  Building2,
+  Bell,
+  Shield,
+  Palette,
+  Link,
+  Save,
+} from 'lucide-react';
+
+export default function SettingsPage() {
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const [profile, setProfile] = useState({
+    full_name: user?.full_name || '',
+    email: user?.email || '',
+    phone: '',
+    nmls_id: '',
+  });
+
+  const [notifications, setNotifications] = useState({
+    email_new_lead: true,
+    email_document_upload: true,
+    email_status_change: true,
+    sms_urgent: false,
+  });
+
+  return (
+    <div className="p-6 lg:p-8 max-w-4xl mx-auto">
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold text-gray-900 flex items-center gap-3">
+          <Settings className="h-7 w-7 text-blue-600" />
+          Settings
+        </h1>
+        <p className="text-gray-500 mt-1">Manage your account and preferences</p>
+      </div>
+
+      <Tabs defaultValue="profile">
+        <TabsList className="mb-6">
+          <TabsTrigger value="profile" className="gap-2">
+            <User className="h-4 w-4" />
+            Profile
+          </TabsTrigger>
+          <TabsTrigger value="organization" className="gap-2">
+            <Building2 className="h-4 w-4" />
+            Organization
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="gap-2">
+            <Bell className="h-4 w-4" />
+            Notifications
+          </TabsTrigger>
+          <TabsTrigger value="integrations" className="gap-2">
+            <Link className="h-4 w-4" />
+            Integrations
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="profile">
+          <Card className="border-gray-200">
+            <CardHeader>
+              <CardTitle>Profile Settings</CardTitle>
+              <CardDescription>Update your personal information</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Full Name</Label>
+                  <Input
+                    value={profile.full_name}
+                    onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
+                    placeholder="John Smith"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    value={profile.email}
+                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                    disabled
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Phone</Label>
+                  <Input
+                    value={profile.phone}
+                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>NMLS ID</Label>
+                  <Input
+                    value={profile.nmls_id}
+                    onChange={(e) => setProfile({ ...profile, nmls_id: e.target.value })}
+                    placeholder="123456"
+                  />
+                </div>
+              </div>
+              <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
+                <Save className="h-4 w-4" />
+                Save Changes
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="organization">
+          <Card className="border-gray-200">
+            <CardHeader>
+              <CardTitle>Organization Settings</CardTitle>
+              <CardDescription>Configure your company information</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Company Name</Label>
+                  <Input placeholder="ABC Mortgage" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Company NMLS ID</Label>
+                  <Input placeholder="123456" />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Address</Label>
+                  <Input placeholder="123 Main St, City, State 12345" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Phone</Label>
+                  <Input placeholder="(555) 123-4567" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Website</Label>
+                  <Input placeholder="https://abcmortgage.com" />
+                </div>
+              </div>
+              <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
+                <Save className="h-4 w-4" />
+                Save Changes
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="notifications">
+          <Card className="border-gray-200">
+            <CardHeader>
+              <CardTitle>Notification Preferences</CardTitle>
+              <CardDescription>Choose what notifications you receive</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">New Lead Notifications</p>
+                    <p className="text-sm text-gray-500">Get notified when a new lead is created</p>
+                  </div>
+                  <Switch
+                    checked={notifications.email_new_lead}
+                    onCheckedChange={(v) => setNotifications({ ...notifications, email_new_lead: v })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Document Uploads</p>
+                    <p className="text-sm text-gray-500">Get notified when documents are uploaded</p>
+                  </div>
+                  <Switch
+                    checked={notifications.email_document_upload}
+                    onCheckedChange={(v) => setNotifications({ ...notifications, email_document_upload: v })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Status Changes</p>
+                    <p className="text-sm text-gray-500">Get notified when deal status changes</p>
+                  </div>
+                  <Switch
+                    checked={notifications.email_status_change}
+                    onCheckedChange={(v) => setNotifications({ ...notifications, email_status_change: v })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">SMS for Urgent Items</p>
+                    <p className="text-sm text-gray-500">Receive SMS for urgent notifications</p>
+                  </div>
+                  <Switch
+                    checked={notifications.sms_urgent}
+                    onCheckedChange={(v) => setNotifications({ ...notifications, sms_urgent: v })}
+                  />
+                </div>
+              </div>
+              <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
+                <Save className="h-4 w-4" />
+                Save Preferences
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="integrations">
+          <Card className="border-gray-200">
+            <CardHeader>
+              <CardTitle>Integrations</CardTitle>
+              <CardDescription>Connect external services</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                      <span className="font-bold text-blue-600">TW</span>
+                    </div>
+                    <div>
+                      <p className="font-medium">Twilio</p>
+                      <p className="text-sm text-gray-500">SMS messaging</p>
+                    </div>
+                  </div>
+                  <Button variant="outline">Configure</Button>
+                </div>
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                      <span className="font-bold text-blue-600">SG</span>
+                    </div>
+                    <div>
+                      <p className="font-medium">SendGrid</p>
+                      <p className="text-sm text-gray-500">Email delivery</p>
+                    </div>
+                  </div>
+                  <Button variant="outline">Configure</Button>
+                </div>
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                      <span className="font-bold text-orange-600">Z</span>
+                    </div>
+                    <div>
+                      <p className="font-medium">Zapier</p>
+                      <p className="text-sm text-gray-500">Workflow automation</p>
+                    </div>
+                  </div>
+                  <Button variant="outline">Configure</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
