@@ -286,7 +286,7 @@ export default function Layout({ children, currentPageName }) {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition-colors"
           >
             <Plus className="h-4 w-4" />
-            New Deal
+            New Loan
           </Link>
 
           {/* Notifications */}
