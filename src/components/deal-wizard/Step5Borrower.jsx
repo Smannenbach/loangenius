@@ -4,16 +4,47 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
-import { X } from 'lucide-react';
+import { X, Loader2, CheckCircle2 } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
 import WizardStep from './WizardStep';
 
 export default function Step5Borrower({ data, onChange, onNext, onPrev }) {
-  const [currentBorrower, setCurrentBorrower] = useState({});
+   const [currentBorrower, setCurrentBorrower] = useState({});
+   const [creditLoading, setCreditLoading] = useState(null);
+   const [creditResults, setCreditResults] = useState({});
 
 
 
   const removeBorrower = (id) => {
     onChange({ borrowers: data.borrowers.filter(b => b.id !== id) });
+  };
+
+  const pullCreditReport = async (borrower) => {
+    if (!borrower.firstName || !borrower.lastName) return;
+
+    setCreditLoading(borrower.id);
+    try {
+      const response = await base44.functions.invoke('scoreLeads', {
+        firstName: borrower.firstName,
+        lastName: borrower.lastName,
+        email: borrower.email,
+      });
+
+      if (response.data?.creditScore) {
+        setCreditResults({
+          ...creditResults,
+          [borrower.id]: response.data.creditScore
+        });
+        const updatedBorrowers = data.borrowers.map(b => 
+          b.id === borrower.id ? { ...b, ficoScore: response.data.creditScore } : b
+        );
+        onChange({ borrowers: updatedBorrowers });
+      }
+    } catch (error) {
+      console.error('Credit pull failed:', error);
+    } finally {
+      setCreditLoading(null);
+    }
   };
 
   const isValid = (data.borrowers?.length || 0) > 0;
@@ -134,15 +165,43 @@ export default function Step5Borrower({ data, onChange, onNext, onPrev }) {
           <div className="space-y-3">
             <Label className="font-semibold">Borrowers ({data.borrowers.length})</Label>
             {data.borrowers.map(borrower => (
-              <Card key={borrower.id} className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{borrower.firstName} {borrower.lastName}</p>
-                  <p className="text-sm text-gray-500">{borrower.email}</p>
-                  <p className="text-xs text-gray-400 mt-1">{borrower.partyType.replace(/_/g, ' ')}</p>
+              <Card key={borrower.id} className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <p className="font-medium">{borrower.firstName} {borrower.lastName}</p>
+                    <p className="text-sm text-gray-500">{borrower.email}</p>
+                    <p className="text-xs text-gray-400 mt-1">{borrower.partyType.replace(/_/g, ' ')}</p>
+                    {borrower.ficoScore && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-semibold text-green-600">FICO: {borrower.ficoScore}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    {!borrower.ficoScore && (
+                      <Button
+                        onClick={() => pullCreditReport(borrower)}
+                        disabled={creditLoading === borrower.id}
+                        size="sm"
+                        variant="outline"
+                        className="text-xs"
+                      >
+                        {creditLoading === borrower.id ? (
+                          <>
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            Pulling...
+                          </>
+                        ) : (
+                          'Pull Credit'
+                        )}
+                      </Button>
+                    )}
+                    <button onClick={() => removeBorrower(borrower.id)} className="text-red-500 hover:text-red-700">
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
-                <button onClick={() => removeBorrower(borrower.id)} className="text-red-500 hover:text-red-700">
-                  <X className="h-5 w-5" />
-                </button>
               </Card>
             ))}
           </div>
