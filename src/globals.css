@@ -1,3 +1,4 @@
+css
 @layer utilities {
   /* Touch-friendly tap targets */
   .touch-target {
@@ -33,4 +34,48 @@
   .responsive-container {
     @apply w-full px-4 sm:px-6 lg:px-8;
   }
+}
+
+/* Brand Studio CSS Variables */
+:root {
+  --brand-primary: #2563eb;
+  --brand-secondary: #1e40af;
+  --brand-accent: #10b981;
+  --brand-bg: #ffffff;
+  --brand-text: #1f2937;
+  --brand-radius: 0.5rem;
+  --brand-font-heading: Inter;
+  --brand-font-body: Inter;
+}
+
+/* Apply brand colors to portal */
+.portal-container {
+  background-color: var(--brand-bg);
+  color: var(--brand-text);
+  font-family: var(--brand-font-body), sans-serif;
+}
+
+.portal-header {
+  background-color: var(--brand-primary);
+  color: white;
+  font-family: var(--brand-font-heading), sans-serif;
+}
+
+.portal-button {
+  background-color: var(--brand-primary);
+  border-radius: var(--brand-radius);
+  color: white;
+}
+
+.portal-button:hover {
+  background-color: var(--brand-secondary);
+}
+
+.portal-button-accent {
+  background-color: var(--brand-accent);
+}
+
+.portal-heading {
+  color: var(--brand-text);
+  font-family: var(--brand-font-heading), sans-serif;
 }
