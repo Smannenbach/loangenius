@@ -442,7 +442,7 @@ export default function LoansPage() {
         />
       )}
        </div>
-      </div>
+       </div>
       </ErrorBoundary>
       );
       }
