@@ -83,9 +83,10 @@ export default function Lenders() {
     mutationFn: async (query) => {
       setIsSearching(true);
       const prompt = query.includes('DSCR') || query.includes('dscr') 
-        ? `Find 10 DSCR lenders matching: "${query}". Return JSON array ONLY:
-[{"name":"Company Name","type":"DSCR","description":"Brief description"}]`
-        : `Research this lending company and return structured data in JSON: "${query}"`;
+        ? `Find 10 DSCR lenders matching: "${query}". Return ONLY a JSON array with no markdown, no code blocks:
+[{"name":"Company Name","type":"DSCR","company_name":"Company Name","lender_type":"DSCR","description":"Brief description"}]`
+        : `Research this lending company. Return ONLY a JSON array with no markdown, no code blocks:
+[{"name":"${query}","company_name":"${query}","type":"Lender","lender_type":"Lender","description":"Lending company"}]`;
       
       const response = await base44.integrations.Core.InvokeLLM({
         prompt: prompt,
@@ -93,17 +94,31 @@ export default function Lenders() {
         response_json_schema: {
           type: 'object',
           properties: {
-            results: { type: 'array' },
+            results: { 
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  company_name: { type: 'string' },
+                  type: { type: 'string' },
+                  lender_type: { type: 'string' },
+                  description: { type: 'string' },
+                }
+              }
+            },
           },
         },
       });
-      return response.results || response;
+      const results = Array.isArray(response) ? response : (response.results || [response]);
+      return results.filter(r => r && (r.name || r.company_name));
     },
     onSuccess: (data) => {
-      setSearchResults(Array.isArray(data) ? data : [data]);
+      setSearchResults(data && data.length > 0 ? data : []);
       setIsSearching(false);
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('AI Search error:', error);
       alert('Error searching for lender. Try manual entry.');
       setIsSearching(false);
     },

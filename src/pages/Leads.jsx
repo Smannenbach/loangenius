@@ -117,9 +117,10 @@ export default function Leads() {
 
   const createLeadMutation = useMutation({
     mutationFn: async (data) => {
-      const user = await base44.auth.me();
+      if (!user?.org_id) throw new Error('User org_id not found');
       const processedData = {
         ...data,
+        org_id: user.org_id,
         estimated_value: data.estimated_value ? parseFloat(data.estimated_value) : null,
         loan_amount: data.loan_amount ? parseFloat(data.loan_amount) : null,
         current_balance: data.current_balance ? parseFloat(data.current_balance) : null,
@@ -130,17 +131,21 @@ export default function Leads() {
         cashout_amount: data.cashout_amount ? parseFloat(data.cashout_amount) : null,
         fico_score: data.fico_score ? parseInt(data.fico_score) : null,
       };
+      // Remove undefined values
+      Object.keys(processedData).forEach(key => {
+        if (processedData[key] === '' || processedData[key] === undefined) {
+          delete processedData[key];
+        }
+      });
       if (editingLead) {
         return base44.entities.Lead.update(editingLead.id, processedData);
       }
-      return base44.entities.Lead.create({
-        ...processedData,
-        org_id: user.org_id || 'default',
-      });
+      return base44.entities.Lead.create(processedData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       setIsAddOpen(false);
+      setIsQuickAddOpen(false);
       setEditingLead(null);
       setNewLead({
         first_name: '',
@@ -174,6 +179,10 @@ export default function Leads() {
         status: 'new',
         notes: '',
       });
+    },
+    onError: (error) => {
+      console.error('Lead creation error:', error);
+      alert('Error adding lead: ' + error.message);
     },
   });
 
