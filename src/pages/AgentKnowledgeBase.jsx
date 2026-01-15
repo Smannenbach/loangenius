@@ -65,6 +65,9 @@ const documents = [
 export default function AgentKnowledgeBase() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedArticle, setSelectedArticle] = useState(null);
+  const [isAddDocOpen, setIsAddDocOpen] = useState(false);
+  const [docTitle, setDocTitle] = useState('');
+  const [docCategory, setDocCategory] = useState('');
 
   const filteredArticles = knowledgeArticles.filter(article =>
     article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
