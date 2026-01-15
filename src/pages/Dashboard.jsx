@@ -40,6 +40,18 @@ export default function Dashboard() {
   const attentionDeals = attentionData?.data?.deals || [];
   const pipelineStages = kpiData?.data?.pipeline_by_stage || [];
 
+  // Show loading state for KPIs
+  if (kpisLoading) {
+    return (
+      <div className="p-6 bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
@@ -49,7 +61,7 @@ export default function Dashboard() {
           <p className="text-sm text-gray-500 mt-1">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
         </div>
         <Link 
-          to={createPageUrl('NewDeal')}
+          to={createPageUrl('DealWizard')}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors"
         >
           <Plus className="h-5 w-5" />
@@ -64,24 +76,29 @@ export default function Dashboard() {
           value={kpis.active_deals?.current || 0}
           changePercent={kpis.active_deals?.change_pct}
           trend={kpis.active_deals?.trend}
+          isLoading={kpisLoading}
         />
         <KPICard
           title="Pipeline Value"
           value={kpis.pipeline_value?.current || 0}
           changePercent={kpis.pipeline_value?.change_pct}
           trend={kpis.pipeline_value?.trend}
-          unit="Total"
+          isCurrency={true}
+          isLoading={kpisLoading}
         />
         <KPICard
           title="Closing This Month"
           value={kpis.closing_this_month?.count || 0}
           target={kpis.closing_this_month?.target}
+          isLoading={kpisLoading}
         />
         <KPICard
           title="Funded This Month"
           value={kpis.funded_this_month?.volume || 0}
           changePercent={kpis.funded_this_month?.change_pct}
           trend={kpis.funded_this_month?.trend}
+          isCurrency={true}
+          isLoading={kpisLoading}
         />
       </div>
 
