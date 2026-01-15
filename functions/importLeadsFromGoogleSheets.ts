@@ -72,23 +72,6 @@ Deno.serve(async (req) => {
     const createdLeads = [];
     const errors = [];
 
-    // Get org_id from OrgMembership
-    let orgId = null;
-    try {
-      const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
-        user_id: user.email,
-      });
-      if (memberships && memberships.length > 0) {
-        orgId = memberships[0].org_id;
-      }
-    } catch (e) {
-      // Continue, orgId will remain null
-    }
-
-    if (!orgId) {
-      return Response.json({ error: 'User not associated with an organization' }, { status: 400 });
-    }
-
     // Process each row (skip header)
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
@@ -100,7 +83,7 @@ Deno.serve(async (req) => {
 
       try {
         const leadData = {
-          org_id: orgId,
+          org_id: 'default',
         };
 
         // Map values from spreadsheet
