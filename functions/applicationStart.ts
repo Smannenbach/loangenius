@@ -7,6 +7,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const base44 = createClientFromRequest(req);
     const { org_slug, loan_product, loan_purpose, email, phone } = await req.json();
 
     if (!org_slug || !loan_product || !loan_purpose || !email) {
