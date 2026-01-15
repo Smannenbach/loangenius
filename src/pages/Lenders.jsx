@@ -38,7 +38,11 @@ export default function Lenders() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [lenderSearchQuery, setLenderSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [selectedLenders, setSelectedLenders] = useState(new Set());
   const [newLender, setNewLender] = useState({
     name: '',
     company_name: '',
@@ -76,10 +80,15 @@ export default function Lenders() {
   });
 
   const aiSearchMutation = useMutation({
-    mutationFn: async (lenderName) => {
+    mutationFn: async (query) => {
       setIsSearching(true);
+      const prompt = query.includes('DSCR') || query.includes('dscr') 
+        ? `Find 10 DSCR lenders matching: "${query}". Return JSON array ONLY:
+[{"name":"Company Name","type":"DSCR","description":"Brief description"}]`
+        : `Research this lending company and return structured data in JSON: "${query}"`;
+      
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Research this lending company and return structured data in JSON: "${lenderName}"
+        prompt: prompt
         
 Return ONLY valid JSON (no markdown) with this exact structure:
 {
@@ -98,47 +107,18 @@ Return ONLY valid JSON (no markdown) with this exact structure:
   "dscr_min_ratio": "minimum DSCR ratio they require or null",
   "ltv_max": "maximum LTV percentage or null"
 }`,
-        add_context_from_internet: true,
+          add_context_from_internet: true,
         response_json_schema: {
           type: 'object',
           properties: {
-            company_name: { type: 'string' },
-            website: { type: ['string', 'null'] },
-            phone: { type: ['string', 'null'] },
-            email: { type: ['string', 'null'] },
-            address: { type: ['string', 'null'] },
-            city: { type: ['string', 'null'] },
-            state: { type: ['string', 'null'] },
-            zip: { type: ['string', 'null'] },
-            lender_type: { type: 'string' },
-            loan_programs: { type: 'string' },
-            min_loan: { type: ['string', 'null'] },
-            max_loan: { type: ['string', 'null'] },
-            dscr_min_ratio: { type: ['string', 'null'] },
-            ltv_max: { type: ['string', 'null'] },
+            results: { type: 'array' },
           },
         },
       });
-      return response;
+      return response.results || response;
     },
     onSuccess: (data) => {
-      setNewLender(prev => ({
-        ...prev,
-        company_name: data.company_name || '',
-        website: data.website || '',
-        phone: data.phone || '',
-        email: data.email || '',
-        address: data.address || '',
-        city: data.city || '',
-        state: data.state || '',
-        zip: data.zip || '',
-        lender_type: data.lender_type || '',
-        loan_programs: data.loan_programs || '',
-        min_loan: data.min_loan || '',
-        max_loan: data.max_loan || '',
-        dscr_min_ratio: data.dscr_min_ratio || '',
-        ltv_max: data.ltv_max || '',
-      }));
+      setSearchResults(Array.isArray(data) ? data : [data]);
       setIsSearching(false);
     },
     onError: () => {
@@ -148,11 +128,38 @@ Return ONLY valid JSON (no markdown) with this exact structure:
   });
 
   const handleAISearch = () => {
-    if (!newLender.name.trim()) {
-      alert('Please enter a lender name first');
+    if (!lenderSearchQuery.trim()) {
+      alert('Enter a lender name or "DSCR lenders"');
       return;
     }
-    aiSearchMutation.mutate(newLender.name);
+    aiSearchMutation.mutate(lenderSearchQuery);
+  };
+
+  const handleSelectLender = (result) => {
+    const id = result.name || result.company_name;
+    setSelectedLenders(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleAddSelectedLenders = async () => {
+    for (const id of selectedLenders) {
+      const result = searchResults.find(r => (r.name || r.company_name) === id);
+      if (result) {
+        await addLenderMutation.mutateAsync({
+          company_name: result.company_name || result.name,
+          lender_type: result.type || result.lender_type || 'DSCR',
+          loan_programs: result.description || '',
+        });
+      }
+    }
+    setIsSearchOpen(false);
+    setSelectedLenders(new Set());
+    setSearchResults([]);
+    setLenderSearchQuery('');
   };
 
   const resetForm = () => {
@@ -194,9 +201,68 @@ Return ONLY valid JSON (no markdown) with this exact structure:
             <Building2 className="h-8 w-8 text-blue-600" />
             Lender Management
           </h1>
-          <p className="text-gray-500 mt-1">Manage lending partners and loan programs</p>
+          <p className="text-gray-500 mt-1">{lenders.length} active lenders</p>
         </div>
-        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <div className="flex gap-2">
+          <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Sparkles className="h-4 w-4" />
+                AI Search
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Search & Add Lenders</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Search: 'DSCR Lenders' or specific company name"
+                    value={lenderSearchQuery}
+                    onChange={(e) => setLenderSearchQuery(e.target.value)}
+                  />
+                  <Button
+                    onClick={handleAISearch}
+                    disabled={isSearching || !lenderSearchQuery.trim()}
+                    className="bg-blue-600"
+                  >
+                    {isSearching ? 'Searching...' : 'Search'}
+                  </Button>
+                </div>
+
+                {searchResults.length > 0 && (
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {searchResults.map((result, idx) => (
+                      <div key={idx} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-blue-50">
+                        <input
+                          type="checkbox"
+                          checked={selectedLenders.has(result.name || result.company_name)}
+                          onChange={() => handleSelectLender(result)}
+                          className="h-4 w-4 rounded"
+                        />
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900">{result.company_name || result.name}</p>
+                          <p className="text-sm text-gray-600">{result.type || result.lender_type || 'Lender'}</p>
+                          {result.description && <p className="text-xs text-gray-500 mt-1">{result.description}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {selectedLenders.size > 0 && (
+                  <Button
+                    className="w-full bg-green-600 hover:bg-green-700"
+                    onClick={handleAddSelectedLenders}
+                  >
+                    Add {selectedLenders.size} Lender{selectedLenders.size !== 1 ? 's' : ''}
+                  </Button>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
               <Plus className="h-4 w-4" />
@@ -205,41 +271,9 @@ Return ONLY valid JSON (no markdown) with this exact structure:
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Add New Lender</DialogTitle>
+              <DialogTitle>Add Lender (Manual Entry)</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              {/* AI Search Section */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-blue-600" />
-                  <Label className="font-semibold text-blue-900">AI-Powered Lender Search</Label>
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="e.g., 'Loan Depot' or 'Capital One Home Loans'"
-                    value={newLender.name}
-                    onChange={(e) => setNewLender({ ...newLender, name: e.target.value })}
-                  />
-                  <Button
-                    onClick={handleAISearch}
-                    disabled={isSearching || !newLender.name.trim()}
-                    className="bg-blue-600 hover:bg-blue-700 gap-2"
-                  >
-                    {isSearching ? (
-                      <>
-                        <Loader className="h-4 w-4 animate-spin" />
-                        Searching...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4" />
-                        Search
-                      </>
-                    )}
-                  </Button>
-                </div>
-                <p className="text-xs text-blue-700">AI will auto-fill company details from web research</p>
-              </div>
 
               {/* Company Info */}
               <div className="space-y-4 border-t pt-4">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,199 +10,284 @@ import {
   Phone,
   Mail,
   MessageSquare,
-  ChevronLeft,
+  Plus,
   Paperclip,
   Smile,
   Clock,
   AlertCircle,
+  Check,
+  CheckCheck,
+  MoreVertical,
+  Trash2,
+  Archive,
+  Bell,
+  Settings,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Conversations() {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [messageInput, setMessageInput] = useState('');
+  const [conversationSearch, setConversationSearch] = useState('');
   const queryClient = useQueryClient();
+  const messagesEndRef = useRef(null);
+  const [autoScroll, setAutoScroll] = useState(true);
 
-  const { data: conversations = [] } = useQuery({
-    queryKey: ['conversations'],
+  const { data: communications = [] } = useQuery({
+    queryKey: ['communications'],
     queryFn: () => base44.entities.CommunicationsLog.list(),
+    refetchInterval: 10000,
   });
 
   const sendMutation = useMutation({
     mutationFn: async (data) => {
-      return await base44.functions.invoke('sendCommunication', {
-        channel: data.channel || 'email',
-        to: data.to,
-        subject: data.subject,
+      return await base44.integrations.Core.SendEmail({
+        to: data.recipient,
+        subject: data.subject || 'Message from Loan Daddy',
         body: data.body,
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
       setMessageInput('');
+      queryClient.invalidateQueries({ queryKey: ['communications'] });
     },
   });
 
-  const handleSendMessage = () => {
-    if (!messageInput.trim() || !selectedConversation) return;
-    
-    sendMutation.mutate({
-      to: selectedConversation.contact,
-      body: messageInput,
-      channel: 'email',
-    });
-  };
-
-  // Group conversations by contact
-  const groupedConversations = conversations.reduce((acc, conv) => {
-    const key = conv.to || conv.from;
-    if (!acc[key]) {
-      acc[key] = [];
+  // Group by contact
+  const grouped = communications.reduce((acc, msg) => {
+    const contact = msg.to || msg.from || 'Unknown';
+    if (!acc[contact]) {
+      acc[contact] = {
+        contact,
+        messages: [],
+        unread: 0,
+        lastMessage: null,
+      };
     }
-    acc[key].push(conv);
+    acc[contact].messages.push(msg);
+    if (!msg.is_read) acc[contact].unread++;
+    if (!acc[contact].lastMessage || new Date(msg.created_date) > new Date(acc[contact].lastMessage.created_date)) {
+      acc[contact].lastMessage = msg;
+    }
     return acc;
   }, {});
 
-  const uniqueConversations = Object.entries(groupedConversations).map(([contact, messages]) => ({
-    contact,
-    messages: messages.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)),
-    lastMessage: messages[0],
-  }));
-
-  const filteredConversations = uniqueConversations.filter(c =>
-    c.contact.toLowerCase().includes(searchTerm.toLowerCase())
+  const conversations = Object.values(grouped).sort((a, b) => 
+    new Date(b.lastMessage?.created_date || 0) - new Date(a.lastMessage?.created_date || 0)
   );
+
+  const filtered = conversations.filter(c => 
+    c.contact.toLowerCase().includes(conversationSearch.toLowerCase())
+  );
+
+  const handleSendMessage = () => {
+    if (!messageInput.trim() || !selectedConversation) return;
+    sendMutation.mutate({
+      recipient: selectedConversation.contact,
+      body: messageInput,
+    });
+  };
+
+  useEffect(() => {
+    if (autoScroll) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [selectedConversation?.messages, autoScroll]);
+
+  const getInitials = (contact) => {
+    const parts = contact.split('@')[0].split('.');
+    return (parts[0]?.[0] + (parts[1]?.[0] || '')).toUpperCase();
+  };
+
+  const formatTime = (date) => {
+    const now = new Date();
+    const msgDate = new Date(date);
+    const diff = now - msgDate;
+    
+    if (diff < 60000) return 'now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    if (diff < 604800000) return msgDate.toLocaleDateString('en-US', { weekday: 'short' });
+    return msgDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <MessageSquare className="h-6 w-6 text-blue-600" />
-            Communications
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">Manage all conversations with borrowers and team</p>
+      <div className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+              <MessageSquare className="h-6 w-6 text-blue-600" />
+              Conversations
+            </h1>
+            <p className="text-sm text-gray-500 mt-0.5">{filtered.length} active</p>
+          </div>
+          <Button variant="outline" size="sm" className="gap-2">
+            <Plus className="h-4 w-4" />
+            New
+          </Button>
         </div>
       </div>
 
-      {/* Main Content - 2 Columns */}
+      {/* Main Grid */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Sidebar - Conversation List */}
-        <div className="w-80 border-r border-gray-200 bg-white flex flex-col">
+        {/* Sidebar - Conversations List */}
+        <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
           {/* Search */}
-          <div className="p-4 border-b border-gray-200">
+          <div className="p-4 border-b border-gray-200 sticky top-0 bg-white">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search conversations..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 h-10"
+                value={conversationSearch}
+                onChange={(e) => setConversationSearch(e.target.value)}
+                className="pl-10 h-10 text-sm"
               />
             </div>
           </div>
 
-          {/* Conversation List */}
+          {/* Conversations */}
           <div className="flex-1 overflow-y-auto">
-            {filteredConversations.length === 0 ? (
-              <div className="p-6 text-center text-gray-500">
-                <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>No conversations</p>
+            {filtered.length === 0 ? (
+              <div className="p-6 text-center text-gray-400 mt-12">
+                <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">No conversations</p>
               </div>
             ) : (
-              filteredConversations.map((conv) => (
-                <button
-                  key={conv.contact}
-                  onClick={() => setSelectedConversation(conv)}
-                  className={`w-full px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors text-left ${
-                    selectedConversation?.contact === conv.contact ? 'bg-blue-50 border-l-4 border-l-blue-600' : ''
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-1">
-                    <p className="font-medium text-gray-900 truncate">{conv.contact}</p>
-                    <span className="text-xs text-gray-500">
-                      {new Date(conv.lastMessage.created_date).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 truncate">{conv.lastMessage.body}</p>
-                </button>
-              ))
+              <div className="divide-y divide-gray-100">
+                {filtered.map((conv) => (
+                  <button
+                    key={conv.contact}
+                    onClick={() => setSelectedConversation(conv)}
+                    className={`w-full p-4 hover:bg-blue-50 transition-colors text-left border-l-4 ${
+                      selectedConversation?.contact === conv.contact
+                        ? 'bg-blue-50 border-l-blue-600'
+                        : 'border-l-transparent'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-white flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                        {getInitials(conv.contact)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-semibold text-gray-900 truncate">{conv.contact}</p>
+                          {conv.unread > 0 && (
+                            <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold flex-shrink-0">
+                              {conv.unread}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600 truncate mt-0.5">{conv.lastMessage?.body}</p>
+                        <p className="text-xs text-gray-400 mt-1">{formatTime(conv.lastMessage?.created_date)}</p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             )}
           </div>
         </div>
 
-        {/* Right Panel - Conversation Thread */}
+        {/* Chat Panel */}
         {selectedConversation ? (
           <div className="flex-1 flex flex-col bg-white">
-            {/* Conversation Header */}
-            <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+            {/* Chat Header */}
+            <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between bg-gradient-to-r from-white to-gray-50">
               <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setSelectedConversation(null)}
-                  className="lg:hidden text-gray-500 hover:text-gray-700"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-white flex items-center justify-center font-semibold">
+                  {getInitials(selectedConversation.contact)}
+                </div>
                 <div>
                   <h2 className="font-semibold text-gray-900">{selectedConversation.contact}</h2>
-                  <p className="text-xs text-gray-500">
-                    {selectedConversation.messages.length} messages
-                  </p>
+                  <p className="text-xs text-gray-500">{selectedConversation.messages.length} messages</p>
                 </div>
               </div>
-              <div className="flex gap-2">
-                {selectedConversation.contact.includes('@') ? (
-                  <Button variant="ghost" size="icon" title="Email">
-                    <Mail className="h-5 w-5 text-gray-400" />
-                  </Button>
-                ) : (
-                  <Button variant="ghost" size="icon" title="Call">
-                    <Phone className="h-5 w-5 text-gray-400" />
-                  </Button>
-                )}
+              <div className="flex gap-1">
+                <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-600">
+                  {selectedConversation.contact.includes('@') ? <Mail className="h-5 w-5" /> : <Phone className="h-5 w-5" />}
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-600">
+                      <MoreVertical className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem><Bell className="h-4 w-4 mr-2" />Mute</DropdownMenuItem>
+                    <DropdownMenuItem><Archive className="h-4 w-4 mr-2" />Archive</DropdownMenuItem>
+                    <DropdownMenuItem className="text-red-600"><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {selectedConversation.messages.map((msg, idx) => (
-                <div key={idx} className={`flex ${msg.from === selectedConversation.contact ? 'justify-start' : 'justify-end'}`}>
-                  <div className={`max-w-xs lg:max-w-md rounded-lg px-4 py-2 ${
-                    msg.from === selectedConversation.contact
-                      ? 'bg-gray-100 text-gray-900'
-                      : 'bg-blue-600 text-white'
-                  }`}>
-                    <p className="text-sm break-words">{msg.body}</p>
-                    <p className={`text-xs mt-1 ${
-                      msg.from === selectedConversation.contact
-                        ? 'text-gray-500'
-                        : 'text-blue-100'
-                    }`}>
-                      {new Date(msg.created_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
+            <div
+              className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-white to-gray-50"
+              onScroll={(e) => {
+                const element = e.currentTarget;
+                const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 100;
+                setAutoScroll(isNearBottom);
+              }}
+            >
+              {selectedConversation.messages.length === 0 ? (
+                <div className="text-center text-gray-400 py-12">
+                  <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                  <p>No messages yet</p>
                 </div>
-              ))}
+              ) : (
+                <>
+                  {selectedConversation.messages.map((msg, idx) => {
+                    const isOwn = msg.sender_type === 'lo' || msg.sender_type === 'system';
+                    return (
+                      <div key={idx} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-xs lg:max-w-md rounded-2xl px-4 py-3 ${
+                          isOwn
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'bg-gray-100 text-gray-900 shadow-sm'
+                        }`}>
+                          <p className="text-sm break-words leading-relaxed">{msg.body}</p>
+                          <div className={`text-xs mt-2 flex items-center gap-1 justify-end ${
+                            isOwn ? 'text-blue-100' : 'text-gray-500'
+                          }`}>
+                            {formatTime(msg.created_date)}
+                            {isOwn && msg.status === 'delivered' && <CheckCheck className="h-3 w-3" />}
+                            {isOwn && msg.status === 'sent' && <Check className="h-3 w-3" />}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div ref={messagesEndRef} />
+                </>
+              )}
             </div>
 
-            {/* Message Input */}
-            <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 space-y-3">
-              <div className="flex gap-2">
-                <Button variant="ghost" size="icon" className="text-gray-400">
+            {/* Input */}
+            <div className="border-t border-gray-200 p-4 bg-white">
+              <div className="flex gap-3 mb-3">
+                <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-600">
                   <Paperclip className="h-5 w-5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="text-gray-400">
+                <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-600">
                   <Smile className="h-5 w-5" />
                 </Button>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <Input
-                  placeholder="Type a message..."
+                  placeholder="Type your message..."
                   value={messageInput}
                   onChange={(e) => setMessageInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                  className="flex-1"
+                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSendMessage())}
+                  className="flex-1 text-sm"
                 />
                 <Button
                   onClick={handleSendMessage}
@@ -213,13 +298,15 @@ export default function Conversations() {
                   Send
                 </Button>
               </div>
+              <p className="text-xs text-gray-400 mt-2">Shift + Enter for new line</p>
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50">
             <div className="text-center">
-              <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">Select a conversation to start</p>
+              <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-lg text-gray-500 font-medium">Select a conversation to start</p>
+              <p className="text-sm text-gray-400 mt-1">or create a new one with the button above</p>
             </div>
           </div>
         )}
