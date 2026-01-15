@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Phone, MessageSquare, Eye, Edit, FileOutput, MessageCircle, CheckCircle2, AlertCircle, Loader } from 'lucide-react';
+import { Mail, Phone, MessageSquare, Eye, Edit, FileOutput, MessageCircle, CheckCircle2, AlertCircle, Loader, ArrowRight } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import QuoteGeneratorModal from './QuoteGeneratorModal';
@@ -23,6 +23,19 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+    },
+  });
+
+  const convertMutation = useMutation({
+    mutationFn: async () => {
+      return await base44.functions.invoke('convertLeadToLoanApp', {
+        lead_id: lead.id,
+      });
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      alert(`Lead converted to Loan Application! ID: ${data.data.loan_application_id}`);
+      setIsOpen(false);
     },
   });
 
@@ -202,6 +215,25 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
 
             {/* Actions Tab */}
             <TabsContent value="actions" className="space-y-3">
+              {lead.status !== 'converted' && (
+                <Button 
+                  onClick={() => convertMutation.mutate()}
+                  disabled={convertMutation.isPending}
+                  className="w-full gap-2 bg-green-600 hover:bg-green-700"
+                >
+                  {convertMutation.isPending ? (
+                    <>
+                      <Loader className="h-4 w-4 animate-spin" />
+                      Converting...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="h-4 w-4" />
+                      Convert to Loan Application
+                    </>
+                  )}
+                </Button>
+              )}
               <Button 
                 onClick={() => {
                   setQuoteModalOpen(true);

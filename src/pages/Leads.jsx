@@ -42,6 +42,8 @@ import {
   Download,
   Upload,
 } from 'lucide-react';
+import { formatPhoneNumber, validateEmail, COUNTRY_CODES } from '@/utils/formatters';
+import AddressAutocomplete from '@/components/AddressAutocomplete';
 import QuoteGeneratorModal from '@/components/QuoteGeneratorModal';
 import LeadDetailModal from '@/components/LeadDetailModal';
 
@@ -59,6 +61,7 @@ export default function Leads() {
     last_name: '',
     home_email: '',
     work_email: '',
+    country_code: '+1',
     mobile_phone: '',
     home_phone: '',
     work_phone: '',
@@ -123,6 +126,7 @@ export default function Leads() {
         last_name: '',
         home_email: '',
         work_email: '',
+        country_code: '+1',
         mobile_phone: '',
         home_phone: '',
         work_phone: '',
@@ -198,6 +202,7 @@ export default function Leads() {
       last_name: lead.last_name || '',
       home_email: lead.home_email || '',
       work_email: lead.work_email || '',
+      country_code: lead.country_code || '+1',
       mobile_phone: lead.mobile_phone || '',
       home_phone: lead.home_phone || '',
       work_phone: lead.work_phone || '',
@@ -288,10 +293,29 @@ export default function Leads() {
                   />
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label>Country Code</Label>
+                <Select
+                  value={newLead.country_code}
+                  onValueChange={(v) => setNewLead({ ...newLead, country_code: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRY_CODES.map(cc => (
+                      <SelectItem key={cc.code} value={cc.code}>
+                        {cc.code} {cc.country}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Mobile Phone</Label>
                   <Input
+                    placeholder="(555) 555-5555"
                     value={newLead.mobile_phone}
                     onChange={(e) => setNewLead({ ...newLead, mobile_phone: e.target.value })}
                   />
@@ -299,6 +323,7 @@ export default function Leads() {
                 <div className="space-y-2">
                   <Label>Home Phone</Label>
                   <Input
+                    placeholder="(555) 555-5555"
                     value={newLead.home_phone}
                     onChange={(e) => setNewLead({ ...newLead, home_phone: e.target.value })}
                   />
@@ -306,6 +331,7 @@ export default function Leads() {
                 <div className="space-y-2">
                   <Label>Work Phone</Label>
                   <Input
+                    placeholder="(555) 555-5555"
                     value={newLead.work_phone}
                     onChange={(e) => setNewLead({ ...newLead, work_phone: e.target.value })}
                   />
@@ -473,14 +499,21 @@ export default function Leads() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Property Address</Label>
-                <Input
-                  value={newLead.property_street}
-                  onChange={(e) => setNewLead({ ...newLead, property_street: e.target.value })}
-                  placeholder="123 Main St"
-                />
-              </div>
+              <AddressAutocomplete 
+                value={newLead.property_street}
+                onChange={(val) => setNewLead({ ...newLead, property_street: val })}
+                onAddressParsed={(parsed) => {
+                  setNewLead({ 
+                    ...newLead, 
+                    property_street: parsed.street,
+                    property_city: parsed.city,
+                    property_state: parsed.state,
+                    property_zip: parsed.zip,
+                    property_county: parsed.county,
+                    property_country: parsed.country,
+                  });
+                }}
+              />
               <div className="grid grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>City</Label>
