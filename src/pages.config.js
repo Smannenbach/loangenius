@@ -15,6 +15,7 @@ import BorrowerPortal from './pages/BorrowerPortal';
 import BorrowerPortalHome from './pages/BorrowerPortalHome';
 import BorrowerPortalLogin from './pages/BorrowerPortalLogin';
 import Borrowers from './pages/Borrowers';
+import BrandStudio from './pages/BrandStudio';
 import BrandingSettings from './pages/BrandingSettings';
 import Calculator from './pages/Calculator';
 import CoborrowerPortal from './pages/CoborrowerPortal';
@@ -23,6 +24,7 @@ import ComplianceDashboard from './pages/ComplianceDashboard';
 import ConsentManagement from './pages/ConsentManagement';
 import ContactDetail from './pages/ContactDetail';
 import Contacts from './pages/Contacts';
+import Conversations from './pages/Conversations';
 import Dashboard from './pages/Dashboard';
 import DealDetail from './pages/DealDetail';
 import DealMobile from './pages/DealMobile';
@@ -35,9 +37,11 @@ import LeadIntelligence from './pages/LeadIntelligence';
 import Leads from './pages/Leads';
 import Lenders from './pages/Lenders';
 import LoanApplication from './pages/LoanApplication';
+import LoanApplicationWizard from './pages/LoanApplicationWizard';
 import Loans from './pages/Loans';
 import NewDeal from './pages/NewDeal';
 import Pipeline from './pages/Pipeline';
+import PortalSettings from './pages/PortalSettings';
 import QuoteGenerator from './pages/QuoteGenerator';
 import ReportBuilder from './pages/ReportBuilder';
 import ReportViewer from './pages/ReportViewer';
@@ -51,10 +55,6 @@ import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
-import PortalSettings from './pages/PortalSettings';
-import Conversations from './pages/Conversations';
-import LoanApplicationWizard from './pages/LoanApplicationWizard';
-import BrandStudio from './pages/BrandStudio';
 import __Layout from './Layout.jsx';
 
 
@@ -76,6 +76,7 @@ export const PAGES = {
     "BorrowerPortalHome": BorrowerPortalHome,
     "BorrowerPortalLogin": BorrowerPortalLogin,
     "Borrowers": Borrowers,
+    "BrandStudio": BrandStudio,
     "BrandingSettings": BrandingSettings,
     "Calculator": Calculator,
     "CoborrowerPortal": CoborrowerPortal,
@@ -84,6 +85,7 @@ export const PAGES = {
     "ConsentManagement": ConsentManagement,
     "ContactDetail": ContactDetail,
     "Contacts": Contacts,
+    "Conversations": Conversations,
     "Dashboard": Dashboard,
     "DealDetail": DealDetail,
     "DealMobile": DealMobile,
@@ -96,9 +98,11 @@ export const PAGES = {
     "Leads": Leads,
     "Lenders": Lenders,
     "LoanApplication": LoanApplication,
+    "LoanApplicationWizard": LoanApplicationWizard,
     "Loans": Loans,
     "NewDeal": NewDeal,
     "Pipeline": Pipeline,
+    "PortalSettings": PortalSettings,
     "QuoteGenerator": QuoteGenerator,
     "ReportBuilder": ReportBuilder,
     "ReportViewer": ReportViewer,
@@ -112,10 +116,6 @@ export const PAGES = {
     "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
-    "PortalSettings": PortalSettings,
-    "Conversations": Conversations,
-    "LoanApplicationWizard": LoanApplicationWizard,
-    "BrandStudio": BrandStudio,
 }
 
 export const pagesConfig = {
