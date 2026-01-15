@@ -11,12 +11,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Upload, AlertCircle, CheckCircle, Loader } from 'lucide-react';
+import { Upload, AlertCircle, CheckCircle, Loader, ToggleRight, Clock } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 export default function ImportFromGoogleSheets({ onImportSuccess }) {
   const [isOpen, setIsOpen] = useState(false);
   const [spreadsheetId, setSpreadsheetId] = useState('');
   const [sheetName, setSheetName] = useState('Leads');
+  const [autoImport, setAutoImport] = useState(false);
   const queryClient = useQueryClient();
 
   const importMutation = useMutation({
@@ -47,6 +49,44 @@ export default function ImportFromGoogleSheets({ onImportSuccess }) {
       return;
     }
     importMutation.mutate();
+  };
+
+  const handleAutoImportToggle = async (checked) => {
+    setAutoImport(checked);
+    if (checked && !spreadsheetId.trim()) {
+      alert('Please enter a spreadsheet ID first');
+      setAutoImport(false);
+      return;
+    }
+    
+    if (checked) {
+      // Save auto-import config to database
+      try {
+        const orgUser = await base44.auth.me();
+        const configs = await base44.entities.GoogleSheetsSync.filter({
+          org_id: orgUser.org_id,
+          spreadsheet_id: spreadsheetId,
+        });
+
+        if (configs.length > 0) {
+          await base44.entities.GoogleSheetsSync.update(configs[0].id, {
+            is_active: true,
+            sync_direction: 'import',
+          });
+        } else {
+          await base44.entities.GoogleSheetsSync.create({
+            org_id: orgUser.org_id,
+            spreadsheet_id: spreadsheetId,
+            sheet_name: sheetName,
+            is_active: true,
+            sync_direction: 'import',
+          });
+        }
+      } catch (error) {
+        alert('Failed to enable auto-import: ' + error.message);
+        setAutoImport(false);
+      }
+    }
   };
 
   return (
@@ -95,6 +135,22 @@ export default function ImportFromGoogleSheets({ onImportSuccess }) {
               onChange={(e) => setSheetName(e.target.value)}
             />
             <p className="text-xs text-slate-500">The name of the sheet tab to import from</p>
+          </div>
+
+          {/* Auto-Import Toggle */}
+          <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-slate-600" />
+              <div>
+                <p className="text-sm font-medium text-slate-900">Auto-Import Daily</p>
+                <p className="text-xs text-slate-500">Automatically sync leads from this sheet every day at 6 AM</p>
+              </div>
+            </div>
+            <Switch
+              checked={autoImport}
+              onCheckedChange={handleAutoImportToggle}
+              disabled={!spreadsheetId.trim()}
+            />
           </div>
 
           {/* Status Messages */}
