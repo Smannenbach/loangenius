@@ -89,9 +89,18 @@ export default function Leads() {
     notes: '',
   });
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
   const { data: leads = [], isLoading } = useQuery({
-    queryKey: ['leads'],
-    queryFn: () => base44.entities.Lead.filter({ is_deleted: false }),
+    queryKey: ['leads', user?.org_id],
+    queryFn: async () => {
+      if (!user?.org_id) return [];
+      return await base44.entities.Lead.filter({ org_id: user.org_id, is_deleted: false });
+    },
+    enabled: !!user?.org_id,
   });
 
   const createLeadMutation = useMutation({
