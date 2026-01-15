@@ -77,10 +77,14 @@ export default function Lenders() {
   });
 
   const addLenderMutation = useMutation({
-    mutationFn: (data) => base44.entities.Contact.create({
-      ...data,
-      is_lender: true,
-    }),
+    mutationFn: async (data) => {
+      return base44.entities.Contact.create({
+        org_id: user?.org_id,
+        contact_type: 'entity',
+        ...data,
+        is_lender: true,
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lenders'] });
       setIsAddOpen(false);
