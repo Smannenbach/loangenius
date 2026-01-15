@@ -7,6 +7,8 @@ import DealDetail from './pages/DealDetail';
 import Borrowers from './pages/Borrowers';
 import Documents from './pages/Documents';
 import Tasks from './pages/Tasks';
+import Calculator from './pages/Calculator';
+import QuoteGenerator from './pages/QuoteGenerator';
 import __Layout from './Layout.jsx';
 
 
@@ -20,6 +22,8 @@ export const PAGES = {
     "Borrowers": Borrowers,
     "Documents": Documents,
     "Tasks": Tasks,
+    "Calculator": Calculator,
+    "QuoteGenerator": QuoteGenerator,
 }
 
 export const pagesConfig = {
