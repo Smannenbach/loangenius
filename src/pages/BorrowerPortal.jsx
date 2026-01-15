@@ -1,197 +1,260 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Clock, AlertCircle, Upload, MessageSquare, History, FileText, Download } from 'lucide-react';
+import { Progress } from "@/components/ui/progress";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  FileText,
+  MessageSquare,
+  CheckCircle2,
+  Clock,
+  Home,
+  DollarSign,
+  Calendar,
+  LogOut,
+  AlertCircle,
+  Upload,
+  Building2,
+  Lock,
+} from 'lucide-react';
+import PortalDocumentsTab from '../components/portal/PortalDocumentsTab';
+import PortalMessagesTab from '../components/portal/PortalMessagesTab';
+import PortalStatusTab from '../components/portal/PortalStatusTab';
 
 export default function BorrowerPortal() {
-  const [activeTab, setActiveTab] = useState('documents');
-  const [uploadedFile, setUploadedFile] = useState(null);
+  const [sessionId, setSessionId] = useState('');
+  const [sessionData, setSessionData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Sample data - in production would come from deal/document entities
-  const deal = {
-    dealNumber: 'DL-2024-001',
-    loanOfficer: 'John Smith',
-    loanAmount: 500000,
-    interestRate: 6.5,
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionIdParam = urlParams.get('sessionId');
+    
+    if (!sessionIdParam) {
+      setError('No session found. Please use your magic link.');
+      setLoading(false);
+      return;
+    }
+
+    setSessionId(sessionIdParam);
+    validateSession(sessionIdParam);
+  }, []);
+
+  const validateSession = async (id) => {
+    try {
+      // In a real scenario, verify session on backend
+      // For now, retrieve session data
+      const session = await base44.asServiceRole.entities.PortalSession.get(id);
+      if (!session || session.is_revoked || new Date(session.expires_at) < new Date()) {
+        setError('Session expired or invalid');
+        setLoading(false);
+        return;
+      }
+
+      const borrower = await base44.asServiceRole.entities.Borrower.get(session.borrower_id);
+      const loanFile = await base44.asServiceRole.entities.LoanFile.get(session.loan_file_id);
+
+      setSessionData({
+        sessionId: id,
+        borrower,
+        loanFile,
+      });
+    } catch (err) {
+      setError('Failed to load session');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const documents = [
-    { id: 1, name: 'Business Purpose Letter', type: 'anti_steering_letter', status: 'received', dueDate: '2026-01-20' },
-    { id: 2, name: 'Credit Report', type: 'credit_report', status: 'received', dueDate: '2026-01-25' },
-    { id: 3, name: 'Government ID', type: 'government_id', status: 'pending', dueDate: '2026-01-18' },
-    { id: 4, name: 'Lease Agreement', type: 'lease_agreement', status: 'requested', dueDate: '2026-01-22' },
-    { id: 5, name: 'Property Insurance', type: 'property_insurance', status: 'pending', dueDate: '2026-01-25' },
-    { id: 6, name: 'Appraisal Report', type: 'appraisal', status: 'requested', dueDate: '2026-01-30' },
-  ];
+  const handleLogout = () => {
+    window.location.href = '/BorrowerPortalLogin';
+  };
 
-  const timeline = [
-    { date: '2026-01-10', event: 'Loan Application Received', status: 'completed' },
-    { date: '2026-01-12', event: 'Documents Requested', status: 'completed' },
-    { date: '2026-01-20', event: 'Processing Review', status: 'in_progress' },
-    { date: '2026-02-05', event: 'Underwriting', status: 'pending' },
-    { date: '2026-02-20', event: 'Clear to Close', status: 'pending' },
-  ];
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-pulse">
+          <div className="h-12 w-48 bg-gray-200 rounded mb-4" />
+          <div className="h-64 w-full max-w-2xl bg-gray-200 rounded" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !sessionData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6">
+            <div className="flex gap-3 mb-4">
+              <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0" />
+              <div>
+                <h2 className="font-semibold text-gray-900">Access Error</h2>
+                <p className="text-sm text-gray-600 mt-1">{error}</p>
+              </div>
+            </div>
+            <Button
+              className="w-full"
+              onClick={() => window.location.href = '/BorrowerPortalLogin'}
+            >
+              Return to Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const { borrower, loanFile } = sessionData;
+  const isClosingSoon = loanFile?.closing_date && 
+    new Date(loanFile.closing_date) - new Date() < 7 * 24 * 60 * 60 * 1000;
 
   const getStatusColor = (status) => {
     const colors = {
-      received: 'bg-green-100 text-green-700',
-      pending: 'bg-yellow-100 text-yellow-700',
-      requested: 'bg-blue-100 text-blue-700',
-      rejected: 'bg-red-100 text-red-700',
+      'Lead': 'bg-gray-100 text-gray-800',
+      'Application': 'bg-blue-100 text-blue-800',
+      'Processing': 'bg-yellow-100 text-yellow-800',
+      'Submitted': 'bg-purple-100 text-purple-800',
+      'Conditional_Approval': 'bg-indigo-100 text-indigo-800',
+      'Clear_to_Close': 'bg-emerald-100 text-emerald-800',
+      'Docs_Out': 'bg-teal-100 text-teal-800',
+      'Funded': 'bg-green-100 text-green-800',
+      'Withdrawn': 'bg-gray-100 text-gray-500',
+      'Denied': 'bg-red-100 text-red-800',
     };
-    return colors[status] || 'bg-gray-100 text-gray-700';
-  };
-
-  const getStatusIcon = (status) => {
-    const icons = {
-      completed: <CheckCircle2 className="h-5 w-5 text-green-600" />,
-      in_progress: <Clock className="h-5 w-5 text-blue-600" />,
-      pending: <AlertCircle className="h-5 w-5 text-gray-400" />,
-    };
-    return icons[status] || <AlertCircle className="h-5 w-5" />;
+    return colors[status?.replace(/ /g, '_')] || 'bg-gray-100 text-gray-800';
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-6 py-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Your Loan Application</h1>
-              <p className="text-gray-500 mt-2">Deal #{deal.dealNumber}</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile Header */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-6 w-6 text-blue-600" />
+              <h1 className="font-bold text-lg hidden sm:block">LoanGenius</h1>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-500">Loan Officer</p>
-              <p className="font-medium text-gray-900">{deal.loanOfficer}</p>
-            </div>
-          </div>
-          
-          {/* Quick Stats */}
-          <div className="grid grid-cols-3 gap-4 mt-6">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-xs text-gray-500 uppercase">Loan Amount</p>
-              <p className="text-xl font-bold text-blue-600">${(deal.loanAmount / 1000).toFixed(0)}K</p>
-            </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <p className="text-xs text-gray-500 uppercase">Interest Rate</p>
-              <p className="text-xl font-bold text-green-600">{deal.interestRate}%</p>
-            </div>
-            <div className="bg-purple-50 p-4 rounded-lg">
-              <p className="text-xs text-gray-500 uppercase">Status</p>
-              <p className="text-xl font-bold text-purple-600">Processing</p>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 text-gray-600"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Logout</span>
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Tabs */}
-        <div className="flex gap-4 mb-6 border-b border-gray-200">
-          {[
-            { id: 'documents', label: 'Documents', icon: FileText },
-            { id: 'timeline', label: 'Timeline', icon: History },
-            { id: 'messages', label: 'Messages', icon: MessageSquare },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-3 font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <tab.icon className="h-4 w-4" />
-              {tab.label}
-            </button>
-          ))}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Welcome */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">
+            Welcome back, {borrower?.first_name}!
+          </h2>
+          <p className="text-gray-600 mt-1">Loan {loanFile?.loan_number}</p>
         </div>
 
-        {/* Document Checklist */}
-        {activeTab === 'documents' && (
-          <div className="space-y-4">
-            <Card className="border-gray-200">
-              <CardHeader>
-                <CardTitle>Required Documents</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {documents.map(doc => (
-                  <div key={doc.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:bg-gray-50">
-                    <div className="flex items-start gap-4 flex-1">
-                      <FileText className="h-5 w-5 text-gray-400 mt-1" />
-                      <div>
-                        <p className="font-medium text-gray-900">{doc.name}</p>
-                        <p className="text-sm text-gray-500">Due: {new Date(doc.dueDate).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                    <Badge className={getStatusColor(doc.status)}>
-                      {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
-                    </Badge>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Upload Area */}
-            <Card className="border-gray-200 border-2 border-dashed">
-              <CardContent className="p-8 text-center">
-                <Upload className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                <h3 className="font-medium text-gray-900 mb-1">Upload Documents</h3>
-                <p className="text-sm text-gray-500 mb-4">Drag files here or click to browse</p>
-                <input
-                  type="file"
-                  multiple
-                  onChange={(e) => setUploadedFile(e.target.files?.[0]?.name)}
-                  className="hidden"
-                  id="file-upload"
-                />
-                <label htmlFor="file-upload">
-                  <Button asChild className="bg-blue-600 hover:bg-blue-500">
-                    <span>Select Files</span>
-                  </Button>
-                </label>
-                {uploadedFile && (
-                  <p className="text-sm text-green-600 mt-3">✓ {uploadedFile} ready to upload</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Timeline */}
-        {activeTab === 'timeline' && (
-          <Card className="border-gray-200">
-            <CardContent className="p-6">
-              <div className="space-y-6">
-                {timeline.map((item, idx) => (
-                  <div key={idx} className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      {getStatusIcon(item.status)}
-                      {idx < timeline.length - 1 && <div className="w-1 h-12 bg-gray-200 mt-2" />}
-                    </div>
-                    <div className="pb-6">
-                      <p className="font-medium text-gray-900">{item.event}</p>
-                      <p className="text-sm text-gray-500">{new Date(item.date).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-                ))}
+        {/* Alerts */}
+        {isClosingSoon && (
+          <Card className="border-amber-200 bg-amber-50 mb-6">
+            <CardContent className="p-4 flex gap-3">
+              <Clock className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-amber-900">Closing Coming Soon</p>
+                <p className="text-sm text-amber-800 mt-0.5">
+                  Your closing is scheduled for {new Date(loanFile.closing_date).toLocaleDateString()}
+                </p>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Messages */}
-        {activeTab === 'messages' && (
+        {/* Status Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <Card className="border-gray-200">
-            <CardContent className="p-6 text-center text-gray-500">
-              <MessageSquare className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-              <p>No messages yet. Your loan officer will reach out here.</p>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-gray-600">Application Status</span>
+                <Badge className={getStatusColor(loanFile?.status)}>
+                  {loanFile?.status?.replace(/_/g, ' ')}
+                </Badge>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  {['Lead', 'Application', 'Processing'].includes(loanFile?.status) ? (
+                    <Clock className="h-4 w-4 text-blue-600" />
+                  ) : ['Submitted', 'Conditional_Approval'].includes(loanFile?.status) ? (
+                    <Clock className="h-4 w-4 text-purple-600" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  )}
+                  <span className="text-gray-700">Next: Document Review</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        )}
+
+          <Card className="border-gray-200">
+            <CardContent className="p-4">
+              <div className="text-sm font-medium text-gray-600 mb-3">Key Details</div>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Loan Amount:</span>
+                  <span className="font-medium">${(loanFile?.loan_amount || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Est. Closing:</span>
+                  <span className="font-medium">
+                    {loanFile?.closing_date ? new Date(loanFile.closing_date).toLocaleDateString() : 'TBD'}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Tabs */}
+        <Tabs defaultValue="status" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsTrigger value="status" className="gap-2">
+              <Home className="h-4 w-4" />
+              <span className="hidden sm:inline">Status</span>
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="gap-2">
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Documents</span>
+            </TabsTrigger>
+            <TabsTrigger value="messages" className="gap-2">
+              <MessageSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">Messages</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="status">
+            <PortalStatusTab loanFile={loanFile} />
+          </TabsContent>
+
+          <TabsContent value="documents">
+            <PortalDocumentsTab loanFileId={loanFile?.id} sessionId={sessionId} borrower={borrower} />
+          </TabsContent>
+
+          <TabsContent value="messages">
+            <PortalMessagesTab loanFileId={loanFile?.id} sessionId={sessionId} borrower={borrower} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

@@ -23,6 +23,7 @@ import BorrowerPortal from './pages/BorrowerPortal';
 import Loans from './pages/Loans';
 import AdminIntegrations from './pages/AdminIntegrations';
 import DealWizard from './pages/DealWizard';
+import BorrowerPortalLogin from './pages/BorrowerPortalLogin';
 import __Layout from './Layout.jsx';
 
 
@@ -52,6 +53,7 @@ export const PAGES = {
     "Loans": Loans,
     "AdminIntegrations": AdminIntegrations,
     "DealWizard": DealWizard,
+    "BorrowerPortalLogin": BorrowerPortalLogin,
 }
 
 export const pagesConfig = {
