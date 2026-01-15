@@ -67,10 +67,22 @@ export default function UsersPage() {
       admin: 'bg-purple-100 text-purple-700 border-purple-200',
       loan_officer: 'bg-blue-100 text-blue-700 border-blue-200',
       processor: 'bg-green-100 text-green-700 border-green-200',
+      realtor: 'bg-pink-100 text-pink-700 border-pink-200',
       underwriter: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+      manager: 'bg-indigo-100 text-indigo-700 border-indigo-200',
       viewer: 'bg-gray-100 text-gray-700 border-gray-200',
     };
     return colors[role] || 'bg-gray-100 text-gray-700';
+  };
+
+  const roleDescriptions = {
+    admin: 'Full system access, manage users and settings',
+    loan_officer: 'Manage deals, borrowers, documents, and communications',
+    processor: 'Process documents, update deal status',
+    realtor: 'View deals, referral tracking',
+    underwriter: 'Underwriting decisions, deal approval',
+    manager: 'Team oversight, reporting and analytics',
+    viewer: 'Read-only access to deals',
   };
 
   const filteredMembers = memberships.filter(m => {
@@ -122,7 +134,9 @@ export default function UsersPage() {
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="loan_officer">Loan Officer</SelectItem>
                     <SelectItem value="processor">Processor</SelectItem>
+                    <SelectItem value="realtor">Realtor</SelectItem>
                     <SelectItem value="underwriter">Underwriter</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
                     <SelectItem value="viewer">Viewer</SelectItem>
                   </SelectContent>
                 </Select>
@@ -182,7 +196,7 @@ export default function UsersPage() {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{member.user_id}</p>
-                      <p className="text-sm text-gray-500 capitalize">{member.role?.replace(/_/g, ' ')}</p>
+                      <p className="text-sm text-gray-500">{roleDescriptions[member.role] || 'Team member'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
