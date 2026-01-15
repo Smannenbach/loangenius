@@ -59,6 +59,9 @@ import AgentOrchestrator from './pages/AgentOrchestrator';
 import AdminAgents from './pages/AdminAgents';
 import AgentExecutionViewer from './pages/AgentExecutionViewer';
 import AgentPerformanceDashboard from './pages/AgentPerformanceDashboard';
+import TestingValidationHub from './pages/TestingValidationHub';
+import AuditComplianceViewer from './pages/AuditComplianceViewer';
+import AgentKnowledgeBase from './pages/AgentKnowledgeBase';
 import __Layout from './Layout.jsx';
 
 
@@ -124,6 +127,9 @@ export const PAGES = {
     "AdminAgents": AdminAgents,
     "AgentExecutionViewer": AgentExecutionViewer,
     "AgentPerformanceDashboard": AgentPerformanceDashboard,
+    "TestingValidationHub": TestingValidationHub,
+    "AuditComplianceViewer": AuditComplianceViewer,
+    "AgentKnowledgeBase": AgentKnowledgeBase,
 }
 
 export const pagesConfig = {
