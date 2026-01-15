@@ -161,7 +161,7 @@ export default function Layout({ children, currentPageName }) {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-slate-900 flex flex-col">
       {/* Mobile Menu Button */}
       <button
         className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 transition-colors"
@@ -356,7 +356,7 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Main Content */}
       <main
-        className={`transition-all duration-300 pt-16 min-h-screen ${
+        className={`transition-all duration-300 pt-16 min-h-screen flex-1 pb-20 md:pb-0 ${
           isSidebarOpen ? 'lg:pl-60' : 'lg:pl-20'
         }`}
       >
@@ -364,6 +364,38 @@ export default function Layout({ children, currentPageName }) {
           {children}
         </div>
       </main>
-    </div>
-  );
-}
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
+      </div>
+      );
+      }
+
+      function MobileBottomNav() {
+      return (
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-700 md:hidden z-40">
+      <div className="flex justify-around">
+        {[
+          { icon: 'home', label: 'Home', path: 'Dashboard' },
+          { icon: 'briefcase', label: 'Pipeline', path: 'Pipeline' },
+          { icon: 'users', label: 'Contacts', path: 'Contacts' },
+          { icon: 'settings', label: 'Settings', path: 'Settings' }
+        ].map((item) => (
+          <Link
+            key={item.path}
+            to={createPageUrl(item.path)}
+            className="flex-1 flex flex-col items-center justify-center py-2 text-slate-400 hover:text-white transition-colors"
+          >
+            <span className="text-xs mt-1">{item.label}</span>
+          </Link>
+        ))}
+      </div>
+      </nav>
+      );
+      }
+
+      return (
+      <div className="min-h-screen bg-slate-900 flex flex-col">
+      {renderContent()}
+      </div>
+      )
