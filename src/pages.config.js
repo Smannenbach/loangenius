@@ -24,6 +24,7 @@ import Tasks from './pages/Tasks';
 import Underwriting from './pages/Underwriting';
 import Users from './pages/Users';
 import BorrowerPortalLogin from './pages/BorrowerPortalLogin';
+import Reports from './pages/Reports';
 import __Layout from './Layout.jsx';
 
 
@@ -54,6 +55,7 @@ export const PAGES = {
     "Underwriting": Underwriting,
     "Users": Users,
     "BorrowerPortalLogin": BorrowerPortalLogin,
+    "Reports": Reports,
 }
 
 export const pagesConfig = {
