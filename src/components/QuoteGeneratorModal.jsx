@@ -12,7 +12,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileOutput, Download, Send, Loader } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FileOutput, Download, Send, Loader, ChevronRight } from 'lucide-react';
+import PremiumQuoteSheet from './quote/PremiumQuoteSheet';
 
 export default function QuoteGeneratorModal({ isOpen, onClose, lead }) {
   const [tab, setTab] = useState('generate');
@@ -118,149 +120,222 @@ export default function QuoteGeneratorModal({ isOpen, onClose, lead }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileOutput className="h-5 w-5" />
-            Generate Loan Quote
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto p-0">
+        <div className="sticky top-0 bg-white border-b z-10 px-6 py-4">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+              <FileOutput className="h-6 w-6 text-blue-600" />
+              Professional Loan Quote Generator
+            </DialogTitle>
+            <p className="text-sm text-slate-600">Create premium, professional quotes that impress borrowers</p>
+          </DialogHeader>
+        </div>
 
-        <Tabs value={tab} onValueChange={setTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="generate">Generate</TabsTrigger>
-            <TabsTrigger value="preview" disabled={!generatedQuote}>Preview</TabsTrigger>
+        <Tabs value={tab} onValueChange={setTab} className="w-full px-6 pb-6">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="generate" className="text-base">
+              Quote Details
+            </TabsTrigger>
+            <TabsTrigger value="preview" disabled={!generatedQuote} className="text-base">
+              Preview & Send
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="generate" className="space-y-4 mt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Borrower Name</Label>
-                <Input
-                  value={quoteData.borrowerName}
-                  onChange={(e) => setQuoteData({...quoteData, borrowerName: e.target.value})}
-                />
-              </div>
-              <div>
-                <Label>Email</Label>
-                <Input
-                  type="email"
-                  value={quoteData.borrowerEmail}
-                  onChange={(e) => setQuoteData({...quoteData, borrowerEmail: e.target.value})}
-                />
-              </div>
-              <div className="col-span-2">
-                <Label>Property Address</Label>
-                <Input
-                  value={quoteData.propertyAddress}
-                  onChange={(e) => setQuoteData({...quoteData, propertyAddress: e.target.value})}
-                />
-              </div>
-              <div>
-                <Label>Property Value ($)</Label>
-                <Input
-                  type="number"
-                  placeholder="500000"
-                  value={quoteData.propertyValue}
-                  onChange={(e) => setQuoteData({...quoteData, propertyValue: e.target.value})}
-                />
-              </div>
-              <div>
-                <Label>Loan Amount ($)</Label>
-                <Input
-                  type="number"
-                  placeholder="400000"
-                  value={quoteData.loanAmount}
-                  onChange={(e) => setQuoteData({...quoteData, loanAmount: e.target.value})}
-                />
-              </div>
-              <div>
-                <Label>Interest Rate (%)</Label>
-                <Input
-                  type="number"
-                  step="0.125"
-                  placeholder="7.5"
-                  value={quoteData.interestRate}
-                  onChange={(e) => setQuoteData({...quoteData, interestRate: e.target.value})}
-                />
-              </div>
-              <div>
-                <Label>Term (Years)</Label>
-                <Input
-                  type="number"
-                  placeholder="30"
-                  value={quoteData.term}
-                  onChange={(e) => setQuoteData({...quoteData, term: e.target.value})}
-                />
-              </div>
-              <div>
-                <Label>Origination Fee (%)</Label>
-                <Input
-                  type="number"
-                  step="0.25"
-                  placeholder="1.5"
-                  value={quoteData.originationFee}
-                  onChange={(e) => setQuoteData({...quoteData, originationFee: e.target.value})}
-                />
+          <TabsContent value="generate" className="space-y-6 mt-6">
+            {/* Borrower Information */}
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 mb-4 uppercase tracking-wide text-blue-600">Borrower Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="font-semibold text-slate-700">Full Name</Label>
+                  <Input
+                    placeholder="John Smith"
+                    value={quoteData.borrowerName}
+                    onChange={(e) => setQuoteData({...quoteData, borrowerName: e.target.value})}
+                    className="h-11"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-semibold text-slate-700">Email Address</Label>
+                  <Input
+                    type="email"
+                    placeholder="john@example.com"
+                    value={quoteData.borrowerEmail}
+                    onChange={(e) => setQuoteData({...quoteData, borrowerEmail: e.target.value})}
+                    className="h-11"
+                  />
+                </div>
               </div>
             </div>
 
-            <Button onClick={handleGenerate} className="w-full bg-blue-600 hover:bg-blue-700">
-              Generate Quote
+            {/* Property Information */}
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 mb-4 uppercase tracking-wide text-blue-600">Property Information</h3>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="font-semibold text-slate-700">Property Address</Label>
+                  <Input
+                    placeholder="123 Main Street, Springfield, IL 62701"
+                    value={quoteData.propertyAddress}
+                    onChange={(e) => setQuoteData({...quoteData, propertyAddress: e.target.value})}
+                    className="h-11"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="font-semibold text-slate-700">Property Value</Label>
+                    <Input
+                      type="number"
+                      placeholder="500000"
+                      value={quoteData.propertyValue}
+                      onChange={(e) => setQuoteData({...quoteData, propertyValue: e.target.value})}
+                      className="h-11"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-semibold text-slate-700">Loan Amount</Label>
+                    <Input
+                      type="number"
+                      placeholder="400000"
+                      value={quoteData.loanAmount}
+                      onChange={(e) => setQuoteData({...quoteData, loanAmount: e.target.value})}
+                      className="h-11"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Loan Terms */}
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 mb-4 uppercase tracking-wide text-blue-600">Loan Terms</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="font-semibold text-slate-700">Loan Type</Label>
+                  <Select value={quoteData.loanProduct} onValueChange={(v) => setQuoteData({...quoteData, loanProduct: v})}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DSCR">DSCR</SelectItem>
+                      <SelectItem value="Conventional">Conventional</SelectItem>
+                      <SelectItem value="FHA">FHA</SelectItem>
+                      <SelectItem value="VA">VA</SelectItem>
+                      <SelectItem value="Hard Money">Hard Money</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-semibold text-slate-700">Loan Purpose</Label>
+                  <Select value={quoteData.loanPurpose} onValueChange={(v) => setQuoteData({...quoteData, loanPurpose: v})}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Purchase">Purchase</SelectItem>
+                      <SelectItem value="Refinance">Refinance</SelectItem>
+                      <SelectItem value="Cash-Out">Cash-Out</SelectItem>
+                      <SelectItem value="Rate and Term">Rate and Term</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-semibold text-slate-700">Term (Years)</Label>
+                  <Input
+                    type="number"
+                    placeholder="30"
+                    value={quoteData.term}
+                    onChange={(e) => setQuoteData({...quoteData, term: e.target.value})}
+                    className="h-11"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Interest Rate & Fees */}
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 mb-4 uppercase tracking-wide text-blue-600">Pricing & Fees</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="font-semibold text-slate-700">Interest Rate (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.125"
+                    placeholder="7.5"
+                    value={quoteData.interestRate}
+                    onChange={(e) => setQuoteData({...quoteData, interestRate: e.target.value})}
+                    className="h-11"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-semibold text-slate-700">Points</Label>
+                  <Input
+                    type="number"
+                    step="0.125"
+                    placeholder="0"
+                    value={quoteData.pointsCost}
+                    onChange={(e) => setQuoteData({...quoteData, pointsCost: e.target.value})}
+                    className="h-11"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-semibold text-slate-700">Origination Fee (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.25"
+                    placeholder="1.5"
+                    value={quoteData.originationFee}
+                    onChange={(e) => setQuoteData({...quoteData, originationFee: e.target.value})}
+                    className="h-11"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Closing Costs */}
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 mb-4 uppercase tracking-wide text-blue-600">Closing Costs</h3>
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { key: 'appraisalFee', label: 'Appraisal Fee' },
+                  { key: 'titleInsurance', label: 'Title Insurance' },
+                  { key: 'titleSearch', label: 'Title Search' },
+                  { key: 'homeInspection', label: 'Home Inspection' },
+                  { key: 'survey', label: 'Survey' },
+                  { key: 'otherFees', label: 'Other Fees' },
+                ].map(fee => (
+                  <div key={fee.key} className="space-y-2">
+                    <Label className="font-semibold text-slate-700 text-sm">{fee.label}</Label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={quoteData[fee.key]}
+                      onChange={(e) => setQuoteData({...quoteData, [fee.key]: e.target.value})}
+                      className="h-11"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Generate Button */}
+            <Button 
+              onClick={handleGenerate} 
+              className="w-full bg-blue-600 hover:bg-blue-700 h-12 text-base font-semibold gap-2 shadow-lg"
+            >
+              <FileOutput className="h-5 w-5" />
+              Generate Professional Quote
             </Button>
           </TabsContent>
 
-          <TabsContent value="preview" className="space-y-4 mt-4">
+          <TabsContent value="preview" className="space-y-6 mt-6">
             {generatedQuote && (
-              <>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">Loan Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Monthly P&I</span>
-                      <span className="font-semibold">${parseFloat(generatedQuote.monthlyPayment).toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">LTV</span>
-                      <span className="font-semibold">{generatedQuote.ltv}%</span>
-                    </div>
-                    <div className="border-t pt-2 flex justify-between font-bold">
-                      <span>Total Closing Costs</span>
-                      <span>${(parseFloat(generatedQuote.originationFee) + parseFloat(generatedQuote.totalClosingCosts)).toLocaleString()}</span>
-                    </div>
-                    <div className="bg-slate-900 text-white p-4 rounded-lg mt-4 text-center">
-                      <p className="text-xs opacity-75">Total Cost</p>
-                      <p className="text-2xl font-bold">${parseFloat(generatedQuote.totalCostOfLoan).toLocaleString()}</p>
-                      <p className="text-sm mt-2">{generatedQuote.apr}% APR</p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setTab('generate')} className="flex-1">
-                    Back
-                  </Button>
-                  <Button 
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 gap-2"
-                    onClick={() => sendMutation.mutate()}
-                    disabled={sendMutation.isPending}
-                  >
-                    {sendMutation.isPending ? (
-                      <>
-                        <Loader className="h-4 w-4 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4" />
-                        Send Quote
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </>
+              <PremiumQuoteSheet 
+                quote={generatedQuote}
+                onEdit={() => setTab('generate')}
+                onDownload={() => alert('PDF download coming soon')}
+                onSend={() => sendMutation.mutate()}
+              />
             )}
           </TabsContent>
         </Tabs>
