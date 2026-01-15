@@ -168,11 +168,11 @@ Deno.serve(async (req) => {
     // 12. Log activity
     await base44.asServiceRole.entities.ActivityLog.create({
       org_id,
-      actor_user_id: user.email,
-      entity_type: 'Deal',
-      entity_id: deal.id,
-      action: 'created',
-      summary: `Created DSCR deal ${dealNumber}`,
+      deal_id: deal.id,
+      activity_type: 'DEAL_CREATED',
+      description: `Created DSCR deal ${dealNumber}`,
+      source: 'api',
+      user_id: user.email,
     });
 
     return Response.json({

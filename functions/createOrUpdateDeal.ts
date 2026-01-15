@@ -117,15 +117,14 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Log audit event
-      await base44.asServiceRole.entities.AuditLog.create({
+      // Log activity
+      await base44.asServiceRole.entities.ActivityLog.create({
         org_id,
-        user_id: user.email,
-        action_type: 'Create',
-        entity_type: 'Deal',
-        entity_id: deal.id,
-        entity_name: deal.deal_number,
+        deal_id: deal.id,
+        activity_type: 'DEAL_CREATED',
         description: `Deal created: ${deal.deal_number} (${loan_product})`,
+        source: 'api',
+        user_id: user.email,
       });
 
       return Response.json({
