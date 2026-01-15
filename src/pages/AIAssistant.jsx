@@ -9,6 +9,7 @@ import { Send, Loader2, Sparkles, AlertCircle, Zap, FileText, RotateCw } from 'l
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { toast } from 'sonner';
 
 const urlParams = new URLSearchParams(window.location.search);
 const dealId = urlParams.get('deal_id');
