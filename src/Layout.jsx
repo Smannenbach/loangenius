@@ -335,10 +335,10 @@ export default function Layout({ children, currentPageName }) {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-slate-700" />
-              <DropdownMenuItem onClick={handleLogout} className="text-red-400 hover:bg-slate-700 cursor-pointer">
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout} className="text-red-400 hover:bg-slate-700 cursor-pointer">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
