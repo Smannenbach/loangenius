@@ -90,6 +90,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Quote Generator', href: '/QuoteGenerator', icon: FileOutput },
     { name: 'AI Assistant', href: '/AIAssistant', icon: Bot },
     { name: 'Underwriting', href: '/Underwriting', icon: Scale },
+    { name: 'Roadmap', href: '/Roadmap', icon: Rocket },
     { name: 'Communications', href: '/Communications', icon: Mail },
   ];
 

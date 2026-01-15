@@ -17,7 +17,7 @@ import Lenders from './pages/Lenders';
 import Settings from './pages/Settings';
 import AIOrchestrator from './pages/AIOrchestrator';
 import LeadIntelligence from './pages/LeadIntelligence';
-import VRTours from './pages/VRTours';
+import Roadmap from './pages/Roadmap';
 import __Layout from './Layout.jsx';
 
 
@@ -41,7 +41,7 @@ export const PAGES = {
     "Settings": Settings,
     "AIOrchestrator": AIOrchestrator,
     "LeadIntelligence": LeadIntelligence,
-    "VRTours": VRTours,
+    "Roadmap": Roadmap,
 }
 
 export const pagesConfig = {
