@@ -441,9 +441,10 @@ export default function LoansPage() {
           isPending={updateLoanMutation.isPending}
         />
       )}
-    </div>
-  );
-}
+       </div>
+      </ErrorBoundary>
+      );
+      }
 
 function LoanEditDialog({ loan, onClose, onSave, isPending }) {
   const [data, setData] = useState({
