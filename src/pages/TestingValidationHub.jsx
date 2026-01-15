@@ -14,11 +14,12 @@ const testSuites = [
 ];
 
 const testDetails = [
-  { id: 1, name: 'Simple DSCR (Income-Verified)', status: 'passed', duration: '2.1s', confidence: 0.96 },
-  { id: 2, name: 'Co-Borrower DSCR', status: 'passed', duration: '2.4s', confidence: 0.94 },
-  { id: 3, name: 'Multi-Unit DSCR', status: 'passed', duration: '2.3s', confidence: 0.98 },
-  { id: 4, name: 'No-Ratio DSCR', status: 'passed', duration: '1.9s', confidence: 0.92 },
-  { id: 5, name: 'Blanket Aggregate', status: 'passed', duration: '3.6s', confidence: 0.89 }
+  { id: 1, name: 'PDF Invoice Extraction', status: 'passed', duration: '2.1s', confidence: 0.96 },
+  { id: 2, name: 'Tax Form (1040) Parsing', status: 'passed', duration: '2.4s', confidence: 0.94 },
+  { id: 3, name: 'Bank Statement Analysis', status: 'passed', duration: '2.3s', confidence: 0.98 },
+  { id: 4, name: 'W-2 Extraction (Faded Ink)', status: 'failed', duration: '1.9s', confidence: 0.82 },
+  { id: 5, name: 'Paystub Verification', status: 'passed', duration: '3.6s', confidence: 0.89 },
+  { id: 6, name: 'Document Quality Check', status: 'passed', duration: '2.2s', confidence: 0.91 }
 ];
 
 export default function TestingValidationHub() {

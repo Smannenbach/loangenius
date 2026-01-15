@@ -36,10 +36,45 @@ export default function BorrowerPortalHome() {
     enabled: !!dealId
   });
 
+  const { data: deals = [] } = useQuery({
+    queryKey: ['availableDeals'],
+    queryFn: () => base44.entities.Deal.filter({ status: 'active' }),
+  });
+
+  const handleSelectDeal = (id) => {
+    window.location.search = `?deal_id=${id}`;
+  };
+
   if (!dealId) {
     return (
-      <div className="p-6 text-center">
-        <p className="text-red-600">Invalid or missing deal ID</p>
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white border-b">
+          <div className="max-w-6xl mx-auto px-6 py-8">
+            <h1 className="text-3xl font-bold">Select Your Loan Application</h1>
+          </div>
+        </div>
+        <div className="max-w-6xl mx-auto px-6 py-8">
+          {deals.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <p className="text-gray-600">No active loan applications found</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {deals.map((deal) => (
+                <Card key={deal.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleSelectDeal(deal.id)}>
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold text-lg mb-2">{deal.deal_number}</h3>
+                    <p className="text-sm text-gray-600 mb-3">{deal.loan_product}</p>
+                    <p className="text-sm font-medium">${(deal.loan_amount / 1000).toFixed(0)}K</p>
+                    <Button className="w-full mt-4 bg-blue-600 hover:bg-blue-700">View Application</Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     );
   }

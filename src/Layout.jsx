@@ -94,7 +94,7 @@ export default function Layout({ children, currentPageName }) {
       { name: 'AI Assistant', href: '/AIAssistant', icon: Bot },
       { name: 'Agent Execution', href: '/AgentExecutionViewer', icon: Zap },
       { name: 'Agent Performance', href: '/AgentPerformanceDashboard', icon: TrendingUp },
-      { name: 'Conversations', href: '/Conversations', icon: Mail },
+      { name: 'Conversations', href: '/Conversations', icon: MessageSquare },
     ];
 
   const adminNav = [
