@@ -39,6 +39,7 @@ import AdminOrganization from './pages/AdminOrganization';
 import SuperAdmin from './pages/SuperAdmin';
 import AdminAIProviders from './pages/AdminAIProviders';
 import DocumentIntelligence from './pages/DocumentIntelligence';
+import BorrowerPortalHome from './pages/BorrowerPortalHome';
 import __Layout from './Layout.jsx';
 
 
@@ -84,6 +85,7 @@ export const PAGES = {
     "SuperAdmin": SuperAdmin,
     "AdminAIProviders": AdminAIProviders,
     "DocumentIntelligence": DocumentIntelligence,
+    "BorrowerPortalHome": BorrowerPortalHome,
 }
 
 export const pagesConfig = {
