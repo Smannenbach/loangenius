@@ -42,7 +42,7 @@ import {
   Download,
   Upload,
 } from 'lucide-react';
-import { formatPhoneNumber, validateEmail, COUNTRY_CODES } from '@/utils/formatters';
+import { COUNTRY_CODES } from '@/components/formatters';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import QuoteGeneratorModal from '@/components/QuoteGeneratorModal';
 import LeadDetailModal from '@/components/LeadDetailModal';
