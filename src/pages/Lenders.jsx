@@ -245,7 +245,7 @@ export default function Lenders() {
             </DialogContent>
           </Dialog>
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-          <DialogTrigger asChild>
+            <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
               <Plus className="h-4 w-4" />
               Add Lender
@@ -454,9 +454,9 @@ export default function Lenders() {
                 </Button>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+            </DialogContent>
+            </Dialog>
+            </div>
 
       {/* Search */}
       <div className="mb-6">
