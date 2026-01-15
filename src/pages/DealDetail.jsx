@@ -285,20 +285,7 @@ export default function DealDetail() {
         </TabsContent>
 
         <TabsContent value="activity">
-          <Card className="border-gray-200">
-            <CardHeader>
-              <CardTitle className="text-lg">Activity Log</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="pb-4 border-l-2 border-gray-200 pl-4 relative">
-                  <div className="absolute -left-1.5 top-1 w-3 h-3 rounded-full bg-blue-500" />
-                  <p className="text-sm font-medium">Deal created</p>
-                  <p className="text-xs text-gray-500 mt-1">Today at 9:30 AM</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+           <CommunicationsTab dealId={dealId} />
         </TabsContent>
 
         <TabsContent value="documents">
