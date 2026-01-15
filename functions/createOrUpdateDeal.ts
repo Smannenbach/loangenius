@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { calculateDealMetrics } from './dscr-calculator.js';
+import { calculateDealMetrics, calculatePropertyMetrics, validateDSCRDeal } from './dscrCalculator.js';
+import { logAudit, logActivity } from './auditLogHelper.js';
 
 /**
  * Create or update a DSCR deal with multi-borrower and property support
@@ -46,6 +47,15 @@ Deno.serve(async (req) => {
     // Validate blanket rules
     if (is_blanket && properties.length < 2) {
       return Response.json({ error: 'Blanket deals require 2+ properties' }, { status: 400 });
+    }
+
+    // Validate DSCR deal
+    const dealValidation = validateDSCRDeal({ loan_amount, interest_rate, loan_term_months }, properties);
+    if (!dealValidation.valid) {
+      return Response.json({ 
+        error: 'Deal validation failed',
+        issues: dealValidation.issues
+      }, { status: 400 });
     }
 
     let deal;
@@ -118,19 +128,36 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Handle properties and calculate metrics
+    // Handle properties and calculate per-property metrics
     for (const property of properties) {
       const existingLinks = await base44.asServiceRole.entities.DealProperty.filter({
         deal_id: deal.id,
         property_id: property.id
       });
 
+      const propMetrics = is_blanket 
+        ? calculatePropertyMetrics(property, property.loan_amount_allocated || loan_amount / properties.length, interest_rate, loan_term_months)
+        : calculatePropertyMetrics(property, loan_amount, interest_rate, loan_term_months);
+
       if (existingLinks.length === 0) {
         await base44.asServiceRole.entities.DealProperty.create({
           org_id,
           deal_id: deal.id,
           property_id: property.id,
-          role: property.role || 'primary'
+          role: property.role || 'primary',
+          loan_amount_allocated: property.loan_amount_allocated || (is_blanket ? loan_amount / properties.length : loan_amount),
+          dscr_ratio: propMetrics.dscr_ratio,
+          ltv_ratio: propMetrics.ltv_ratio,
+          monthly_pi: propMetrics.monthly_pi,
+          monthly_pitia: propMetrics.monthly_pitia
+        });
+      } else {
+        await base44.asServiceRole.entities.DealProperty.update(existingLinks[0].id, {
+          loan_amount_allocated: property.loan_amount_allocated || (is_blanket ? loan_amount / properties.length : loan_amount),
+          dscr_ratio: propMetrics.dscr_ratio,
+          ltv_ratio: propMetrics.ltv_ratio,
+          monthly_pi: propMetrics.monthly_pi,
+          monthly_pitia: propMetrics.monthly_pitia
         });
       }
     }
@@ -140,7 +167,34 @@ Deno.serve(async (req) => {
     const updatedDeal = await base44.asServiceRole.entities.Deal.update(deal.id, {
       dscr: metrics.dscr,
       ltv: metrics.ltv,
-      monthly_pitia: metrics.monthly_pitia
+      monthly_pitia: metrics.monthly_pitia,
+      monthly_pi: metrics.monthly_pi
+    });
+
+    // Audit log
+    await logAudit(base44, {
+      action_type: deal_id ? 'Update' : 'Create',
+      entity_type: 'Deal',
+      entity_id: updatedDeal.id,
+      entity_name: updatedDeal.deal_number,
+      description: `${deal_id ? 'Updated' : 'Created'} ${loan_product} deal for ${loan_purpose}`,
+      severity: 'Info',
+      metadata: {
+        org_id,
+        user_id: user.id,
+        dscr: metrics.dscr,
+        ltv: metrics.ltv
+      }
+    });
+
+    // Activity log
+    await logActivity(base44, {
+      deal_id: updatedDeal.id,
+      activity_type: deal_id ? 'Status_Change' : 'Note',
+      title: `${deal_id ? 'Updated' : 'Created'} deal`,
+      description: `${loan_product} ${loan_purpose} | DSCR: ${metrics.dscr.toFixed(2)} | LTV: ${metrics.ltv.toFixed(1)}%`,
+      icon: deal_id ? '✏️' : '➕',
+      color: 'blue'
     });
 
     const execTime = Date.now() - startTime;
