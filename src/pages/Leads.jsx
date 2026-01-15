@@ -731,7 +731,7 @@ export default function Leads() {
               <div>
                 <div className="text-sm text-gray-600">Qualified</div>
                 <div className="text-3xl font-bold mt-2 text-emerald-600">{qualifiedCount}</div>
-                <p className="text-xs text-gray-500 mt-2">{Math.round((qualifiedCount / leads.length) * 100)}% conversion</p>
+                <p className="text-xs text-gray-500 mt-2">{leads.length > 0 ? Math.round((qualifiedCount / leads.length) * 100) : 0}% conversion</p>
               </div>
               <CheckCircle className="h-8 w-8 text-emerald-600 opacity-50" />
             </div>
@@ -743,7 +743,7 @@ export default function Leads() {
               <div>
                 <div className="text-sm text-gray-600">Converted</div>
                 <div className="text-3xl font-bold mt-2 text-green-600">{convertedCount}</div>
-                <p className="text-xs text-gray-500 mt-2">{Math.round((convertedCount / leads.length) * 100)}% closure</p>
+                <p className="text-xs text-gray-500 mt-2">{leads.length > 0 ? Math.round((convertedCount / leads.length) * 100) : 0}% closure</p>
               </div>
               <TrendingUp className="h-8 w-8 text-green-600 opacity-50" />
             </div>
@@ -755,7 +755,7 @@ export default function Leads() {
               <div>
                 <div className="text-sm text-gray-600">Pipeline Value</div>
                 <div className="text-3xl font-bold mt-2 text-purple-600">${(totalValue / 1000000).toFixed(1)}M</div>
-                <p className="text-xs text-gray-500 mt-2">Avg: ${(totalValue / leads.length / 1000).toFixed(0)}K</p>
+                <p className="text-xs text-gray-500 mt-2">Avg: ${leads.length > 0 ? (totalValue / leads.length / 1000).toFixed(0) : 0}K</p>
               </div>
               <BarChart3 className="h-8 w-8 text-purple-600 opacity-50" />
             </div>
