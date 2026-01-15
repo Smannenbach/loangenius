@@ -71,13 +71,23 @@ export function calculateSinglePropertyDSCR({
 }
 
 export function calculateLTV(loanAmount, value) {
-  return Math.round((loanAmount / value) * 10000) / 100;
+  const loan = toDecimal(loanAmount);
+  const val = toDecimal(value);
+  if (val.isZero()) return 0;
+  
+  return parseFloat(loan.dividedBy(val).times(100).toDecimalPlaces(2).toString());
 }
 
 export function calculateDownPayment(purchasePrice, downPaymentPercent) {
-  return (purchasePrice * downPaymentPercent) / 100;
+  const price = toDecimal(purchasePrice);
+  const percent = toDecimal(downPaymentPercent).dividedBy(100);
+  
+  return parseFloat(price.times(percent).toDecimalPlaces(2).toString());
 }
 
 export function calculateLoanAmount(purchasePrice, downPaymentPercent) {
-  return purchasePrice - calculateDownPayment(purchasePrice, downPaymentPercent);
+  const price = toDecimal(purchasePrice);
+  const dp = toDecimal(calculateDownPayment(purchasePrice, downPaymentPercent));
+  
+  return parseFloat(price.minus(dp).toDecimalPlaces(2).toString());
 }
