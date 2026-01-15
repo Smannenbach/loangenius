@@ -1,11 +1,26 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Mail,
   MessageSquare,
@@ -19,12 +34,49 @@ import {
 } from 'lucide-react';
 
 export default function Communications() {
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const [channel, setChannel] = useState('email');
+  const [message, setMessage] = useState({
+    to: '',
+    subject: '',
+    body: '',
+  });
 
   const { data: logs = [] } = useQuery({
     queryKey: ['communications'],
     queryFn: () => base44.entities.CommunicationsLog.list(),
   });
+
+  const sendMutation = useMutation({
+    mutationFn: async (data) => {
+      return await base44.functions.invoke('sendCommunication', {
+        channel: data.channel,
+        to: data.to,
+        subject: data.subject,
+        body: data.body,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['communications'] });
+      setMessage({ to: '', subject: '', body: '' });
+      setIsOpen(false);
+    },
+  });
+
+  const handleSend = () => {
+    if (!message.to || !message.body) {
+      alert('Please fill in recipient and message');
+      return;
+    }
+    sendMutation.mutate({
+      channel,
+      to: message.to,
+      subject: message.subject,
+      body: message.body,
+    });
+  };
 
   const getChannelIcon = (channel) => {
     switch (channel) {
@@ -56,10 +108,70 @@ export default function Communications() {
           </h1>
           <p className="text-gray-500 mt-1">Email, SMS, and call history</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
-          <Plus className="h-4 w-4" />
-          New Message
-        </Button>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
+              <Plus className="h-4 w-4" />
+              New Message
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Send Message</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div>
+                <Label>Channel</Label>
+                <Select value={channel} onValueChange={setChannel}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="sms">SMS</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Recipient ({channel === 'email' ? 'Email' : 'Phone'})</Label>
+                <Input
+                  value={message.to}
+                  onChange={(e) => setMessage({...message, to: e.target.value})}
+                  placeholder={channel === 'email' ? 'steve@getmib.com' : '+15035518690'}
+                />
+              </div>
+              {channel === 'email' && (
+                <div>
+                  <Label>Subject</Label>
+                  <Input
+                    value={message.subject}
+                    onChange={(e) => setMessage({...message, subject: e.target.value})}
+                    placeholder="Message subject"
+                  />
+                </div>
+              )}
+              <div>
+                <Label>Message</Label>
+                <textarea
+                  value={message.body}
+                  onChange={(e) => setMessage({...message, body: e.target.value})}
+                  placeholder="Type your message..."
+                  className="w-full h-32 p-2 border rounded-lg text-sm"
+                />
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
+                <Button 
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  onClick={handleSend}
+                  disabled={sendMutation.isPending}
+                >
+                  {sendMutation.isPending ? 'Sending...' : 'Send'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Tabs defaultValue="all">
@@ -111,10 +223,10 @@ export default function Communications() {
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-gray-900">
                             {log.direction === 'outbound' ? 'To: ' : 'From: '}
-                            {log.to_address || log.from_address}
+                            {log.to || log.from || 'Unknown'}
                           </span>
                           <Badge className={getStatusColor(log.status)}>
-                            {log.status}
+                            {log.status || 'sent'}
                           </Badge>
                         </div>
                         {log.subject && (
@@ -122,7 +234,7 @@ export default function Communications() {
                         )}
                         <p className="text-sm text-gray-500 truncate mt-1">{log.body}</p>
                         <p className="text-xs text-gray-400 mt-2">
-                          {log.sent_at ? new Date(log.sent_at).toLocaleString() : 'Pending'}
+                          {log.created_date ? new Date(log.created_date).toLocaleString() : 'Just now'}
                         </p>
                       </div>
                     </div>
@@ -134,21 +246,60 @@ export default function Communications() {
         </TabsContent>
 
         <TabsContent value="email">
-          <Card className="border-gray-200">
-            <CardContent className="py-12 text-center">
-              <Mail className="h-8 w-8 mx-auto mb-3 text-gray-300" />
-              <p className="text-gray-500">No email communications</p>
-            </CardContent>
-          </Card>
+          <div className="space-y-4">
+            {logs.filter(l => l.channel === 'email').length === 0 ? (
+              <Card className="border-gray-200">
+                <CardContent className="py-12 text-center">
+                  <Mail className="h-8 w-8 mx-auto mb-3 text-gray-300" />
+                  <p className="text-gray-500">No email communications</p>
+                </CardContent>
+              </Card>
+            ) : (
+              logs.filter(l => l.channel === 'email').map(log => (
+                <Card key={log.id} className="border-gray-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{log.to || log.from}</p>
+                        {log.subject && <p className="text-sm text-gray-700 mt-1">{log.subject}</p>}
+                        <p className="text-sm text-gray-600 mt-1">{log.body}</p>
+                        <p className="text-xs text-gray-400 mt-2">{new Date(log.created_date).toLocaleString()}</p>
+                      </div>
+                      <Badge className={getStatusColor(log.status)}>{log.status || 'sent'}</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="sms">
-          <Card className="border-gray-200">
-            <CardContent className="py-12 text-center">
-              <MessageSquare className="h-8 w-8 mx-auto mb-3 text-gray-300" />
-              <p className="text-gray-500">No SMS communications</p>
-            </CardContent>
-          </Card>
+          <div className="space-y-4">
+            {logs.filter(l => l.channel === 'sms').length === 0 ? (
+              <Card className="border-gray-200">
+                <CardContent className="py-12 text-center">
+                  <MessageSquare className="h-8 w-8 mx-auto mb-3 text-gray-300" />
+                  <p className="text-gray-500">No SMS communications</p>
+                </CardContent>
+              </Card>
+            ) : (
+              logs.filter(l => l.channel === 'sms').map(log => (
+                <Card key={log.id} className="border-gray-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{log.to || log.from}</p>
+                        <p className="text-sm text-gray-600 mt-1">{log.body}</p>
+                        <p className="text-xs text-gray-400 mt-2">{new Date(log.created_date).toLocaleString()}</p>
+                      </div>
+                      <Badge className={getStatusColor(log.status)}>{log.status || 'sent'}</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="phone">
