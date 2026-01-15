@@ -62,9 +62,18 @@ export default function Lenders() {
     notes: '',
   });
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
   const { data: lenders = [] } = useQuery({
-    queryKey: ['lenders'],
-    queryFn: () => base44.entities.Contact.filter({ is_lender: true }),
+    queryKey: ['lenders', user?.org_id],
+    queryFn: async () => {
+      if (!user?.org_id) return [];
+      return await base44.entities.Contact.filter({ org_id: user.org_id, is_lender: true });
+    },
+    enabled: !!user?.org_id,
   });
 
   const addLenderMutation = useMutation({

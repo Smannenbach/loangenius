@@ -41,9 +41,18 @@ export default function Tasks() {
     due_date: '',
   });
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['tasks'],
-    queryFn: () => base44.entities.Task.filter({ is_deleted: false }),
+    queryKey: ['tasks', user?.org_id],
+    queryFn: async () => {
+      if (!user?.org_id) return [];
+      return await base44.entities.Task.filter({ org_id: user.org_id });
+    },
+    enabled: !!user?.org_id,
   });
 
   const createTaskMutation = useMutation({

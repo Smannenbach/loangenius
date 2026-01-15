@@ -44,9 +44,18 @@ export default function UsersPage() {
     role: 'loan_officer',
   });
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
   const { data: memberships = [] } = useQuery({
-    queryKey: ['orgMemberships'],
-    queryFn: () => base44.entities.OrgMembership.list(),
+    queryKey: ['orgMemberships', user?.org_id],
+    queryFn: async () => {
+      if (!user?.org_id) return [];
+      return await base44.entities.OrgMembership.filter({ org_id: user.org_id });
+    },
+    enabled: !!user?.org_id,
   });
 
   const queryClient = useQueryClient();
