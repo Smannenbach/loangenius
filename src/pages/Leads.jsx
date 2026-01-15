@@ -181,8 +181,10 @@ export default function Leads() {
       return (
         lead.first_name?.toLowerCase().includes(search) ||
         lead.last_name?.toLowerCase().includes(search) ||
-        lead.email?.toLowerCase().includes(search) ||
-        lead.phone?.includes(search)
+        lead.home_email?.toLowerCase().includes(search) ||
+        lead.work_email?.toLowerCase().includes(search) ||
+        lead.mobile_phone?.includes(search) ||
+        lead.home_phone?.includes(search)
       );
     })
     .sort((a, b) => {
@@ -234,7 +236,7 @@ export default function Leads() {
 
   const qualifiedCount = leads.filter(l => l.status === 'qualified').length;
   const convertedCount = leads.filter(l => l.status === 'converted').length;
-  const totalValue = leads.reduce((sum, l) => sum + (l.estimated_loan_amount || 0), 0);
+  const totalValue = leads.reduce((sum, l) => sum + (l.loan_amount || 0), 0);
 
   return (
     <div className="p-6 lg:p-8">
@@ -708,16 +710,16 @@ export default function Leads() {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       <div className="space-y-1">
-                        {lead.email && (
+                        {(lead.home_email || lead.work_email) && (
                           <div className="flex items-center gap-2">
                             <Mail className="h-3 w-3 text-gray-400" />
-                            <span>{lead.email}</span>
+                            <span>{lead.home_email || lead.work_email}</span>
                           </div>
                         )}
-                        {lead.phone && (
+                        {(lead.mobile_phone || lead.home_phone) && (
                           <div className="flex items-center gap-2">
                             <Phone className="h-3 w-3 text-gray-400" />
-                            <span>{lead.phone}</span>
+                            <span>{lead.mobile_phone || lead.home_phone}</span>
                           </div>
                         )}
                       </div>
@@ -728,10 +730,10 @@ export default function Leads() {
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600 capitalize">
-                      {lead.loan_type_interest?.replace(/_/g, ' ')}
+                      {lead.loan_type?.replace(/_/g, ' ')}
                     </td>
                     <td className="px-6 py-4 font-medium text-gray-900">
-                      {lead.estimated_loan_amount ? `$${(lead.estimated_loan_amount / 1000).toFixed(0)}K` : '-'}
+                      {lead.loan_amount ? `$${(lead.loan_amount / 1000).toFixed(0)}K` : '-'}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600 capitalize">
                       {lead.source}

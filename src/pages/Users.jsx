@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,10 +43,23 @@ export default function UsersPage() {
     queryFn: () => base44.entities.OrgMembership.list(),
   });
 
+  const inviteMutation = useMutation({
+    mutationFn: async (data) => {
+      await base44.users.inviteUser(data.email, data.role);
+    },
+    onSuccess: () => {
+      setIsInviteOpen(false);
+      setInviteData({ email: '', role: 'loan_officer' });
+      alert('Invitation sent successfully!');
+    },
+    onError: (error) => {
+      alert('Error sending invitation: ' + error.message);
+    },
+  });
+
   const handleInvite = async () => {
-    // TODO: Implement invite logic
-    alert('User invitation feature coming soon!');
-    setIsInviteOpen(false);
+    if (!inviteData.email) return;
+    inviteMutation.mutate(inviteData);
   };
 
   const getRoleColor = (role) => {
@@ -117,9 +130,9 @@ export default function UsersPage() {
               <Button 
                 className="w-full bg-blue-600 hover:bg-blue-500"
                 onClick={handleInvite}
-                disabled={!inviteData.email}
+                disabled={!inviteData.email || inviteMutation.isPending}
               >
-                Send Invitation
+                {inviteMutation.isPending ? 'Sending...' : 'Send Invitation'}
               </Button>
             </div>
           </DialogContent>

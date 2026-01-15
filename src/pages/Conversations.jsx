@@ -82,29 +82,10 @@ export default function Conversations() {
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col">
-      {/* Header Tabs */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="px-6 py-4">
-          <Tabs defaultValue="conversations" className="w-full">
-            <TabsList className="bg-transparent border-b border-gray-200 w-full justify-start rounded-none">
-              <TabsTrigger value="conversations" className="rounded-none border-b-2 border-blue-500 text-blue-600">
-                Conversations
-              </TabsTrigger>
-              <TabsTrigger value="manual" className="rounded-none text-gray-600">
-                Manual Actions
-              </TabsTrigger>
-              <TabsTrigger value="snippets" className="rounded-none text-gray-600">
-                Snippets
-              </TabsTrigger>
-              <TabsTrigger value="triggers" className="rounded-none text-gray-600">
-                Trigger Links
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="rounded-none text-gray-600">
-                Settings
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <h1 className="text-2xl font-bold text-gray-900">Conversations</h1>
+        <p className="text-sm text-gray-500 mt-1">Manage all your communications in one place</p>
       </div>
 
       {/* Main Content - 3 Columns */}
