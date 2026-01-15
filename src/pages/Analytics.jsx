@@ -1,209 +1,163 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import KPICard from '@/components/analytics/KPICard';
-import PipelineChart from '@/components/analytics/PipelineChart';
-import { DollarSign, Percent, TrendingUp, Clock, Download } from 'lucide-react';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { TrendingUp, DollarSign, Users, Zap } from 'lucide-react';
 
 export default function Analytics() {
-  const [timePeriod, setTimePeriod] = useState('30');
-
   const { data: kpis, isLoading } = useQuery({
-    queryKey: ['dashboardKPIs', timePeriod],
-    queryFn: () => base44.functions.invoke('getDashboardKPIs', { time_period: timePeriod })
+    queryKey: ['dashboardKPIs'],
+    queryFn: () => base44.functions.invoke('getDashboardKPIs'),
   });
 
-  const { data: pipelineReport } = useQuery({
-    queryKey: ['pipelineReport'],
-    queryFn: () => base44.functions.invoke('generatePipelineReport', {})
-  });
+  if (isLoading) return <div className="p-8">Loading analytics...</div>;
 
-  const { data: productionReport } = useQuery({
-    queryKey: ['productionReport', timePeriod],
-    queryFn: () => base44.functions.invoke('generateProductionReport', { time_period: timePeriod })
-  });
+  const data = kpis?.data;
+
+  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">Analytics & Reports</h1>
-            <p className="text-gray-600 mt-1">Business intelligence and performance metrics</p>
-          </div>
-          <div className="flex gap-2">
-            <Select value={timePeriod} onValueChange={setTimePeriod}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7">Last 7 days</SelectItem>
-                <SelectItem value="30">Last 30 days</SelectItem>
-                <SelectItem value="90">Last 90 days</SelectItem>
-                <SelectItem value="365">Last year</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" className="gap-2">
-              <Download className="h-4 w-4" />
-              Export
-            </Button>
-          </div>
-        </div>
+    <div className="p-8 max-w-7xl mx-auto">
+      <h1 className="text-3xl font-bold mb-8">Analytics Dashboard</h1>
 
-        {/* KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {!isLoading && kpis?.data?.kpis && (
-            <>
-              <KPICard
-                title="Pipeline Value"
-                value={`$${(kpis.data.kpis.total_pipeline_value / 1000000).toFixed(1)}M`}
-                icon={DollarSign}
-                color="blue"
-              />
-              <KPICard
-                title="Conversion Rate"
-                value={`${kpis.data.kpis.conversion_rate}%`}
-                icon={Percent}
-                color="green"
-              />
-              <KPICard
-                title="Avg Loan Amount"
-                value={`$${(kpis.data.kpis.avg_loan_amount / 1000).toFixed(0)}K`}
-                icon={TrendingUp}
-                color="purple"
-              />
-              <KPICard
-                title="Avg Days to Close"
-                value={kpis.data.kpis.avg_days_to_close}
-                unit="days"
-                icon={Clock}
-                color="orange"
-              />
-            </>
-          )}
-        </div>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Deals</CardTitle>
+            <Zap className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{data?.kpis?.deals?.total || 0}</div>
+            <p className="text-xs text-gray-500">{data?.kpis?.deals?.active || 0} active</p>
+          </CardContent>
+        </Card>
 
-        {/* Charts & Reports */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            {kpis?.data?.stage_breakdown && (
-              <PipelineChart data={kpis.data.stage_breakdown} />
-            )}
-          </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Funded</CardTitle>
+            <DollarSign className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${(data?.kpis?.deals?.totalAmount / 1000000).toFixed(1)}M</div>
+            <p className="text-xs text-gray-500">{data?.kpis?.deals?.funded || 0} closed</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
+            <Users className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{data?.kpis?.leads?.total || 0}</div>
+            <p className="text-xs text-gray-500">{data?.kpis?.leads?.new || 0} new</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+            <TrendingUp className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{data?.kpis?.leads?.conversionRate || 0}%</div>
+            <p className="text-xs text-gray-500">{data?.kpis?.leads?.converted || 0} converted</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="deals">Deals</TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Summary</CardTitle>
+              <CardTitle>Deal Stage Distribution</CardTitle>
+              <CardDescription>Current deals by stage</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {kpis?.data?.kpis && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Total Deals</span>
-                    <span className="font-medium">{kpis.data.kpis.total_deals}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Completed</span>
-                    <span className="font-medium text-green-600">{kpis.data.kpis.completed_deals}</span>
-                  </div>
-                  <div className="border-t pt-3 mt-3 flex justify-between">
-                    <span className="text-gray-600">Production Value</span>
-                    <span className="font-medium">${(kpis.data.kpis.completed_value / 1000000).toFixed(1)}M</span>
-                  </div>
-                </>
-              )}
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={Object.entries(data?.kpis?.stageDistribution || {}).map(([name, value]) => ({
+                      name: name.charAt(0).toUpperCase() + name.slice(1),
+                      value,
+                    }))}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, value }) => `${name}: ${value}`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {COLORS.map((color, index) => (
+                      <Cell key={`cell-${index}`} fill={color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
-        </div>
+        </TabsContent>
 
-        {/* Detailed Reports */}
-        <Tabs defaultValue="pipeline">
-          <TabsList>
-            <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
-            <TabsTrigger value="production">Production</TabsTrigger>
-          </TabsList>
+        <TabsContent value="deals" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Deal Performance</CardTitle>
+              <CardDescription>Loan volume and funding trends</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
+                  <span>Total Deals</span>
+                  <span className="text-2xl font-bold">{data?.kpis?.deals?.total}</span>
+                </div>
+                <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                  <span>Total Loan Amount</span>
+                  <span className="text-2xl font-bold">${(data?.kpis?.deals?.totalAmount / 1000000).toFixed(1)}M</span>
+                </div>
+                <div className="flex justify-between items-center p-4 bg-purple-50 rounded-lg">
+                  <span>Average Deal Size</span>
+                  <span className="text-2xl font-bold">${(data?.kpis?.deals?.totalAmount / (data?.kpis?.deals?.total || 1) / 1000).toFixed(0)}K</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          <TabsContent value="pipeline">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pipeline Report</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {pipelineReport?.data?.data ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="border-b">
-                        <tr>
-                          <th className="text-left py-2 px-2 font-medium">Deal</th>
-                          <th className="text-left py-2 px-2 font-medium">Product</th>
-                          <th className="text-right py-2 px-2 font-medium">Amount</th>
-                          <th className="text-left py-2 px-2 font-medium">Days</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {pipelineReport.data.data.slice(0, 10).map(deal => (
-                          <tr key={deal.id} className="border-b hover:bg-gray-50">
-                            <td className="py-2 px-2">{deal.deal_name}</td>
-                            <td className="py-2 px-2">{deal.loan_product}</td>
-                            <td className="text-right py-2 px-2 font-medium">${(deal.loan_amount / 1000).toFixed(0)}K</td>
-                            <td className="py-2 px-2">{deal.days_in_pipeline}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className="text-gray-600">No data</p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="production">
-            <Card>
-              <CardHeader>
-                <CardTitle>Production Report</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {productionReport?.data?.data ? (
-                  <div className="space-y-3">
-                    <div className="p-3 bg-blue-50 rounded">
-                      <p className="text-sm text-gray-600">Completed Loans</p>
-                      <p className="text-2xl font-bold text-blue-600">{productionReport.data.total_completed}</p>
+        <TabsContent value="activity" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>Latest system activities</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {(data?.recentActivities || []).map((activity) => (
+                  <div key={activity.id} className="p-3 border rounded-lg">
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-medium text-sm">{activity.type}</span>
+                      <span className="text-xs text-gray-500">
+                        {new Date(activity.timestamp).toLocaleDateString()}
+                      </span>
                     </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="border-b">
-                          <tr>
-                            <th className="text-left py-2 px-2 font-medium">Deal</th>
-                            <th className="text-right py-2 px-2 font-medium">Amount</th>
-                            <th className="text-right py-2 px-2 font-medium">Days</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {productionReport.data.data.slice(0, 10).map(deal => (
-                            <tr key={deal.id} className="border-b hover:bg-gray-50">
-                              <td className="py-2 px-2">{deal.deal_name}</td>
-                              <td className="text-right py-2 px-2 font-medium">${(deal.loan_amount / 1000).toFixed(0)}K</td>
-                              <td className="text-right py-2 px-2">{deal.days_to_close}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    <p className="text-sm text-gray-600">{activity.description}</p>
                   </div>
-                ) : (
-                  <p className="text-gray-600">No completed loans</p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
