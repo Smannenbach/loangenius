@@ -72,6 +72,14 @@ Deno.serve(async (req) => {
     const createdLeads = [];
     const errors = [];
 
+    // Get user's org_id
+    const userWithOrg = await base44.entities.User.filter({ email: user.email });
+    const orgId = userWithOrg && userWithOrg.length > 0 ? userWithOrg[0].org_id : user.org_id;
+
+    if (!orgId) {
+      return Response.json({ error: 'Unable to determine organization' }, { status: 400 });
+    }
+
     // Process each row (skip header)
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
@@ -83,7 +91,7 @@ Deno.serve(async (req) => {
 
       try {
         const leadData = {
-          org_id: user.org_id,
+          org_id: orgId,
         };
 
         // Map values from spreadsheet
