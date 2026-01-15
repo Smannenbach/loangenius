@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import FeesTab from '@/components/deal-detail/FeesTab';
 import DealCalculator from '@/components/deal-wizard/DealCalculator';
+import DealStatusUpdate from '@/components/deal-detail/DealStatusUpdate';
 
 export default function DealDetail() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -166,16 +167,12 @@ export default function DealDetail() {
         </div>
       </div>
 
-      {/* Progress */}
-      <Card className="border-gray-200 mb-6">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Deal Progress</span>
-            <span className="text-sm text-gray-500">{Math.round(getStageProgress(deal.status))}%</span>
-          </div>
-          <Progress value={getStageProgress(deal.status)} className="h-2" />
-        </CardContent>
-      </Card>
+      {/* Status Update */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div className="lg:col-span-2">
+          <DealStatusUpdate deal={deal} dealId={dealId} />
+        </div>
+      </div>
 
       {/* Calculator */}
       {properties.length > 0 && (
