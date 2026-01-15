@@ -26,6 +26,8 @@ import Users from './pages/Users';
 import BorrowerPortalLogin from './pages/BorrowerPortalLogin';
 import Reports from './pages/Reports';
 import AdminSettings from './pages/AdminSettings';
+import Contacts from './pages/Contacts';
+import ContactDetail from './pages/ContactDetail';
 import __Layout from './Layout.jsx';
 
 
@@ -58,6 +60,8 @@ export const PAGES = {
     "BorrowerPortalLogin": BorrowerPortalLogin,
     "Reports": Reports,
     "AdminSettings": AdminSettings,
+    "Contacts": Contacts,
+    "ContactDetail": ContactDetail,
 }
 
 export const pagesConfig = {
