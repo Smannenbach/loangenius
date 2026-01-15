@@ -22,6 +22,7 @@ import Assumptions from './pages/Assumptions';
 import BorrowerPortal from './pages/BorrowerPortal';
 import Loans from './pages/Loans';
 import AdminIntegrations from './pages/AdminIntegrations';
+import DealWizard from './pages/DealWizard';
 import __Layout from './Layout.jsx';
 
 
@@ -50,6 +51,7 @@ export const PAGES = {
     "BorrowerPortal": BorrowerPortal,
     "Loans": Loans,
     "AdminIntegrations": AdminIntegrations,
+    "DealWizard": DealWizard,
 }
 
 export const pagesConfig = {
