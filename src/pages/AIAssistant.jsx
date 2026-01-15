@@ -144,27 +144,39 @@ export default function AIAssistant() {
 
           {/* Input */}
           <div className="border-t p-3 md:p-4 bg-white">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Ask a question..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-                disabled={chatMutation.isPending || aiStatus?.data?.status === 'degraded'}
-                className="text-sm"
-              />
-              <Button
-                onClick={handleSend}
-                disabled={chatMutation.isPending || !input.trim() || aiStatus?.data?.status === 'degraded'}
-                size="icon"
-                className="flex-shrink-0"
-              >
-                {chatMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </Button>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ask a question..."
+                  value={input}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    setInputError('');
+                  }}
+                  onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                  disabled={chatMutation.isPending || aiStatus?.data?.status === 'degraded'}
+                  className="text-sm"
+                  aria-label="Message input"
+                  aria-invalid={!!inputError}
+                  aria-describedby={inputError ? 'input-error' : undefined}
+                />
+                <Button
+                  onClick={handleSend}
+                  disabled={chatMutation.isPending || !input.trim() || aiStatus?.data?.status === 'degraded'}
+                  size="icon"
+                  className="flex-shrink-0"
+                  aria-label="Send message"
+                >
+                  {chatMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Send className="h-4 w-4" aria-hidden="true" />
+                  )}
+                </Button>
+              </div>
+              {inputError && (
+                <p id="input-error" className="text-sm text-red-500 px-2">{inputError}</p>
+              )}
             </div>
           </div>
         </Card>
