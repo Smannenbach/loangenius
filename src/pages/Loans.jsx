@@ -36,9 +36,18 @@ export default function LoansPage() {
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
   const { data: deals = [] } = useQuery({
-    queryKey: ['deals'],
-    queryFn: () => base44.entities.Deal.filter({ is_deleted: false }),
+    queryKey: ['deals', user?.org_id],
+    queryFn: async () => {
+      if (!user?.org_id) return [];
+      return await base44.entities.Deal.filter({ org_id: user.org_id });
+    },
+    enabled: !!user?.org_id,
   });
 
   const updateLoanMutation = useMutation({

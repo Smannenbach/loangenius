@@ -16,9 +16,18 @@ export default function Contacts() {
   const [filterType, setFilterType] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
   const { data: contacts = [] } = useQuery({
-    queryKey: ['contacts', searchTerm, contactType, filterType, currentPage],
-    queryFn: () => base44.entities.Contact.list(),
+    queryKey: ['contacts', user?.org_id, searchTerm, contactType, filterType, currentPage],
+    queryFn: async () => {
+      if (!user?.org_id) return [];
+      return await base44.entities.Contact.filter({ org_id: user.org_id });
+    },
+    enabled: !!user?.org_id,
   });
 
   // Filter contacts

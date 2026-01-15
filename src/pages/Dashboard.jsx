@@ -18,18 +18,21 @@ export default function Dashboard() {
   });
 
   const { data: kpiData, isLoading: kpisLoading } = useQuery({
-    queryKey: ['dashboardKPIs'],
-    queryFn: () => base44.functions.invoke('getDashboardKPIs', { period: 'month' }),
+    queryKey: ['dashboardKPIs', user?.org_id],
+    queryFn: () => base44.functions.invoke('getDashboardKPIs', { org_id: user?.org_id, period: 'month' }),
+    enabled: !!user?.org_id,
   });
 
   const { data: activityData } = useQuery({
-    queryKey: ['dashboardActivity'],
-    queryFn: () => base44.functions.invoke('getDashboardActivity', { limit: 10 }),
+    queryKey: ['dashboardActivity', user?.org_id],
+    queryFn: () => base44.functions.invoke('getDashboardActivity', { org_id: user?.org_id, limit: 10 }),
+    enabled: !!user?.org_id,
   });
 
   const { data: attentionData } = useQuery({
-    queryKey: ['dealsNeedingAttention'],
-    queryFn: () => base44.functions.invoke('getDealsNeedingAttention', { limit: 5 }),
+    queryKey: ['dealsNeedingAttention', user?.org_id],
+    queryFn: () => base44.functions.invoke('getDealsNeedingAttention', { org_id: user?.org_id, limit: 5 }),
+    enabled: !!user?.org_id,
   });
 
   const kpis = kpiData?.data?.kpis || {};
