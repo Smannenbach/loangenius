@@ -88,26 +88,8 @@ export default function Lenders() {
         : `Research this lending company and return structured data in JSON: "${query}"`;
       
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: prompt
-        
-Return ONLY valid JSON (no markdown) with this exact structure:
-{
-  "company_name": "full company name",
-  "website": "website URL or null",
-  "phone": "phone number or null",
-  "email": "general contact email or null",
-  "address": "street address or null",
-  "city": "city or null",
-  "state": "state or null",
-  "zip": "zip code or null",
-  "lender_type": "type like DSCR, Hard Money, Bank, Non-QM, etc.",
-  "loan_programs": "comma-separated list of loan programs they offer",
-  "min_loan": "minimum loan amount in dollars or null",
-  "max_loan": "maximum loan amount in dollars or null",
-  "dscr_min_ratio": "minimum DSCR ratio they require or null",
-  "ltv_max": "maximum LTV percentage or null"
-}`,
-          add_context_from_internet: true,
+        prompt: prompt,
+        add_context_from_internet: true,
         response_json_schema: {
           type: 'object',
           properties: {

@@ -653,9 +653,9 @@ export default function Leads() {
                 {createLeadMutation.isPending ? 'Saving...' : editingLead ? 'Update Lead' : 'Add Lead'}
               </Button>
             </div>
-          </DialogContent>
-          </Dialog>
-          </div>
+            </DialogContent>
+            </Dialog>
+            </div>
 
       {/* KPI Cards - Rich metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
