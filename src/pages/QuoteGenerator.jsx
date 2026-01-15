@@ -21,6 +21,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileOutput, Download, Send, Building2, DollarSign, Percent, TrendingUp, AlertCircle, Check, Loader } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import AmortizationSchedule from "@/components/quote/AmortizationSchedule";
+import ComparisonTool from "@/components/quote/ComparisonTool";
+import { jsPDF } from 'jspdf';
 
 function SendQuoteButton({ quote }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -183,48 +186,152 @@ export default function QuoteGenerator() {
   };
 
   const downloadPDF = () => {
-    const content = `
-LOAN QUOTE
-Generated: ${generatedQuote.generatedAt}
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      let yPos = 20;
+      const margin = 20;
+      const contentWidth = pageWidth - margin * 2;
 
-BORROWER INFORMATION
-Name: ${generatedQuote.borrowerName}
-Email: ${generatedQuote.borrowerEmail}
+      // Header
+      doc.setFontSize(20);
+      doc.setTextColor(31, 41, 55);
+      doc.text('LoanGenius Quote', margin, yPos);
+      doc.setFontSize(10);
+      doc.setTextColor(107, 114, 128);
+      doc.text(`Generated: ${generatedQuote.generatedAt}`, margin, yPos + 8);
+      yPos += 20;
 
-PROPERTY INFORMATION
-Address: ${generatedQuote.propertyAddress}
-Property Value: $${parseFloat(generatedQuote.propertyValue).toLocaleString()}
+      // Borrower & Property
+      doc.setFontSize(11);
+      doc.setTextColor(31, 41, 55);
+      doc.text('BORROWER INFORMATION', margin, yPos);
+      doc.setFontSize(9);
+      doc.setTextColor(75, 85, 99);
+      yPos += 6;
+      doc.text(`Name: ${generatedQuote.borrowerName}`, margin + 5, yPos);
+      yPos += 4;
+      doc.text(`Email: ${generatedQuote.borrowerEmail}`, margin + 5, yPos);
+      yPos += 8;
 
-LOAN TERMS
-Product: ${generatedQuote.loanProduct}
-Purpose: ${generatedQuote.loanPurpose}
-Loan Amount: $${parseFloat(generatedQuote.loanAmount).toLocaleString()}
-Interest Rate: ${generatedQuote.interestRate}%
-Term: ${generatedQuote.term} years
-LTV: ${generatedQuote.ltv}%
-DSCR: ${generatedQuote.dscr}
+      doc.setFontSize(11);
+      doc.setTextColor(31, 41, 55);
+      doc.text('PROPERTY INFORMATION', margin, yPos);
+      yPos += 6;
+      doc.setFontSize(9);
+      doc.setTextColor(75, 85, 99);
+      doc.text(`Address: ${generatedQuote.propertyAddress}`, margin + 5, yPos);
+      yPos += 4;
+      doc.text(`Value: $${parseFloat(generatedQuote.propertyValue).toLocaleString()}`, margin + 5, yPos);
+      yPos += 10;
 
-PAYMENT ESTIMATES
-Monthly P&I: $${parseFloat(generatedQuote.monthlyPayment).toLocaleString()}
-Total Interest: $${(parseFloat(generatedQuote.totalPayment) - parseFloat(generatedQuote.loanAmount)).toLocaleString()}
-Total Payments: $${parseFloat(generatedQuote.totalPayment).toLocaleString()}
+      // Key Metrics Grid
+      const metrics = [
+        ['Loan Amount', `$${parseFloat(generatedQuote.loanAmount).toLocaleString()}`],
+        ['Interest Rate', `${generatedQuote.interestRate}%`],
+        ['Term', `${generatedQuote.term} years`],
+        ['LTV', `${generatedQuote.ltv}%`],
+        ['DSCR', generatedQuote.dscr],
+        ['Monthly P&I', `$${parseFloat(generatedQuote.monthlyPayment).toLocaleString()}`],
+      ];
 
-FEES & COSTS
-Origination Fee: $${parseFloat(generatedQuote.originationFee).toLocaleString()}
-Points: $${parseFloat(generatedQuote.points).toLocaleString()}
-Closing Costs: $${parseFloat(generatedQuote.closingCosts).toLocaleString()}
-Total Upfront: $${parseFloat(generatedQuote.totalUpfrontCosts).toLocaleString()}
-Total Cost of Loan: $${parseFloat(generatedQuote.totalCostOfLoan).toLocaleString()}
+      doc.setFontSize(10);
+      doc.setTextColor(31, 41, 55);
+      let col = 0;
+      let row = 0;
+      const boxWidth = contentWidth / 2;
+      const boxHeight = 12;
+      
+      metrics.forEach((metric, idx) => {
+        const xPos = margin + (idx % 2) * boxWidth;
+        const yPos_ = yPos + (Math.floor(idx / 2) * boxHeight);
+        
+        doc.setFillColor(243, 244, 246);
+        doc.rect(xPos, yPos_, boxWidth - 2, boxHeight, 'F');
+        doc.setFontSize(8);
+        doc.setTextColor(107, 114, 128);
+        doc.text(metric[0], xPos + 3, yPos_ + 4);
+        doc.setFontSize(10);
+        doc.setTextColor(31, 41, 55);
+        doc.text(metric[1], xPos + 3, yPos_ + 9);
+      });
+      yPos += 38;
 
-APR: ${generatedQuote.apr}%
-    `;
+      // Payment Summary
+      doc.setFontSize(11);
+      doc.setTextColor(31, 41, 55);
+      doc.text('PAYMENT SUMMARY', margin, yPos);
+      yPos += 6;
+      doc.setFontSize(9);
+      const summaryItems = [
+        ['Monthly P&I', `$${parseFloat(generatedQuote.monthlyPayment).toLocaleString()}`],
+        ['Total Payments (all years)', `$${parseFloat(generatedQuote.totalPayment).toLocaleString()}`],
+        ['Total Interest', `$${(parseFloat(generatedQuote.totalPayment) - parseFloat(generatedQuote.loanAmount)).toLocaleString()}`],
+      ];
+      
+      summaryItems.forEach(item => {
+        if (yPos > pageHeight - 30) {
+          doc.addPage();
+          yPos = margin;
+        }
+        doc.setTextColor(75, 85, 99);
+        doc.text(item[0], margin + 5, yPos);
+        doc.setTextColor(31, 41, 55);
+        doc.text(item[1], pageWidth - margin - doc.getTextWidth(item[1]), yPos);
+        yPos += 5;
+      });
+      yPos += 5;
 
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `quote-${generatedQuote.borrowerName.replace(/\s+/g, '-')}.txt`;
-    a.click();
+      // Fees Breakdown
+      doc.setFontSize(11);
+      doc.setTextColor(31, 41, 55);
+      doc.text('CLOSING COSTS & FEES', margin, yPos);
+      yPos += 6;
+      doc.setFontSize(9);
+      
+      const feeItems = [
+        ['Origination Fee', `$${parseFloat(generatedQuote.originationFee).toLocaleString()}`],
+        ['Points', `$${parseFloat(generatedQuote.points).toLocaleString()}`],
+        ['Appraisal', `$${parseFloat(generatedQuote.appraisalFee).toLocaleString()}`],
+        ['Title Insurance', `$${parseFloat(generatedQuote.titleInsurance).toLocaleString()}`],
+        ['Title Search', `$${parseFloat(generatedQuote.titleSearch).toLocaleString()}`],
+        ['Survey', `$${parseFloat(generatedQuote.survey).toLocaleString()}`],
+      ];
+
+      feeItems.forEach(item => {
+        if (yPos > pageHeight - 20) {
+          doc.addPage();
+          yPos = margin;
+        }
+        doc.setTextColor(75, 85, 99);
+        doc.text(item[0], margin + 5, yPos);
+        doc.setTextColor(31, 41, 55);
+        doc.text(item[1], pageWidth - margin - doc.getTextWidth(item[1]), yPos);
+        yPos += 4;
+      });
+
+      // Total Cost
+      if (yPos > pageHeight - 30) {
+        doc.addPage();
+        yPos = margin;
+      }
+      yPos += 5;
+      doc.setFillColor(31, 41, 55);
+      doc.rect(margin, yPos, contentWidth, 20, 'F');
+      doc.setFontSize(10);
+      doc.setTextColor(255, 255, 255);
+      doc.text('Total Cost of Loan', margin + 5, yPos + 6);
+      doc.setFontSize(16);
+      doc.text(`$${parseFloat(generatedQuote.totalCostOfLoan).toLocaleString()}`, pageWidth - margin - doc.getTextWidth(`$${parseFloat(generatedQuote.totalCostOfLoan).toLocaleString()}`), yPos + 12);
+      doc.setFontSize(10);
+      doc.text(`${generatedQuote.apr}% APR`, margin + 5, yPos + 18);
+
+      doc.save(`quote-${generatedQuote.borrowerName.replace(/\s+/g, '-')}.pdf`);
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      alert('Error generating PDF. Please try downloading as text instead.');
+    }
   };
 
   const isFormValid = quoteData.borrowerName && quoteData.loanAmount && quoteData.interestRate;
@@ -669,6 +776,16 @@ APR: ${generatedQuote.apr}%
                       </p>
                     </div>
                   </div>
+
+                  {/* Comparison Tool */}
+                  <ComparisonTool baseQuote={generatedQuote} />
+
+                  {/* Amortization Schedule */}
+                  <AmortizationSchedule 
+                    loanAmount={parseFloat(generatedQuote.loanAmount)}
+                    rate={parseFloat(generatedQuote.interestRate)}
+                    termYears={parseInt(generatedQuote.term)}
+                  />
 
                   {/* Total Cost */}
                   <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white p-8 rounded-xl shadow-xl">

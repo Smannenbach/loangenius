@@ -43,6 +43,7 @@ import {
   Upload,
 } from 'lucide-react';
 import QuoteGeneratorModal from '@/components/QuoteGeneratorModal';
+import LeadDetailModal from '@/components/LeadDetailModal';
 
 export default function Leads() {
   const queryClient = useQueryClient();
@@ -706,33 +707,44 @@ export default function Leads() {
                       {lead.property_state}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreVertical className="h-4 w-4 text-gray-400" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                           <DropdownMenuItem 
-                             onClick={() => {
-                               setQuoteSelectedLead(lead);
-                               setQuoteModalOpen(true);
-                             }}
-                           >
-                             <FileOutput className="h-3 w-3 mr-2" />
-                             Generate Quote
-                           </DropdownMenuItem>
-                           <DropdownMenuItem onClick={() => handleEditLead(lead)}>
-                             Edit
-                           </DropdownMenuItem>
-                           <DropdownMenuItem 
-                             className="text-red-600"
-                             onClick={() => deleteLeadMutation.mutate(lead.id)}
-                           >
-                             Delete
-                           </DropdownMenuItem>
-                         </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex justify-end gap-2">
+                        <LeadDetailModal 
+                          lead={lead}
+                          onEdit={handleEditLead}
+                          trigger={
+                            <Button variant="ghost" size="sm" className="h-8 text-xs">
+                              View
+                            </Button>
+                          }
+                        />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4 text-gray-400" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                             <DropdownMenuItem 
+                               onClick={() => {
+                                 setQuoteSelectedLead(lead);
+                                 setQuoteModalOpen(true);
+                               }}
+                             >
+                               <FileOutput className="h-3 w-3 mr-2" />
+                               Generate Quote
+                             </DropdownMenuItem>
+                             <DropdownMenuItem onClick={() => handleEditLead(lead)}>
+                               Edit
+                             </DropdownMenuItem>
+                             <DropdownMenuItem 
+                               className="text-red-600"
+                               onClick={() => deleteLeadMutation.mutate(lead.id)}
+                             >
+                               Delete
+                             </DropdownMenuItem>
+                           </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </td>
                   </tr>
                 ))
