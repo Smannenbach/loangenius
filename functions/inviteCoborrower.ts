@@ -1,11 +1,11 @@
-/**
- * Invite Co-Borrower
- * Generates magic link + sends invitation email
- */
-
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import crypto from 'node:crypto';
 
 Deno.serve(async (req) => {
+  if (req.method !== 'POST') {
+    return Response.json({ error: 'Method not allowed' }, { status: 405 });
+  }
+
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -14,72 +14,98 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { org_id, application_id, co_borrower_email } = await req.json();
+    const {
+      deal_id,
+      coborrower_email,
+      coborrower_first_name,
+      coborrower_last_name,
+      send_email = true
+    } = await req.json();
 
-    if (!org_id || !application_id || !co_borrower_email) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!deal_id || !coborrower_email) {
+      return Response.json({
+        error: 'Missing deal_id or coborrower_email'
+      }, { status: 400 });
     }
 
-    // Fetch application
-    const apps = await base44.asServiceRole.entities.LoanApplication.filter({
-      id: application_id
+    // Get deal
+    const deal = await base44.entities.Deal.get(deal_id);
+    if (!deal) {
+      return Response.json({ error: 'Deal not found' }, { status: 404 });
+    }
+
+    // Check if co-borrower already exists
+    const existing = await base44.entities.Borrower.filter({
+      deal_id,
+      email: coborrower_email
     });
 
-    if (!apps.length) {
-      return Response.json({ error: 'Application not found' }, { status: 404 });
+    if (existing.length > 0) {
+      return Response.json({
+        error: 'Co-borrower already exists for this deal'
+      }, { status: 409 });
     }
 
-    const app = apps[0];
+    // Create borrower record
+    const coborrower = await base44.entities.Borrower.create({
+      org_id: deal.org_id,
+      deal_id,
+      email: coborrower_email,
+      first_name: coborrower_first_name,
+      last_name: coborrower_last_name,
+      is_primary: false,
+      is_coborrower: true,
+      status: 'invited'
+    });
 
-    // Generate token + magic link
-    const token = crypto.randomUUID();
-    const tokenHash = await hashString(token);
-    const expiresAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+    // Generate magic link token
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
 
-    const magicLink = await base44.asServiceRole.entities.PortalMagicLink.create({
-      org_id,
-      deal_id: app.deal_id || application_id,
-      borrower_email: co_borrower_email,
+    const magicLink = await base44.entities.PortalMagicLink.create({
+      org_id: deal.org_id,
+      deal_id,
+      borrower_email: coborrower_email,
       token_hash: tokenHash,
       expires_at: expiresAt,
-      created_by_user_id: user.id
+      created_by: user.email
     });
 
-    const portalUrl = `${Deno.env.get('APP_URL') || 'https://app.loangenius.io'}/portal/login?token=${token}`;
+    // Send invitation email
+    if (send_email) {
+      const portalUrl = `https://portal.loangenius.local/coborrower-signin?token=${token}`;
 
-    // Send email
-    await base44.integrations.Core.SendEmail({
-      to: co_borrower_email,
-      subject: 'You\'ve been invited to join the loan application',
-      body: `Dear Co-Borrower,\n\nYou've been invited to join a loan application. Click the link below to get started:\n\n${portalUrl}\n\nThis link expires in 24 hours.\n\nBest regards,\nLoanGenius`
-    });
-
-    // Update application with co-borrower
-    const currentCoBorrowers = app.co_borrower_emails || [];
-    if (!currentCoBorrowers.includes(co_borrower_email)) {
-      currentCoBorrowers.push(co_borrower_email);
-      await base44.asServiceRole.entities.LoanApplication.update(application_id, {
-        co_borrower_emails: currentCoBorrowers
+      await base44.asServiceRole.entities.Communication.create({
+        org_id: deal.org_id,
+        deal_id,
+        channel: 'Email',
+        direction: 'Outbound',
+        from_address: 'noreply@loangenius.local',
+        to_address: coborrower_email,
+        subject: `You're invited to sign your loan documents`,
+        body: `Hi ${coborrower_first_name || 'Co-borrower'},\n\nYou've been invited as a co-borrower on a loan application. Click below to review and sign your documents:\n\n${portalUrl}\n\nThis link expires in 7 days.\n\nThanks!`,
+        status: 'Queued'
       });
     }
 
+    // Log activity
+    await base44.asServiceRole.entities.ActivityLog.create({
+      org_id: deal.org_id,
+      deal_id,
+      contact_id: coborrower_email,
+      action_type: 'coborrower_invited',
+      description: `Co-borrower invited: ${coborrower_email}`,
+      metadata_json: { borrower_id: coborrower.id }
+    });
+
     return Response.json({
-      success: true,
+      coborrower_id: coborrower.id,
       magic_link_id: magicLink.id,
-      co_borrower_email,
-      expires_at: expiresAt,
-      portal_url: portalUrl
+      email_sent: send_email,
+      expires_at: expiresAt
     });
   } catch (error) {
-    console.error('Error in inviteCoborrower:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
-
-async function hashString(str) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(str);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
