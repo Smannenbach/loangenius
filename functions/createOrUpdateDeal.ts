@@ -163,16 +163,15 @@ Deno.serve(async (req) => {
       // Update deal
       const updated = await base44.asServiceRole.entities.Deal.update(deal_id, updates);
 
-      // Log audit
-      await base44.asServiceRole.entities.AuditLog.create({
+      // Log activity
+      await base44.asServiceRole.entities.ActivityLog.create({
         org_id: deal.org_id,
-        user_id: user.email,
-        action_type: 'Update',
-        entity_type: 'Deal',
-        entity_id: deal_id,
-        entity_name: deal.deal_number,
+        deal_id: deal_id,
+        activity_type: 'DEAL_UPDATED',
         description: `Deal updated: ${Object.keys(updates).join(', ')}`,
-        new_values: updates,
+        source: 'api',
+        user_id: user.email,
+        metadata: updates,
       });
 
       return Response.json({
