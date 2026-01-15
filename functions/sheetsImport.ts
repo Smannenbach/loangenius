@@ -49,14 +49,19 @@ async function handlePreview(req) {
   }
 }
 
-// POST /functions/leadsImport
+// POST /functions/sheetsImportLeads
 async function handleImport(req) {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
 
-    if (!user?.org_id) {
+    if (!user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const org_id = user.org_id || user.id;
+    if (!org_id) {
+      return Response.json({ error: 'Unable to determine org_id' }, { status: 400 });
     }
 
     const {
@@ -71,7 +76,7 @@ async function handleImport(req) {
 
     // Create ImportRun record
     const importRun = await base44.entities.ImportRun.create({
-      org_id: user.org_id,
+      org_id,
       source_type,
       source_ref: sheet_url,
       status: 'running',
@@ -117,7 +122,7 @@ async function handleImport(req) {
         }
 
         // Check for duplicates
-        const existingFilter = { org_id: user.org_id };
+        const existingFilter = { org_id };
         if (mappedData.email) existingFilter.email = mappedData.email;
 
         const existing = await base44.entities.Contact.filter(existingFilter);
@@ -132,16 +137,17 @@ async function handleImport(req) {
             ...(lead_source && { source: lead_source })
           });
         } else {
-          // Create new
-          await base44.entities.Contact.create({
-            org_id: user.org_id,
+          // Create new - ensure org_id is always included
+          const contactData = {
+            org_id,
             contact_type: 'individual',
             ...mappedData,
             is_lead: true,
-            lead_status: lead_status,
-            ...(assigned_to_user_id && { assigned_to: assigned_to_user_id }),
-            ...(lead_source && { source: lead_source })
-          });
+            lead_status: lead_status
+          };
+          if (assigned_to_user_id) contactData.assigned_to = assigned_to_user_id;
+          if (lead_source) contactData.source = lead_source;
+          await base44.entities.Contact.create(contactData);
         }
 
         imported++;
