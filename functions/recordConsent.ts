@@ -1,10 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
+/**
+ * Record and manage consent for communications
+ * Tracks opt-in/opt-out for email, SMS, in-app messaging
+ */
 Deno.serve(async (req) => {
-  if (req.method !== 'POST') {
-    return Response.json({ error: 'Method not allowed' }, { status: 405 });
-  }
-
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -13,27 +13,27 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { contact_email, contact_phone, consent_type, status, source = 'application', reason } = await req.json();
+    const { contact_email, contact_phone, consent_type, status, source } = await req.json();
 
-    if (!contact_email && !contact_phone) {
-      return Response.json({ error: 'Email or phone required' }, { status: 400 });
+    if (!consent_type || !status) {
+      return Response.json({ error: 'consent_type and status required' }, { status: 400 });
     }
 
-    if (!['email', 'sms', 'in_app'].includes(consent_type)) {
-      return Response.json({ error: 'Invalid consent_type' }, { status: 400 });
+    // Get user's org
+    const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+      user_id: user.email,
+    });
+
+    if (memberships.length === 0) {
+      return Response.json({ error: 'User not part of any organization' }, { status: 403 });
     }
 
-    if (!['opt_in', 'opt_out'].includes(status)) {
-      return Response.json({ error: 'Invalid status' }, { status: 400 });
-    }
-
-    // Get org from user or request
-    const orgId = user.org_id || (await req.json()).org_id || 'default';
+    const org_id = memberships[0].org_id;
 
     // Check if consent record exists
     const query = {
-      org_id: orgId,
-      consent_type
+      org_id,
+      consent_type,
     };
 
     if (contact_email) query.contact_email = contact_email;
@@ -41,80 +41,44 @@ Deno.serve(async (req) => {
 
     const existing = await base44.asServiceRole.entities.ConsentRecord.filter(query);
 
-    let consent;
-
+    let consentRecord;
     if (existing.length > 0) {
       // Update existing
-      consent = await base44.asServiceRole.entities.ConsentRecord.update(existing[0].id, {
+      consentRecord = await base44.asServiceRole.entities.ConsentRecord.update(existing[0].id, {
         status,
-        [status === 'opt_in' ? 'opted_in_at' : 'opted_out_at']: new Date().toISOString(),
-        reason
+        captured_at: new Date().toISOString(),
       });
     } else {
       // Create new
-      consent = await base44.asServiceRole.entities.ConsentRecord.create({
-        org_id: orgId,
+      consentRecord = await base44.asServiceRole.entities.ConsentRecord.create({
+        org_id,
         contact_email,
         contact_phone,
         consent_type,
         status,
+        source: source || 'admin',
         captured_at: new Date().toISOString(),
-        source,
-        reason
       });
     }
 
-    // If SMS opt-out, also update SMSOptOut entity
-    if (consent_type === 'sms' && status === 'opt_out' && contact_phone) {
-      const smsOptOuts = await base44.asServiceRole.entities.SMSOptOut.filter({
-        org_id: orgId,
-        phone_number: contact_phone
-      });
-
-      if (smsOptOuts.length === 0) {
-        await base44.asServiceRole.entities.SMSOptOut.create({
-          org_id: orgId,
-          phone_number: contact_phone,
-          status: 'opted_out',
-          opted_out_at: new Date().toISOString(),
-          reason
-        });
-      } else {
-        await base44.asServiceRole.entities.SMSOptOut.update(smsOptOuts[0].id, {
-          status: 'opted_out',
-          opted_out_at: new Date().toISOString()
-        });
-      }
-    }
-
-    // If Email opt-out
-    if (consent_type === 'email' && status === 'opt_out' && contact_email) {
-      const emailOptOuts = await base44.asServiceRole.entities.EmailOptOut.filter({
-        org_id: orgId,
-        email: contact_email
-      });
-
-      if (emailOptOuts.length === 0) {
-        await base44.asServiceRole.entities.EmailOptOut.create({
-          org_id: orgId,
-          email: contact_email,
-          status: 'opted_out',
-          opted_out_at: new Date().toISOString(),
-          reason
-        });
-      } else {
-        await base44.asServiceRole.entities.EmailOptOut.update(emailOptOuts[0].id, {
-          status: 'opted_out',
-          opted_out_at: new Date().toISOString()
-        });
-      }
-    }
+    // Log audit
+    await base44.asServiceRole.entities.AuditLog.create({
+      org_id,
+      user_id: user.email,
+      action_type: 'Update',
+      entity_type: 'ConsentRecord',
+      entity_id: consentRecord.id,
+      description: `${status} consent for ${consent_type} - ${contact_email || contact_phone}`,
+      severity: 'Info',
+    });
 
     return Response.json({
-      consent_id: consent.id,
-      status
+      success: true,
+      consent_id: consentRecord.id,
+      status,
     });
   } catch (error) {
+    console.error('Consent record error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
