@@ -82,12 +82,10 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Pipeline', href: '/Pipeline', icon: TrendingUp },
     { name: 'Leads', href: '/Leads', icon: Users },
     { name: 'Loans', href: '/Loans', icon: Briefcase },
-    { name: 'Documents', href: '/Documents', icon: FolderOpen },
     { name: 'Tasks', href: '/Tasks', icon: ClipboardList },
   ];
 
   const toolsNav = [
-      { name: 'Calculator', href: '/Calculator', icon: Calculator },
       { name: 'Quote Generator', href: '/QuoteGenerator', icon: FileOutput },
       { name: 'AI Assistant', href: '/AIAssistant', icon: Bot },
       { name: 'Conversations', href: '/Conversations', icon: Mail },
@@ -282,7 +280,7 @@ export default function Layout({ children, currentPageName }) {
         {/* Actions */}
         <div className="flex items-center gap-4">
           <Link 
-            to={createPageUrl('NewDeal')}
+            to={createPageUrl('LoanApplicationWizard')}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition-colors"
           >
             <Plus className="h-4 w-4" />

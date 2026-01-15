@@ -53,6 +53,7 @@ import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
 import PortalSettings from './pages/PortalSettings';
 import Conversations from './pages/Conversations';
+import LoanApplicationWizard from './pages/LoanApplicationWizard';
 import __Layout from './Layout.jsx';
 
 
@@ -112,6 +113,7 @@ export const PAGES = {
     "ValidationDashboard": ValidationDashboard,
     "PortalSettings": PortalSettings,
     "Conversations": Conversations,
+    "LoanApplicationWizard": LoanApplicationWizard,
 }
 
 export const pagesConfig = {
