@@ -55,6 +55,13 @@ export default function Dashboard() {
     return daysUntilClose >= 0 && daysUntilClose <= 7;
   });
 
+  const colorStyles = {
+    blue: { bg: 'bg-blue-100', text: 'text-blue-600' },
+    emerald: { bg: 'bg-emerald-100', text: 'text-emerald-600' },
+    amber: { bg: 'bg-amber-100', text: 'text-amber-600' },
+    violet: { bg: 'bg-violet-100', text: 'text-violet-600' },
+  };
+
   const stats = [
     {
       title: 'Active Deals',
@@ -135,8 +142,8 @@ export default function Dashboard() {
                   <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
                   <p className="text-xs text-gray-500 mt-2">{stat.change}</p>
                 </div>
-                <div className={`p-3 rounded-xl bg-${stat.color}-100`}>
-                  <stat.icon className={`h-5 w-5 text-${stat.color}-600`} />
+                <div className={`p-3 rounded-xl ${colorStyles[stat.color].bg}`}>
+                  <stat.icon className={`h-5 w-5 ${colorStyles[stat.color].text}`} />
                 </div>
               </div>
             </CardContent>
