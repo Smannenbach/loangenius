@@ -1,18 +1,22 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import crypto from 'node:crypto';
 
 /**
- * Generate magic link token
+ * Generate magic link token (Deno crypto - async)
  */
-function generateToken() {
-  return crypto.randomBytes(32).toString('hex');
+async function generateToken() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**
- * Hash token for storage
+ * Hash token for storage (Deno SubtleCrypto - async)
  */
-function hashToken(token) {
-  return crypto.createHash('sha256').update(token).digest('hex');
+async function hashToken(token) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(token);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**
@@ -32,28 +36,24 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Unauthorized' }, { status: 403 });
       }
 
-      if (!loanFileId || !borrowerId) {
-        return Response.json({ error: 'Missing required fields' }, { status: 400 });
+      const { org_id, deal_id, borrower_id } = await req.json();
+      if (!org_id || !deal_id || !borrower_id) {
+        return Response.json({ error: 'Missing required fields: org_id, deal_id, borrower_id' }, { status: 400 });
       }
 
-      // Verify borrower exists
-      const borrower = await base44.asServiceRole.entities.Borrower.get(borrowerId);
-      if (!borrower) {
-        return Response.json({ error: 'Borrower not found' }, { status: 404 });
-      }
-
-      const newToken = generateToken();
-      const hashedToken = hashToken(newToken);
+      const newToken = await generateToken();
+      const hashedToken = await hashToken(newToken);
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
       const session = await base44.asServiceRole.entities.PortalSession.create({
-        loan_file_id: loanFileId,
-        borrower_id: borrowerId,
-        token_hash: hashedToken,
+        org_id,
+        deal_id,
+        borrower_id,
+        session_token_hash: hashedToken,
         expires_at: expiresAt,
       });
 
-      const portalUrl = `${Deno.env.get('APP_URL') || 'https://loangenius.app'}/BorrowerPortal?token=${newToken}`;
+      const portalUrl = `${Deno.env.get('APP_URL') || 'https://loangenius.app'}/BorrowerPortalLogin?token=${newToken}`;
 
       return Response.json({
         success: true,
@@ -68,11 +68,11 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Token required' }, { status: 400 });
       }
 
-      const hashedToken = hashToken(token);
+      const hashedToken = await hashToken(token);
 
       // Find session with this token hash
       const sessions = await base44.asServiceRole.entities.PortalSession.filter({
-        token_hash: hashedToken,
+        session_token_hash: hashedToken,
       });
 
       if (sessions.length === 0) {
@@ -96,50 +96,32 @@ Deno.serve(async (req) => {
         last_accessed_at: new Date().toISOString(),
       });
 
-      // Get borrower and loan info
-      const borrower = await base44.asServiceRole.entities.Borrower.get(session.borrower_id);
-      const loanFile = await base44.asServiceRole.entities.LoanFile.get(session.loan_file_id);
-
       return Response.json({
         valid: true,
         sessionId: session.id,
+        orgId: session.org_id,
+        dealId: session.deal_id,
         borrowerId: session.borrower_id,
-        loanFileId: session.loan_file_id,
-        borrower: {
-          id: borrower.id,
-          first_name: borrower.first_name,
-          last_name: borrower.last_name,
-          email: borrower.email,
-        },
-        loanFile: {
-          id: loanFile.id,
-          loan_number: loanFile.loan_number,
-          status: loanFile.status,
-          closing_date: loanFile.closing_date,
-        },
       });
     }
 
-    if (action === 'revokeToken') {
+    if (action === 'revokeSession') {
       const user = await base44.auth.me();
       if (!user) {
         return Response.json({ error: 'Unauthorized' }, { status: 401 });
       }
 
-      if (!token) {
-        return Response.json({ error: 'Token required' }, { status: 400 });
+      const { session_id } = await req.json();
+      if (!session_id) {
+        return Response.json({ error: 'Session ID required' }, { status: 400 });
       }
 
-      const hashedToken = hashToken(token);
-      const sessions = await base44.asServiceRole.entities.PortalSession.filter({
-        token_hash: hashedToken,
-      });
-
-      if (sessions.length === 0) {
+      const session = await base44.asServiceRole.entities.PortalSession.get(session_id);
+      if (!session) {
         return Response.json({ error: 'Session not found' }, { status: 404 });
       }
 
-      await base44.asServiceRole.entities.PortalSession.update(sessions[0].id, {
+      await base44.asServiceRole.entities.PortalSession.update(session_id, {
         is_revoked: true,
       });
 
