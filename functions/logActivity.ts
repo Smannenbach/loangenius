@@ -43,12 +43,16 @@ Deno.serve(async (req) => {
 
     const defaults_for_type = defaults[activity_type] || { icon: '📌', color: 'gray' };
 
+    if (!org_id) {
+      return Response.json({ error: 'Missing org_id' }, { status: 400 });
+    }
+
     // Create activity feed entry
     const activity = await base44.asServiceRole.entities.ActivityFeed.create({
-      org_id: org_id || 'default',
+      org_id,
       deal_id,
       borrower_id,
-      user_id: user?.id,
+      user_id: user?.email,
       activity_type,
       title,
       description,
