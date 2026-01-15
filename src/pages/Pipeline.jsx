@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
@@ -21,10 +21,19 @@ import {
 
 export default function Pipeline() {
   const [searchTerm, setSearchTerm] = useState('');
+  const queryClient = useQueryClient();
   
   const { data: deals = [], isLoading } = useQuery({
     queryKey: ['deals'],
     queryFn: () => base44.entities.Deal.filter({ is_deleted: false }),
+  });
+
+  const updateStage = useMutation({
+    mutationFn: ({ dealId, newStage }) => 
+      base44.entities.Deal.update(dealId, { stage: newStage }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deals'] });
+    }
   });
 
   const stages = [
@@ -39,7 +48,7 @@ export default function Pipeline() {
   ];
 
   const getDealsByStage = (stageId) => {
-    return deals.filter(d => d.status === stageId);
+    return deals.filter(d => d.stage === stageId);
   };
 
   const filteredDeals = deals.filter(deal => {

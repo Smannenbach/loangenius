@@ -69,6 +69,10 @@ export default function SettingsPage() {
             <Bell className="h-4 w-4" />
             Notifications
           </TabsTrigger>
+          <TabsTrigger value="branding" className="gap-2">
+            <Building2 className="h-4 w-4" />
+            Branding
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
@@ -210,6 +214,21 @@ export default function SettingsPage() {
               <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
                 <Save className="h-4 w-4" />
                 Save Preferences
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="branding">
+          <Card className="border-gray-200">
+            <CardHeader>
+              <CardTitle>Company Branding</CardTitle>
+              <CardDescription>Customize company appearance on documents</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-gray-600">Configure your logo, colors, and contact info that appears on generated documents and exports.</p>
+              <Button className="bg-blue-600 hover:bg-blue-500">
+                Edit Branding
               </Button>
             </CardContent>
           </Card>

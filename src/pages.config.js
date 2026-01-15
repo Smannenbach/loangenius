@@ -49,6 +49,8 @@ import SubmissionPrep from './pages/SubmissionPrep';
 import Analytics from './pages/Analytics';
 import ComplianceDashboard from './pages/ComplianceDashboard';
 import AlertsNotifications from './pages/AlertsNotifications';
+import BrandingSettings from './pages/BrandingSettings';
+import DealMobile from './pages/DealMobile';
 import __Layout from './Layout.jsx';
 
 
@@ -104,6 +106,8 @@ export const PAGES = {
     "Analytics": Analytics,
     "ComplianceDashboard": ComplianceDashboard,
     "AlertsNotifications": AlertsNotifications,
+    "BrandingSettings": BrandingSettings,
+    "DealMobile": DealMobile,
 }
 
 export const pagesConfig = {
