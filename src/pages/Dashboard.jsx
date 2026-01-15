@@ -47,38 +47,46 @@ export default function Dashboard() {
   }).length;
   const newLeads = leads.filter(l => l.status === 'new').length;
 
+  const closingThisWeek = deals.filter(d => {
+    if (!d.estimated_close_date) return false;
+    const closeDate = new Date(d.estimated_close_date);
+    const now = new Date();
+    const daysUntilClose = Math.floor((closeDate - now) / (1000 * 60 * 60 * 24));
+    return daysUntilClose >= 0 && daysUntilClose <= 7;
+  });
+
   const stats = [
-    {
-      title: 'Pipeline Value',
-      value: `$${(totalPipeline / 1000000).toFixed(1)}M`,
-      change: '+12%',
-      trend: 'up',
-      icon: DollarSign,
-      color: 'blue',
-    },
     {
       title: 'Active Deals',
       value: activeDeals.toString(),
-      change: '+3',
+      change: '+3 this week',
       trend: 'up',
       icon: FileText,
+      color: 'blue',
+    },
+    {
+      title: 'This Month Volume',
+      value: `$${(totalPipeline / 1000000).toFixed(1)}M`,
+      change: '8 loans',
+      trend: 'up',
+      icon: DollarSign,
       color: 'emerald',
     },
     {
-      title: 'Funded This Month',
-      value: fundedThisMonth.toString(),
-      change: '+2',
+      title: 'In Process',
+      value: deals.filter(d => ['processing', 'submitted', 'underwriting'].includes(d.status)).length.toString(),
+      change: 'total volume',
       trend: 'up',
-      icon: CheckCircle2,
-      color: 'violet',
+      icon: Clock,
+      color: 'amber',
     },
     {
-      title: 'New Leads',
-      value: newLeads.toString(),
-      change: '+8',
+      title: 'Closing Soon',
+      value: closingThisWeek.length.toString(),
+      change: 'next 7 days',
       trend: 'up',
-      icon: Users,
-      color: 'amber',
+      icon: TrendingUp,
+      color: 'violet',
     },
   ];
 
@@ -124,18 +132,8 @@ export default function Dashboard() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-500">{stat.title}</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-2">{stat.value}</p>
-                  <div className="flex items-center gap-1 mt-2">
-                    {stat.trend === 'up' ? (
-                      <ArrowUpRight className="h-4 w-4 text-emerald-500" />
-                    ) : (
-                      <ArrowDownRight className="h-4 w-4 text-red-500" />
-                    )}
-                    <span className={`text-sm font-medium ${stat.trend === 'up' ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {stat.change}
-                    </span>
-                    <span className="text-sm text-gray-400">vs last month</span>
-                  </div>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
+                  <p className="text-xs text-gray-500 mt-2">{stat.change}</p>
                 </div>
                 <div className={`p-3 rounded-xl bg-${stat.color}-100`}>
                   <stat.icon className={`h-5 w-5 text-${stat.color}-600`} />
@@ -197,10 +195,13 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Tasks & Alerts */}
+        {/* My Tasks */}
         <Card className="border-gray-200">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-semibold">Tasks & Alerts</CardTitle>
+          <CardHeader className="pb-4 flex flex-row items-center justify-between">
+            <CardTitle className="text-lg font-semibold">My Tasks</CardTitle>
+            <Link to={createPageUrl('Tasks')}>
+              <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">View All</Button>
+            </Link>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -210,9 +211,9 @@ export default function Dashboard() {
                   <p>All caught up!</p>
                 </div>
               ) : (
-                tasks.slice(0, 5).map((task) => (
-                  <div key={task.id} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50">
-                    {task.priority === 'urgent' ? (
+                tasks.slice(0, 4).map((task) => (
+                  <div key={task.id} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                    {task.priority === 'high' || task.priority === 'urgent' ? (
                       <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
                     ) : (
                       <Clock className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -233,38 +234,37 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Quick Actions */}
+      {/* Closing This Week */}
       <Card className="border-gray-200">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
+        <CardHeader className="pb-4 flex flex-row items-center justify-between">
+          <CardTitle className="text-lg font-semibold">Closing This Week</CardTitle>
+          <Link to={createPageUrl('Pipeline')}>
+            <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">View Pipeline</Button>
+          </Link>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <Link to={createPageUrl('NewDeal')}>
-              <Button variant="outline" className="w-full h-auto py-4 flex flex-col items-center gap-2 hover:bg-blue-50 hover:border-blue-300">
-                <FileText className="h-5 w-5 text-blue-600" />
-                <span className="text-sm">New Deal</span>
-              </Button>
-            </Link>
-            <Link to={createPageUrl('Leads')}>
-              <Button variant="outline" className="w-full h-auto py-4 flex flex-col items-center gap-2 hover:bg-emerald-50 hover:border-emerald-300">
-                <Users className="h-5 w-5 text-emerald-600" />
-                <span className="text-sm">Add Lead</span>
-              </Button>
-            </Link>
-            <Link to={createPageUrl('Calculator')}>
-              <Button variant="outline" className="w-full h-auto py-4 flex flex-col items-center gap-2 hover:bg-violet-50 hover:border-violet-300">
-                <TrendingUp className="h-5 w-5 text-violet-600" />
-                <span className="text-sm">Calculator</span>
-              </Button>
-            </Link>
-            <Link to={createPageUrl('QuoteGenerator')}>
-              <Button variant="outline" className="w-full h-auto py-4 flex flex-col items-center gap-2 hover:bg-amber-50 hover:border-amber-300">
-                <DollarSign className="h-5 w-5 text-amber-600" />
-                <span className="text-sm">Generate Quote</span>
-              </Button>
-            </Link>
-          </div>
+          {closingThisWeek.length === 0 ? (
+            <p className="text-gray-500 text-center py-6">No closings scheduled this week</p>
+          ) : (
+            <div className="space-y-3">
+              {closingThisWeek.map((deal) => (
+                <Link key={deal.id} to={createPageUrl(`DealDetail?id=${deal.id}`)}>
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50/30 transition-all">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 text-sm">{deal.loan_type?.replace(/_/g, ' ')}</p>
+                      <p className="text-xs text-gray-500">${(deal.loan_amount || 0).toLocaleString()}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-medium text-gray-900">
+                        {new Date(deal.estimated_close_date).toLocaleDateString()}
+                      </p>
+                      <Badge variant="secondary" className="text-xs mt-1">Closing</Badge>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
