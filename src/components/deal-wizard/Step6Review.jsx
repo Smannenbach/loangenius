@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { AlertCircle } from 'lucide-react';
 import { calculateSinglePropertyDSCR, calculateLTV } from './dscr-utils';
 import WizardStep from './WizardStep';
 
@@ -111,12 +112,23 @@ export default function Step6Review({ data, onChange, onNext, onPrev, loading = 
           </div>
         </Card>
 
+        {/* Validation Summary */}
+        {(!data.borrowers || data.borrowers.length === 0) && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-red-900">Missing Borrowers</p>
+              <p className="text-sm text-red-800 mt-1">Please add at least one borrower before creating the deal.</p>
+            </div>
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="pt-4 border-t flex gap-3">
           <Button variant="outline" className="flex-1">
             Save as Draft
           </Button>
-          <Button onClick={onNext} className="flex-1 bg-green-600 hover:bg-green-500" disabled={loading}>
+          <Button onClick={onNext} className="flex-1 bg-green-600 hover:bg-green-500" disabled={loading || !data.borrowers?.length}>
             {loading ? 'Creating...' : '✓ Create Deal'}
           </Button>
         </div>

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import { AlertCircle, CheckCircle2, TrendingDown } from 'lucide-react';
 import { calculateSinglePropertyDSCR } from './dscr-utils';
 import WizardStep from './WizardStep';
 
@@ -127,35 +128,51 @@ export default function Step4Expenses({ data, onChange, onNext, onPrev }) {
         </div>
 
         {/* Live DSCR Display */}
-        {dscrResult && (
-          <Card className={`p-6 border-2 ${dscrColor.includes('green') ? 'border-green-200 bg-green-50' : dscrColor.includes('yellow') ? 'border-yellow-200 bg-yellow-50' : 'border-red-200 bg-red-50'}`}>
-            <div className="mb-4">
-              <p className="text-sm text-gray-600">Estimated DSCR</p>
-              <p className={`text-4xl font-bold ${dscrColor}`}>{dscrResult.dscrRatio.toFixed(2)}</p>
-              <p className={`text-sm mt-1 ${dscrColor}`}>
-                {dscrResult.qualifiesStandard ? '✓ Qualifies (1.25+)' : dscrResult.qualifies ? '⚠️ Qualifies (1.0+)' : '✗ Does not qualify'}
-              </p>
-            </div>
+         {dscrResult && (
+           <Card className={`p-6 border-2 ${dscrResult.qualifiesStandard ? 'border-green-300 bg-green-50' : dscrResult.qualifies ? 'border-yellow-300 bg-yellow-50' : 'border-red-300 bg-red-50'}`}>
+             <div className="mb-6 flex items-start justify-between">
+               <div>
+                 <p className="text-sm text-gray-700 font-medium">Debt Service Coverage Ratio</p>
+                 <p className={`text-5xl font-bold mt-1 ${dscrResult.qualifiesStandard ? 'text-green-600' : dscrResult.qualifies ? 'text-yellow-600' : 'text-red-600'}`}>
+                   {dscrResult.dscrRatio.toFixed(2)}
+                 </p>
+               </div>
+               <div className={`p-3 rounded-lg ${dscrResult.qualifiesStandard ? 'bg-green-100' : dscrResult.qualifies ? 'bg-yellow-100' : 'bg-red-100'}`}>
+                 {dscrResult.qualifiesStandard ? (
+                   <CheckCircle2 className="h-8 w-8 text-green-600" />
+                 ) : dscrResult.qualifies ? (
+                   <AlertCircle className="h-8 w-8 text-yellow-600" />
+                 ) : (
+                   <AlertCircle className="h-8 w-8 text-red-600" />
+                 )}
+               </div>
+             </div>
 
-            <button
-              onClick={() => setExpandPITIA(!expandPITIA)}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              {expandPITIA ? '▼' : '▶'} PITIA Breakdown
-            </button>
+             <div className={`p-3 rounded-lg mb-4 ${dscrResult.qualifiesStandard ? 'bg-white border border-green-200' : dscrResult.qualifies ? 'bg-white border border-yellow-200' : 'bg-white border border-red-200'}`}>
+               <p className={`text-sm font-semibold ${dscrResult.qualifiesStandard ? 'text-green-700' : dscrResult.qualifies ? 'text-yellow-700' : 'text-red-700'}`}>
+                 {dscrResult.qualifiesStandard ? '✓ Strong Qualification (1.25+ Ratio)' : dscrResult.qualifies ? '⚠️ Marginal Qualification (1.0+ Ratio)' : '✗ Does Not Qualify'}
+               </p>
+             </div>
 
-            {expandPITIA && (
-              <div className="mt-4 pt-4 border-t space-y-2 text-sm">
-                <div className="flex justify-between"><span>Monthly P&I:</span><span className="font-semibold">${dscrResult.monthlyPI.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span>Monthly Taxes:</span><span className="font-semibold">${dscrResult.monthlyTaxes.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span>Monthly Insurance:</span><span className="font-semibold">${dscrResult.monthlyInsurance.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span>Monthly Flood:</span><span className="font-semibold">${dscrResult.monthlyFlood.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span>Monthly HOA:</span><span className="font-semibold">${dscrResult.monthlyHOA.toFixed(2)}</span></div>
-                <div className="flex justify-between border-t pt-2 font-bold"><span>Total PITIA:</span><span>${dscrResult.monthlyPITIA.toFixed(2)}</span></div>
-              </div>
-            )}
-          </Card>
-        )}
+             <button
+               onClick={() => setExpandPITIA(!expandPITIA)}
+               className="text-sm text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1"
+             >
+               {expandPITIA ? '▼' : '▶'} Monthly Payment Breakdown
+             </button>
+
+             {expandPITIA && (
+               <div className="mt-4 pt-4 border-t space-y-2 text-sm bg-white p-3 rounded">
+                 <div className="flex justify-between"><span className="text-gray-700">Principal & Interest:</span><span className="font-semibold">${dscrResult.monthlyPI.toFixed(2)}</span></div>
+                 <div className="flex justify-between"><span className="text-gray-700">Property Taxes:</span><span className="font-semibold">${dscrResult.monthlyTaxes.toFixed(2)}</span></div>
+                 <div className="flex justify-between"><span className="text-gray-700">Home Insurance:</span><span className="font-semibold">${dscrResult.monthlyInsurance.toFixed(2)}</span></div>
+                 {dscrResult.monthlyFlood > 0 && <div className="flex justify-between"><span className="text-gray-700">Flood Insurance:</span><span className="font-semibold">${dscrResult.monthlyFlood.toFixed(2)}</span></div>}
+                 {dscrResult.monthlyHOA > 0 && <div className="flex justify-between"><span className="text-gray-700">HOA Dues:</span><span className="font-semibold">${dscrResult.monthlyHOA.toFixed(2)}</span></div>}
+                 <div className="flex justify-between border-t pt-2 font-bold text-gray-900"><span>Total Monthly PITIA:</span><span>${dscrResult.monthlyPITIA.toFixed(2)}</span></div>
+               </div>
+             )}
+           </Card>
+         )}
       </div>
     </WizardStep>
   );

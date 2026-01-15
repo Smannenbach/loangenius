@@ -54,11 +54,23 @@ export default function PortalDocumentsTab({ sessionId }) {
   });
 
   const handleFileChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      uploadMutation.mutate(file);
-    }
-  };
+     const file = e.target.files?.[0];
+     if (!file) return;
+
+     const maxSize = 25 * 1024 * 1024; // 25MB
+     if (file.size > maxSize) {
+       alert('File size exceeds 25MB limit');
+       return;
+     }
+
+     const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+     if (!validTypes.includes(file.type)) {
+       alert('Only PDF, JPG, and PNG files are allowed');
+       return;
+     }
+
+     uploadMutation.mutate(file);
+   };
 
   const getStatusIcon = (status) => {
     if (status === 'Approved') return <CheckCircle2 className="h-5 w-5 text-green-600" />;
@@ -82,17 +94,18 @@ export default function PortalDocumentsTab({ sessionId }) {
   const pendingRequirements = allRequirements.filter(r => !['approved', 'rejected'].includes(r.status));
 
   return (
-    <div className="space-y-4">
-      {/* Upload Progress */}
-      <Card className="border-gray-200">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Documents Complete</span>
-            <span className="text-sm font-medium text-gray-900">{completed} of {total}</span>
-          </div>
-          <Progress value={progress} className="h-2" />
-        </CardContent>
-      </Card>
+     <div className="space-y-4">
+       {/* Upload Progress */}
+       <Card className="border-slate-200 bg-gradient-to-r from-blue-50 to-blue-100">
+         <CardContent className="p-4">
+           <div className="flex items-center justify-between mb-3">
+             <span className="text-sm font-semibold text-gray-900">Documents Submitted</span>
+             <span className="text-lg font-bold text-blue-600">{completed}/{total}</span>
+           </div>
+           <Progress value={progress} className="h-2.5" />
+           <p className="text-xs text-gray-600 mt-2">{Math.round(progress)}% complete</p>
+         </CardContent>
+       </Card>
 
       {/* Upload Area */}
       {pendingRequirements.length > 0 && (

@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Card } from '@/components/ui/card';
+import { AlertCircle, TrendingUp } from 'lucide-react';
 import { calculateLoanAmount, calculateLTV } from './dscr-utils';
 import WizardStep from './WizardStep';
 
@@ -97,24 +98,26 @@ export default function Step3Valuation({ data, onChange, onNext, onPrev, loanPur
         )}
 
         {/* Down Payment Slider (Purchase Only) */}
-        {isPurchase && (
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <div className="flex justify-between items-center mb-4">
-              <Label className="font-semibold">Down Payment: {data.downPaymentPercent || 25}%</Label>
-              <span className="text-lg font-bold text-blue-600">
-                ${((data.purchasePrice || 0) * ((data.downPaymentPercent || 25) / 100)).toLocaleString()}
-              </span>
-            </div>
-            <Slider
-              value={[data.downPaymentPercent || 25]}
-              onValueChange={handleSliderChange}
-              min={20}
-              max={40}
-              step={1}
-              className="w-full"
-            />
-          </div>
-        )}
+         {isPurchase && (
+           <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+             <div className="flex justify-between items-center mb-4">
+               <Label className="font-semibold text-gray-900">Down Payment</Label>
+               <div className="text-right">
+                 <div className="text-lg font-bold text-blue-600">{data.downPaymentPercent || 25}%</div>
+                 <div className="text-sm text-gray-600">${((data.purchasePrice || 0) * ((data.downPaymentPercent || 25) / 100)).toLocaleString()}</div>
+               </div>
+             </div>
+             <Slider
+               value={[data.downPaymentPercent || 25]}
+               onValueChange={handleSliderChange}
+               min={20}
+               max={40}
+               step={1}
+               className="w-full"
+             />
+             <p className="text-xs text-gray-600 mt-2">Range: 20% - 40%</p>
+           </div>
+         )}
 
         {/* Loan Amount */}
         <div>
@@ -182,15 +185,27 @@ export default function Step3Valuation({ data, onChange, onNext, onPrev, loanPur
         </div>
 
         {/* LTV Display */}
-        <Card className="p-4 bg-blue-50 border-blue-200">
-          <div className="flex justify-between items-center">
-            <span className="font-semibold text-gray-900">Loan-to-Value (LTV):</span>
-            <span className="text-xl font-bold text-blue-600">{calculateLTVValue().toFixed(2)}%</span>
-          </div>
-          {isCashOut && calculateLTVValue() > 75 && (
-            <p className="text-sm text-orange-600 mt-2">⚠️ LTV exceeds typical DSCR limit of 75%</p>
-          )}
-        </Card>
+         <Card className={`p-4 border-2 ${calculateLTVValue() > 80 ? 'border-red-200 bg-red-50' : calculateLTVValue() > 75 ? 'border-orange-200 bg-orange-50' : 'border-green-200 bg-green-50'}`}>
+           <div className="flex items-center justify-between">
+             <div className="flex items-center gap-2">
+               <TrendingUp className={`h-5 w-5 ${calculateLTVValue() > 80 ? 'text-red-600' : calculateLTVValue() > 75 ? 'text-orange-600' : 'text-green-600'}`} />
+               <span className="font-semibold text-gray-900">Loan-to-Value (LTV)</span>
+             </div>
+             <span className={`text-xl font-bold ${calculateLTVValue() > 80 ? 'text-red-600' : calculateLTVValue() > 75 ? 'text-orange-600' : 'text-green-600'}`}>{calculateLTVValue().toFixed(2)}%</span>
+           </div>
+           {calculateLTVValue() > 80 && (
+             <div className="flex items-start gap-2 mt-2 p-2 bg-white rounded border border-red-200">
+               <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
+               <p className="text-xs text-red-700 font-medium">High LTV - May impact loan qualification</p>
+             </div>
+           )}
+           {isCashOut && calculateLTVValue() > 75 && calculateLTVValue() <= 80 && (
+             <div className="flex items-start gap-2 mt-2 p-2 bg-white rounded border border-orange-200">
+               <AlertCircle className="h-4 w-4 text-orange-600 flex-shrink-0 mt-0.5" />
+               <p className="text-xs text-orange-700 font-medium">LTV exceeds standard DSCR limit (75%)</p>
+             </div>
+           )}
+         </Card>
       </div>
     </WizardStep>
   );

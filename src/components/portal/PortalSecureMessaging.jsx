@@ -76,11 +76,11 @@ export default function PortalSecureMessaging({ sessionId }) {
       </Card>
 
       {/* Messages Container */}
-      <Card className="border-gray-200 flex flex-col" style={{ height: '400px' }}>
-        <CardHeader className="border-b border-gray-200 pb-3">
-          <CardTitle className="text-lg">Messages</CardTitle>
-        </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
+       <Card className="border-gray-200 flex flex-col bg-white" style={{ height: '450px' }}>
+         <CardHeader className="border-b border-gray-200 pb-3 bg-gradient-to-r from-blue-50 to-blue-100">
+           <CardTitle className="text-lg text-gray-900">Conversation</CardTitle>
+         </CardHeader>
+         <CardContent className="flex-1 overflow-y-auto p-4 space-y-3">
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
