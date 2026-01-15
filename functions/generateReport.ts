@@ -15,12 +15,24 @@ Deno.serve(async (req) => {
 
     const { org_id, report_id, filters, format } = await req.json();
 
-    if (!report_id) {
-      return Response.json({ error: 'Missing report_id' }, { status: 400 });
+    if (!report_id || !org_id) {
+      return Response.json({ error: 'Missing report_id or org_id' }, { status: 400 });
     }
 
-    // Get report definition
-    const reports = await base44.asServiceRole.entities.ReportDefinition.filter({ id: report_id });
+    // Verify user belongs to org
+    const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+      user_id: user.email,
+      org_id
+    });
+    if (memberships.length === 0) {
+      return Response.json({ error: 'Unauthorized: not in this organization' }, { status: 403 });
+    }
+
+    // Get report definition with org isolation
+    const reports = await base44.asServiceRole.entities.ReportDefinition.filter({ 
+      id: report_id,
+      org_id 
+    });
     if (!reports.length) {
       return Response.json({ error: 'Report not found' }, { status: 404 });
     }
