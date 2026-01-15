@@ -56,6 +56,7 @@ import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
 import AgentOrchestrator from './pages/AgentOrchestrator';
+import AdminAgents from './pages/AdminAgents';
 import __Layout from './Layout.jsx';
 
 
@@ -118,6 +119,7 @@ export const PAGES = {
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
     "AgentOrchestrator": AgentOrchestrator,
+    "AdminAgents": AdminAgents,
 }
 
 export const pagesConfig = {
