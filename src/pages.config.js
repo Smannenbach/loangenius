@@ -18,6 +18,8 @@ import Settings from './pages/Settings';
 import AIOrchestrator from './pages/AIOrchestrator';
 import LeadIntelligence from './pages/LeadIntelligence';
 import Roadmap from './pages/Roadmap';
+import Assumptions from './pages/Assumptions';
+import BorrowerPortal from './pages/BorrowerPortal';
 import __Layout from './Layout.jsx';
 
 
@@ -42,6 +44,8 @@ export const PAGES = {
     "AIOrchestrator": AIOrchestrator,
     "LeadIntelligence": LeadIntelligence,
     "Roadmap": Roadmap,
+    "Assumptions": Assumptions,
+    "BorrowerPortal": BorrowerPortal,
 }
 
 export const pagesConfig = {

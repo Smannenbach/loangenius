@@ -47,6 +47,7 @@ import {
   Building,
   Mail,
   Rocket,
+  FileText,
 } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
@@ -99,6 +100,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Users', href: '/Users', icon: Users },
     { name: 'Lenders', href: '/Lenders', icon: Building },
     { name: 'Settings', href: '/Settings', icon: Settings },
+    { name: 'Assumptions', href: '/Assumptions', icon: FileText },
   ];
 
   const NavItem = ({ item, collapsed = false }) => {
