@@ -201,7 +201,8 @@ export default function AIAssistant() {
             </div>
           </CardContent>
         </Card>
+         </div>
         </div>
         </ErrorBoundary>
-  );
+        );
 }
