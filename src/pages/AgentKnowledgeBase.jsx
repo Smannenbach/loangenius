@@ -83,18 +83,50 @@ export default function AgentKnowledgeBase() {
             <h1 className="text-3xl font-bold">Agent Knowledge Base</h1>
             <p className="text-gray-600 mt-1">Documents, policies, and reference materials for agent decision-making</p>
           </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button className="bg-gray-300 text-gray-600 cursor-not-allowed" disabled>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Document
-                  <Lock className="h-3 w-3 ml-2" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Coming soon</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Dialog open={isAddDocOpen} onOpenChange={setIsAddDocOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Document
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Knowledge Document</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium">Title</label>
+                  <Input
+                    placeholder="e.g., DSCR Underwriting Guidelines"
+                    value={docTitle}
+                    onChange={(e) => setDocTitle(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Category</label>
+                  <Input
+                    placeholder="e.g., Underwriting, Pricing, Compliance"
+                    value={docCategory}
+                    onChange={(e) => setDocCategory(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Upload File</label>
+                  <div className="border-2 border-dashed rounded-lg p-6 text-center mt-1 cursor-pointer hover:bg-gray-50">
+                    <Upload className="h-6 w-6 mx-auto mb-2 text-gray-400" />
+                    <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsAddDocOpen(false)}>Cancel</Button>
+                  <Button className="bg-blue-600 hover:bg-blue-700">Add Document</Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Stats */}
