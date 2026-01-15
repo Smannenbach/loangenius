@@ -46,6 +46,7 @@ import {
   Plus,
   Building,
   Mail,
+  Rocket,
 } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
