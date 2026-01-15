@@ -49,20 +49,20 @@ export default function Step4Expenses({ data, onChange, onNext, onPrev }) {
         {/* Rental Income */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <Label>Current Lease Rent (monthly)</Label>
+            <Label>Current Lease Rent ($ per month) *</Label>
             <Input
               type="number"
-              placeholder="2800"
+              placeholder="Enter amount"
               value={data.currentLeaseRent || ''}
               onChange={(e) => onChange({ currentLeaseRent: parseFloat(e.target.value) })}
               className="mt-1"
             />
           </div>
           <div>
-            <Label>Market Rent (monthly)</Label>
+            <Label>Market Rent ($ per month)</Label>
             <Input
               type="number"
-              placeholder="2900"
+              placeholder="Enter amount"
               value={data.marketRent || ''}
               onChange={(e) => onChange({ marketRent: parseFloat(e.target.value) })}
               className="mt-1"
@@ -72,7 +72,7 @@ export default function Step4Expenses({ data, onChange, onNext, onPrev }) {
             <Label>Rent Used for DSCR</Label>
             <Input
               type="number"
-              placeholder="Auto"
+              placeholder="Auto-calculated"
               value={data.monthlyRent || ''}
               onChange={(e) => onChange({ monthlyRent: parseFloat(e.target.value) })}
               className="mt-1"
@@ -88,17 +88,17 @@ export default function Step4Expenses({ data, onChange, onNext, onPrev }) {
             <Label>Annual Property Taxes *</Label>
             <Input
               type="number"
-              placeholder="4200"
+              placeholder="Enter annual amount"
               value={data.propertyTaxesAnnual || ''}
               onChange={(e) => onChange({ propertyTaxesAnnual: parseFloat(e.target.value) })}
               className="mt-1"
             />
           </div>
           <div>
-            <Label>Annual Insurance *</Label>
+            <Label>Annual Home Insurance *</Label>
             <Input
               type="number"
-              placeholder="1800"
+              placeholder="Enter annual amount"
               value={data.insuranceAnnual || ''}
               onChange={(e) => onChange({ insuranceAnnual: parseFloat(e.target.value) })}
               className="mt-1"
@@ -108,7 +108,7 @@ export default function Step4Expenses({ data, onChange, onNext, onPrev }) {
             <Label>Annual Flood Insurance</Label>
             <Input
               type="number"
-              placeholder="0"
+              placeholder="Enter annual amount or 0"
               value={data.floodInsuranceAnnual || ''}
               onChange={(e) => onChange({ floodInsuranceAnnual: parseFloat(e.target.value) })}
               className="mt-1"
@@ -118,7 +118,7 @@ export default function Step4Expenses({ data, onChange, onNext, onPrev }) {
             <Label>Monthly HOA Dues</Label>
             <Input
               type="number"
-              placeholder="0"
+              placeholder="Enter monthly amount or 0"
               value={data.hoaDuesMonthly || ''}
               onChange={(e) => onChange({ hoaDuesMonthly: parseFloat(e.target.value) })}
               className="mt-1"

@@ -55,7 +55,7 @@ export default function Step2Property({ data, onChange, onNext, onPrev, isBlanke
           <div>
             <Label>Street Address *</Label>
             <Input
-              placeholder="123 Main St"
+              placeholder="Enter street address"
               value={currentProperty.street || ''}
               onChange={(e) => handlePropertyChange('street', e.target.value)}
               className="mt-1"
@@ -64,7 +64,7 @@ export default function Step2Property({ data, onChange, onNext, onPrev, isBlanke
           <div>
             <Label>Unit/Apt</Label>
             <Input
-              placeholder="Suite 100"
+              placeholder="Enter unit or apartment number"
               value={currentProperty.unit || ''}
               onChange={(e) => handlePropertyChange('unit', e.target.value)}
               className="mt-1"
@@ -73,7 +73,7 @@ export default function Step2Property({ data, onChange, onNext, onPrev, isBlanke
           <div>
             <Label>City *</Label>
             <Input
-              placeholder="Denver"
+              placeholder="Enter city"
               value={currentProperty.city || ''}
               onChange={(e) => handlePropertyChange('city', e.target.value)}
               className="mt-1"
@@ -91,7 +91,7 @@ export default function Step2Property({ data, onChange, onNext, onPrev, isBlanke
           <div>
             <Label>ZIP Code *</Label>
             <Input
-              placeholder="80202"
+              placeholder="Enter 5-digit ZIP code"
               value={currentProperty.zip || ''}
               onChange={(e) => handlePropertyChange('zip', e.target.value)}
               className="mt-1"
@@ -99,9 +99,9 @@ export default function Step2Property({ data, onChange, onNext, onPrev, isBlanke
             />
           </div>
           <div>
-            <Label>Property Type</Label>
-            <Select value={currentProperty.propertyType || ''} onValueChange={(v) => handlePropertyChange('propertyType', v)}>
-              <SelectTrigger className="mt-1"><SelectValue placeholder="Select..." /></SelectTrigger>
+            <Label>Property Type *</Label>
+            <Select value={currentProperty.propertyType || 'SFR'} onValueChange={(v) => handlePropertyChange('propertyType', v)}>
+              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {PROPERTY_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
               </SelectContent>
@@ -111,7 +111,7 @@ export default function Step2Property({ data, onChange, onNext, onPrev, isBlanke
             <Label>Year Built</Label>
             <Input
               type="number"
-              placeholder="2020"
+              placeholder="Enter year built (optional)"
               value={currentProperty.yearBuilt || ''}
               onChange={(e) => handlePropertyChange('yearBuilt', e.target.value)}
               className="mt-1"
@@ -121,7 +121,7 @@ export default function Step2Property({ data, onChange, onNext, onPrev, isBlanke
             <Label>Square Feet</Label>
             <Input
               type="number"
-              placeholder="2500"
+              placeholder="Enter square footage (optional)"
               value={currentProperty.squareFeet || ''}
               onChange={(e) => handlePropertyChange('squareFeet', e.target.value)}
               className="mt-1"
