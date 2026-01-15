@@ -39,12 +39,16 @@ export default function AIAssistant() {
         deal_id: dealId,
         conversation_context: messages
       }),
+    onMutate: (message) => {
+      setMessages(prev => [...prev, { role: 'user', content: message }]);
+      setInput('');
+    },
     onSuccess: (data) => {
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: data.data.response
       }]);
-      setInput('');
+      toast.success('Response received');
     },
     onError: (error) => {
       setMessages(prev => [...prev, {
@@ -52,8 +56,10 @@ export default function AIAssistant() {
         content: '❌ Sorry, I encountered an error processing your request. Please try again.',
         isError: true
       }]);
+      toast.error(error.message || 'Failed to get response');
     },
-    retry: 1
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000)
   });
 
   useEffect(() => {
