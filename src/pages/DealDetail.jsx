@@ -133,11 +133,12 @@ export default function DealDetail() {
     <div className="p-6 lg:p-8">
       {/* Header */}
       <div className="mb-6">
-        <Link to={createPageUrl('Deals')}>
-          <Button variant="ghost" className="mb-4 text-gray-600">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Deals
-          </Button>
+        <Link 
+          to={createPageUrl('Deals')}
+          className="inline-flex items-center text-gray-600 hover:text-gray-800 font-medium mb-4 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Deals
         </Link>
         
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
