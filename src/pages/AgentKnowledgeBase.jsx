@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, Search, FileText, CheckCircle, Plus, Trash2, Eye, Download } from 'lucide-react';
+import { Upload, Search, FileText, CheckCircle, Plus, Trash2, Eye, Download, Lock } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const knowledgeArticles = [
   {
@@ -78,10 +79,18 @@ export default function AgentKnowledgeBase() {
             <h1 className="text-3xl font-bold">Agent Knowledge Base</h1>
             <p className="text-gray-600 mt-1">Documents, policies, and reference materials for agent decision-making</p>
           </div>
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Document
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button className="bg-gray-300 text-gray-600 cursor-not-allowed" disabled>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Document
+                  <Lock className="h-3 w-3 ml-2" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Coming soon</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         {/* Stats */}
@@ -196,9 +205,17 @@ export default function AgentKnowledgeBase() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>Uploaded Documents</span>
-                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                    <Upload className="h-4 w-4 mr-2" /> Upload
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="sm" className="bg-gray-300 text-gray-600 cursor-not-allowed" disabled>
+                          <Upload className="h-4 w-4 mr-2" /> Upload
+                          <Lock className="h-3 w-3 ml-1" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Coming soon</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </CardTitle>
               </CardHeader>
               <CardContent>

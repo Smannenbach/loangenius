@@ -17,8 +17,10 @@ import {
   Link as LinkIcon,
   Check,
   AlertCircle,
-  Trash2
+  Trash2,
+  Lock
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const INTEGRATION_CATEGORIES = {
   'AI Models': [
@@ -212,14 +214,21 @@ export default function AdminIntegrations() {
                               }
                             />
                           )}
-                          <Button
-                            size="sm"
-                            className="w-full bg-blue-600 hover:bg-blue-700"
-                            onClick={() => handleConnect(integration.name, integration.requiresApiKey)}
-                            disabled={connectMutation.isPending}
-                          >
-                            {integration.requiresApiKey ? 'Connect' : 'Authorize'}
-                          </Button>
+                          <TooltipProvider>
+                             <Tooltip>
+                               <TooltipTrigger asChild>
+                                 <Button
+                                   size="sm"
+                                   className="w-full bg-gray-300 text-gray-600 cursor-not-allowed"
+                                   disabled
+                                 >
+                                   {integration.requiresApiKey ? 'Connect' : 'Authorize'}
+                                   <Lock className="h-3 w-3 ml-2" />
+                                 </Button>
+                               </TooltipTrigger>
+                               <TooltipContent>Coming soon - use dashboard integrations instead</TooltipContent>
+                             </Tooltip>
+                           </TooltipProvider>
                         </div>
                       )}
                     </CardContent>
