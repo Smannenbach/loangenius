@@ -654,8 +654,8 @@ export default function Leads() {
               </Button>
             </div>
           </DialogContent>
-        </Dialog>
-      </div>
+          </Dialog>
+          </div>
 
       {/* KPI Cards - Rich metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
