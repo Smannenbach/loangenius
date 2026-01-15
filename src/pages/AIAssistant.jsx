@@ -87,14 +87,14 @@ export default function AIAssistant() {
        <div className="min-h-screen bg-gray-50 p-4 md:p-6">
          <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-         <div>
-           <div className="flex items-center gap-2 flex-wrap">
-             <Sparkles className="h-6 w-6 text-blue-600" />
-             <h1 className="text-2xl md:text-3xl font-bold">LoanGenius AI Assistant</h1>
-           </div>
-           <p className="text-gray-600 mt-1 text-sm md:text-base">Get instant answers about loan origination, documents, and compliance</p>
-           {dealId && <Badge className="mt-3">Deal: {dealId}</Badge>}
-         </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Sparkles className="h-6 w-6 text-blue-600" aria-hidden="true" />
+              <h1 className="text-2xl md:text-3xl font-bold">LoanGenius AI Assistant</h1>
+            </div>
+            <p className="text-gray-600 mt-1 text-sm md:text-base">Get instant answers about loan origination, documents, and compliance</p>
+            {dealId && <Badge className="mt-3">Deal: {dealId}</Badge>}
+          </div>
 
         {/* AI Status Alert */}
         {!statusLoading && aiStatus?.data?.status === 'degraded' && (
