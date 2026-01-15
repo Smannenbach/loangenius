@@ -35,6 +35,8 @@ import AdminLoginHistory from './pages/AdminLoginHistory';
 import ReportViewer from './pages/ReportViewer';
 import ReportBuilder from './pages/ReportBuilder';
 import ExecutiveDashboard from './pages/ExecutiveDashboard';
+import AdminOrganization from './pages/AdminOrganization';
+import SuperAdmin from './pages/SuperAdmin';
 import __Layout from './Layout.jsx';
 
 
@@ -76,6 +78,8 @@ export const PAGES = {
     "ReportViewer": ReportViewer,
     "ReportBuilder": ReportBuilder,
     "ExecutiveDashboard": ExecutiveDashboard,
+    "AdminOrganization": AdminOrganization,
+    "SuperAdmin": SuperAdmin,
 }
 
 export const pagesConfig = {
