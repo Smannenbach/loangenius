@@ -57,6 +57,8 @@ import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
 import AgentOrchestrator from './pages/AgentOrchestrator';
 import AdminAgents from './pages/AdminAgents';
+import AgentExecutionViewer from './pages/AgentExecutionViewer';
+import AgentPerformanceDashboard from './pages/AgentPerformanceDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -120,6 +122,8 @@ export const PAGES = {
     "ValidationDashboard": ValidationDashboard,
     "AgentOrchestrator": AgentOrchestrator,
     "AdminAgents": AdminAgents,
+    "AgentExecutionViewer": AgentExecutionViewer,
+    "AgentPerformanceDashboard": AgentPerformanceDashboard,
 }
 
 export const pagesConfig = {

@@ -89,6 +89,8 @@ export default function Layout({ children, currentPageName }) {
   const toolsNav = [
       { name: 'Quote Generator', href: '/QuoteGenerator', icon: FileOutput },
       { name: 'AI Assistant', href: '/AIAssistant', icon: Bot },
+      { name: 'Agent Execution', href: '/AgentExecutionViewer', icon: Zap },
+      { name: 'Agent Performance', href: '/AgentPerformanceDashboard', icon: TrendingUp },
       { name: 'Conversations', href: '/Conversations', icon: Mail },
     ];
 
