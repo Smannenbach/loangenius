@@ -440,9 +440,10 @@ export default function LoansPage() {
           }}
           isPending={updateLoanMutation.isPending}
         />
-        )}
-        </div>
-        </ErrorBoundary>
+      )}
+       </div>
+       </div>
+      </ErrorBoundary>
       );
       }
 
