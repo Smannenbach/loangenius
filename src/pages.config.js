@@ -29,6 +29,7 @@ import Tasks from './pages/Tasks';
 import Underwriting from './pages/Underwriting';
 import Users from './pages/Users';
 import LoanApplication from './pages/LoanApplication';
+import AdminWebhooks from './pages/AdminWebhooks';
 import __Layout from './Layout.jsx';
 
 
@@ -64,6 +65,7 @@ export const PAGES = {
     "Underwriting": Underwriting,
     "Users": Users,
     "LoanApplication": LoanApplication,
+    "AdminWebhooks": AdminWebhooks,
 }
 
 export const pagesConfig = {
