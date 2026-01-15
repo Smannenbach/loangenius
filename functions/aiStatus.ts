@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-Deno.serve(async (req) => {
+export default Deno.serve(async (req) => {
   if (req.method !== 'GET') {
     return Response.json({ error: 'Method not allowed' }, { status: 405 });
   }
