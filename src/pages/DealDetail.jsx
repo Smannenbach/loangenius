@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
@@ -29,6 +29,9 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
+  Send,
+  Eye,
+  RotateCcw,
 } from 'lucide-react';
 import FeesTab from '@/components/deal-detail/FeesTab';
 import DealCalculator from '@/components/deal-wizard/DealCalculator';
@@ -37,6 +40,8 @@ import DealStatusUpdate from '@/components/deal-detail/DealStatusUpdate';
 export default function DealDetail() {
   const urlParams = new URLSearchParams(window.location.search);
   const dealId = urlParams.get('id');
+  const [showPortalInviteModal, setShowPortalInviteModal] = useState(false);
+  const [selectedBorrower, setSelectedBorrower] = useState(null);
 
   const { data: deal, isLoading: dealLoading } = useQuery({
     queryKey: ['deal', dealId],
@@ -95,6 +100,18 @@ export default function DealDetail() {
   });
 
   const property = properties[0];
+
+  const sendPortalInviteMutation = useMutation({
+    mutationFn: async (borrowerId) => {
+      const response = await base44.functions.invoke('portalMagicLink', {
+        action: 'sendInvite',
+        org_id: deal?.org_id,
+        deal_id: dealId,
+        borrower_id: borrowerId,
+      });
+      return response.data;
+    },
+  });
 
   const getStatusColor = (status) => {
     const colors = {
