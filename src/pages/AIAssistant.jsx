@@ -215,9 +215,9 @@ export default function AIAssistant() {
                   variant="outline"
                   className="justify-start h-auto py-2 px-3 text-left text-xs md:text-sm"
                   onClick={() => {
-                    setInput(q);
-                    setInputError('');
-                    setTimeout(() => handleSend(), 0);
+                    if (!chatMutation.isPending && aiStatus?.data?.status !== 'degraded') {
+                      chatMutation.mutate(q);
+                    }
                   }}
                   disabled={chatMutation.isPending || aiStatus?.data?.status === 'degraded'}
                   aria-label={`Ask: ${q}`}
