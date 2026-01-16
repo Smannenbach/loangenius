@@ -37,18 +37,28 @@ Deno.serve(async (req) => {
       ? reportData.reduce((sum, r) => sum + r.days_to_close, 0) / reportData.length
       : 0;
 
+    // Get org_id from membership
+    let orgId = 'default';
+    try {
+      const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+        user_id: user.email
+      });
+      if (memberships.length > 0) {
+        orgId = memberships[0].org_id;
+      }
+    } catch (e) {
+      console.log('Could not get org membership:', e.message);
+    }
+
     // Create report
     const report = await base44.asServiceRole.entities.ReportRun.create({
-      org_id: user.org_id || 'default',
-      report_type: 'PRODUCTION',
-      report_name: `Production Report - ${new Date().toLocaleDateString()}`,
-      filters_json: { period_days: daysAgo },
-      data_json: reportData,
-      total_rows: reportData.length,
-      total_value: totalProduction,
-      metadata_json: { avg_days_to_close: Math.round(avgDaysToClose * 10) / 10 },
-      generated_by: user.email,
-      generated_at: new Date().toISOString()
+      org_id: orgId,
+      report_id: `production_${Date.now()}`,
+      run_type: 'MANUAL',
+      filters_used: { period_days: daysAgo },
+      row_count: reportData.length,
+      status: 'COMPLETED',
+      run_by: user.email
     });
 
     return Response.json({
