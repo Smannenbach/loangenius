@@ -63,6 +63,7 @@ import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
 import MISMOExportProfiles from './pages/MISMOExportProfiles';
+import TestingHub from './pages/TestingHub';
 import __Layout from './Layout.jsx';
 
 
@@ -132,6 +133,7 @@ export const PAGES = {
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
     "MISMOExportProfiles": MISMOExportProfiles,
+    "TestingHub": TestingHub,
 }
 
 export const pagesConfig = {

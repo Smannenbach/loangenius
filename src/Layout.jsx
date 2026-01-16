@@ -101,6 +101,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Lenders', href: '/Lenders', icon: Building },
     { name: 'Reports', href: '/Reports', icon: FileText },
     { name: 'MISMO Profiles', href: '/MISMOExportProfiles', icon: FileOutput },
+    { name: 'Testing Hub', href: '/TestingHub', icon: CheckCircle },
     { name: 'Integrations', href: '/AdminIntegrations', icon: Settings },
     { name: 'Settings', href: '/Settings', icon: Settings },
   ];
