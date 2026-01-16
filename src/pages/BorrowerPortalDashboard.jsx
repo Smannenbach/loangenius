@@ -81,7 +81,22 @@ export default function BorrowerPortalDashboard() {
     enabled: !!user?.email
   });
 
-  // Get document requirements
+  // Get unread notifications
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['borrowerNotifications', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return await base44.entities.Notification.filter({ 
+        recipient_email: user.email
+      });
+    },
+    enabled: !!user?.email
+  });
+
+  // Define activeDeal BEFORE it's used in documentRequirements query
+  const activeDeal = deals[0];
+
+  // Get document requirements - must come AFTER activeDeal is defined
   const { data: documentRequirements = [] } = useQuery({
     queryKey: ['borrowerDocRequirements', activeDeal?.id],
     queryFn: async () => {
@@ -96,20 +111,6 @@ export default function BorrowerPortalDashboard() {
     },
     enabled: !!activeDeal?.id
   });
-
-  // Get unread notifications
-  const { data: notifications = [] } = useQuery({
-    queryKey: ['borrowerNotifications', user?.email],
-    queryFn: async () => {
-      if (!user?.email) return [];
-      return await base44.entities.Notification.filter({ 
-        recipient_email: user.email
-      });
-    },
-    enabled: !!user?.email
-  });
-
-  const activeDeal = deals[0];
   const pendingTasks = tasks.filter(t => t.status === 'pending');
   const latestPreQual = preQuals && preQuals.length > 0 ? preQuals[0] : null;
 
