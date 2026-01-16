@@ -32,6 +32,7 @@ import {
 import DealCalculator from '../components/deal-wizard/DealCalculator';
 import BlanketAllocationPanel from '../components/deal-wizard/BlanketAllocationPanel';
 import BorrowerSelector from '../components/deal-wizard/BorrowerSelector';
+import { toast } from 'sonner';
 
 export default function NewDeal() {
   const navigate = useNavigate();
@@ -108,8 +109,11 @@ export default function NewDeal() {
         }
       }
 
-      if (!borrowers.length || !properties.length) {
-        throw new Error('Please add at least one borrower and property');
+      if (!borrowers.length) {
+        throw new Error('Please add at least one borrower');
+      }
+      if (!properties.length) {
+        throw new Error('Please add at least one property');
       }
 
       // Create deal directly (simpler approach that works without backend function)
@@ -153,10 +157,12 @@ export default function NewDeal() {
     },
     onSuccess: (deal) => {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
+      toast.success('Deal created successfully');
       navigate(createPageUrl(`DealDetail?id=${deal.id}`));
     },
     onError: (error) => {
       console.error('Error creating deal:', error.message);
+      toast.error('Error creating deal: ' + error.message);
     },
   });
 
