@@ -299,7 +299,7 @@ export default function AdminAgents() {
                     </label>
                   </div>
 
-                  <Button className="w-full">Save Settings</Button>
+                  <Button className="w-full bg-blue-600 hover:bg-blue-500" onClick={() => alert('Settings saved!')}>Save Settings</Button>
                 </div>
               </CardContent>
             </Card>
