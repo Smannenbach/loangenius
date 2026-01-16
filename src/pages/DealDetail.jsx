@@ -268,6 +268,7 @@ export default function DealDetail() {
           <TabsTrigger value="conditions">Conditions ({conditions.length})</TabsTrigger>
           <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
+          <TabsTrigger value="portal">Portal</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
