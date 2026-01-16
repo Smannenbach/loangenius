@@ -1,144 +1,191 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Download, Settings } from 'lucide-react';
+import { BarChart3, Download, Filter, TrendingUp, DollarSign, Users, FileText, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function ReportViewer() {
-  const [viewMode, setViewMode] = useState('chart');
-  const [filters, setFilters] = useState({});
-  const queryClient = useQueryClient();
-  
-  const reportId = new URLSearchParams(window.location.search).get('id');
+  const urlParams = new URLSearchParams(window.location.search);
+  const reportId = urlParams.get('id');
 
-  const { data: report } = useQuery({
+  const { data: report, isLoading: reportLoading } = useQuery({
     queryKey: ['report', reportId],
-    queryFn: () => base44.entities.ReportDefinition.filter({ id: reportId }).then(r => r[0])
+    queryFn: async () => {
+      try {
+        const reports = await base44.entities.ReportDefinition.filter({ id: reportId });
+        return reports[0];
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!reportId,
   });
 
-  const { data: reportData, isLoading } = useQuery({
-    queryKey: ['reportData', reportId, filters],
-    queryFn: () => base44.functions.invoke('generateReport', {
-      org_id: 'default',
-      report_id: reportId,
-      filters
-    }).then(r => r.data),
-    enabled: !!reportId
+  const { data: reportData, isLoading: dataLoading } = useQuery({
+    queryKey: ['reportData', reportId],
+    queryFn: async () => {
+      if (!report) return [];
+      
+      // Fetch data based on report entity type
+      const entity = report.query_config?.base_entity || 'Deal';
+      try {
+        switch (entity) {
+          case 'Deal':
+            return await base44.entities.Deal.list();
+          case 'Borrower':
+            return await base44.entities.Borrower.list();
+          case 'Property':
+            return await base44.entities.Property.list();
+          case 'Document':
+            return await base44.entities.Document.list();
+          default:
+            return [];
+        }
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!report,
   });
 
-  if (isLoading) return <div className="p-6">Loading report...</div>;
+  const handleExport = () => {
+    if (!reportData || reportData.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
 
-  return (
-    <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">{report?.name}</h1>
-          <p className="text-gray-600">{report?.description}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Export PDF
-          </Button>
-          <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Export CSV
-          </Button>
-        </div>
+    const columns = report?.columns || ['id', 'created_date'];
+    const csvContent = [
+      columns.join(','),
+      ...reportData.map(row => 
+        columns.map(col => row[col] || '').join(',')
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${report?.name || 'report'}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Report exported to CSV');
+  };
+
+  if (reportLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
+    );
+  }
 
-      {/* View Toggle */}
-      <div className="flex gap-2">
-        <Button
-          variant={viewMode === 'chart' ? 'default' : 'outline'}
-          onClick={() => setViewMode('chart')}
-        >
-          Chart View
-        </Button>
-        <Button
-          variant={viewMode === 'table' ? 'default' : 'outline'}
-          onClick={() => setViewMode('table')}
-        >
-          Table View
-        </Button>
-      </div>
-
-      {/* Chart View */}
-      {viewMode === 'chart' && reportData && (
+  if (!report) {
+    return (
+      <div className="p-6">
         <Card>
-          <CardContent className="pt-6 h-96">
-            <ResponsiveContainer width="100%" height="100%">
-              {report?.report_type === 'PIPELINE' ? (
-                <BarChart data={reportData}>
-                  <CartesianGrid />
-                  <XAxis dataKey="stage" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="loan_amount" fill="#3b82f6" />
-                </BarChart>
-              ) : report?.report_type === 'PRODUCTION' ? (
-                <LineChart data={reportData}>
-                  <CartesianGrid />
-                  <XAxis dataKey="funded_date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="loan_amount" stroke="#3b82f6" />
-                </LineChart>
-              ) : (
-                <BarChart data={reportData}>
-                  <CartesianGrid />
-                  <XAxis dataKey="user_name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="funded_volume" fill="#10b981" />
-                </BarChart>
-              )}
-            </ResponsiveContainer>
+          <CardContent className="py-12 text-center">
+            <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+            <p className="text-gray-500">Report not found</p>
           </CardContent>
         </Card>
-      )}
+      </div>
+    );
+  }
 
-      {/* Table View */}
-      {viewMode === 'table' && reportData && (
+  return (
+    <div className="p-6 lg:p-8">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <BarChart3 className="h-8 w-8 text-blue-600" />
+            {report.name}
+          </h1>
+          <p className="text-gray-500 mt-1">{report.description}</p>
+        </div>
+        <Button onClick={handleExport} className="gap-2">
+          <Download className="h-4 w-4" />
+          Export CSV
+        </Button>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Total Records</p>
+                <p className="text-2xl font-bold">{reportData?.length || 0}</p>
+              </div>
+              <FileText className="h-8 w-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Report Type</p>
+                <Badge>{report.report_type}</Badge>
+              </div>
+              <BarChart3 className="h-8 w-8 text-purple-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Data Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Report Data</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {dataLoading ? (
+            <div className="text-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+            </div>
+          ) : reportData?.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+              <p>No data available</p>
+            </div>
+          ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="border-b">
+              <table className="w-full">
+                <thead className="bg-gray-50">
                   <tr>
-                    {report?.columns?.map(col => (
-                      <th key={col.key} className="text-left py-3 px-4 font-medium">
-                        {col.label}
+                    {(report.columns || ['id', 'created_date']).map(col => (
+                      <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
+                        {col.replace(/_/g, ' ')}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody>
-                  {reportData.map((row, idx) => (
-                    <tr key={idx} className="border-b hover:bg-slate-50">
-                      {report?.columns?.map(col => (
-                        <td key={col.key} className="py-3 px-4">
-                          {typeof row[col.key] === 'number' 
-                            ? row[col.key].toLocaleString() 
-                            : String(row[col.key])}
+                <tbody className="divide-y">
+                  {reportData?.slice(0, 50).map((row, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50">
+                      {(report.columns || ['id', 'created_date']).map(col => (
+                        <td key={col} className="px-4 py-3 text-sm">
+                          {typeof row[col] === 'object' ? JSON.stringify(row[col]) : (row[col]?.toString() || '—')}
                         </td>
                       ))}
                     </tr>
                   ))}
                 </tbody>
               </table>
+              {reportData?.length > 50 && (
+                <p className="text-sm text-gray-500 p-4 text-center">
+                  Showing first 50 of {reportData.length} records. Export to see all.
+                </p>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="text-sm text-gray-500">
-        {reportData?.length} rows returned
-      </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

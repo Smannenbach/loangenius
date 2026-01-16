@@ -252,7 +252,7 @@ export default function BorrowerPortalDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {latestPreQual ? (
+                  {preQuals && preQuals.length > 0 && latestPreQual ? (
                     <div className="space-y-4">
                       <div className="flex items-center gap-3">
                         {latestPreQual.status === 'passed' && (
