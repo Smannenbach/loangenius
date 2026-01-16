@@ -78,15 +78,22 @@ export default function Step9Declarations({ data, onChange, onNext, onPrev, load
 
       {/* Navigation */}
       <div className="flex justify-between pt-4">
-        <Button variant="outline" onClick={onPrev}>
+        <Button variant="outline" onClick={onPrev} disabled={loading}>
           ← Previous
         </Button>
         <Button 
           onClick={onNext}
-          disabled={!allAnswered}
-          className="bg-blue-600 hover:bg-blue-700"
+          disabled={!allAnswered || loading}
+          className="bg-green-600 hover:bg-green-700 gap-2"
         >
-          Next →
+          {loading ? (
+            'Submitting Application...'
+          ) : (
+            <>
+              <Check className="h-5 w-5" />
+              Submit Application
+            </>
+          )}
         </Button>
       </div>
     </div>
