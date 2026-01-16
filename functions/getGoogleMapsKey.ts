@@ -14,8 +14,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get API key from environment
-    const key = Deno.env.get('GOOLGE_Maps_Platform_API_Key') || Deno.env.get('Google_Maps_Platform_API_Key');
+    // Get API key from environment (checking multiple possible spellings)
+    const key = Deno.env.get('Goolge_Maps_Platform_API_Key') || 
+                Deno.env.get('Google_Maps_Platform_API_Key') ||
+                Deno.env.get('GOOGLE_MAPS_API_KEY');
     
     if (!key) {
       return Response.json({ error: 'Google Maps API key not configured' }, { status: 500 });
