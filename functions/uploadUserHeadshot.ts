@@ -12,16 +12,45 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const formData = await req.formData();
-    const file = formData.get('file');
+    // Handle both FormData and JSON payloads
+    const contentType = req.headers.get('content-type') || '';
+    let file;
+    
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await req.formData();
+      file = formData.get('file');
+    } else {
+      // Handle raw file upload or base64
+      const body = await req.json().catch(() => null);
+      if (body?.file) {
+        file = body.file;
+      }
+    }
 
     if (!file) {
       return Response.json({ error: 'No file provided' }, { status: 400 });
     }
 
+    // Convert file to array buffer if it's a File object
+    let fileData;
+    if (file instanceof File || file.arrayBuffer) {
+      fileData = await file.arrayBuffer();
+    } else if (typeof file === 'string' && file.startsWith('data:')) {
+      // Handle base64 data URL
+      const base64Data = file.split(',')[1];
+      const binaryString = atob(base64Data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      fileData = bytes.buffer;
+    } else {
+      fileData = file;
+    }
+
     // Upload file using Base44 integration
     const { file_url } = await base44.integrations.Core.UploadFile({
-      file: await file.arrayBuffer(),
+      file: fileData,
     });
 
     // Update user record
