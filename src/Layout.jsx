@@ -95,6 +95,7 @@ export default function Layout({ children, currentPageName }) {
       { name: 'Quote Generator', href: '/QuoteGenerator', icon: FileOutput },
       { name: 'AI Hub', href: '/AIAssistant', icon: Bot },
       { name: 'Conversations', href: '/Conversations', icon: MessageSquare },
+      { name: 'Email Sequences', href: '/EmailSequences', icon: Mail },
     ];
 
   const adminNav = [
