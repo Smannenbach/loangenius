@@ -67,13 +67,25 @@ export default function Lenders() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: lenders = [] } = useQuery({
-    queryKey: ['lenders', user?.org_id],
+  // Get user's org membership
+  const { data: memberships = [] } = useQuery({
+    queryKey: ['userMembership', user?.email],
     queryFn: async () => {
-      if (!user?.org_id) return [];
-      return await base44.entities.Contact.filter({ org_id: user.org_id, is_lender: true });
+      if (!user?.email) return [];
+      return await base44.entities.OrgMembership.filter({ user_id: user.email });
     },
-    enabled: !!user?.org_id,
+    enabled: !!user?.email,
+  });
+
+  const orgId = memberships[0]?.org_id || user?.org_id;
+
+  const { data: lenders = [] } = useQuery({
+    queryKey: ['lenders', orgId],
+    queryFn: async () => {
+      if (!orgId) return [];
+      return await base44.entities.Contact.filter({ org_id: orgId, is_lender: true });
+    },
+    enabled: !!orgId,
   });
 
   const addLenderMutation = useMutation({
