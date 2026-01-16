@@ -89,6 +89,8 @@ export default function Pipeline() {
     { id: 'approved', name: 'Approved', color: 'bg-indigo-500' },
     { id: 'closing', name: 'Closing', color: 'bg-teal-500' },
     { id: 'funded', name: 'Funded', color: 'bg-green-500' },
+    { id: 'denied', name: 'Denied', color: 'bg-red-500' },
+    { id: 'withdrawn', name: 'Withdrawn', color: 'bg-orange-500' },
   ];
 
   const getDealsByStage = (stageId) => {
@@ -222,7 +224,7 @@ export default function Pipeline() {
                           </DropdownMenu>
                         </div>
                         
-                        <Link to={createPageUrl(`DealDetail?id=${deal.id}`)}>
+                        <Link to={createPageUrl(`DealDetail?id=${deal.id}`)} className="block">
                           <Badge className="mb-3 text-xs bg-blue-100 text-blue-700">
                             {deal.loan_product?.replace(/_/g, ' ') || 'DSCR'}
                           </Badge>
@@ -232,6 +234,12 @@ export default function Pipeline() {
                               <DollarSign className="h-4 w-4 text-gray-400" />
                               <span>${(deal.loan_amount || 0).toLocaleString()}</span>
                             </div>
+                            {deal.loan_purpose && (
+                              <div className="flex items-center gap-2 text-gray-600">
+                                <Building2 className="h-4 w-4 text-gray-400" />
+                                <span>{deal.loan_purpose}</span>
+                              </div>
+                            )}
                             {deal.estimated_close_date && (
                               <div className="flex items-center gap-2 text-gray-600">
                                 <Calendar className="h-4 w-4 text-gray-400" />
