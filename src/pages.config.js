@@ -64,6 +64,7 @@ import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
 import MISMOExportProfiles from './pages/MISMOExportProfiles';
 import TestingHub from './pages/TestingHub';
+import BorrowerOnboarding from './pages/BorrowerOnboarding';
 import __Layout from './Layout.jsx';
 
 
@@ -134,6 +135,7 @@ export const PAGES = {
     "ValidationDashboard": ValidationDashboard,
     "MISMOExportProfiles": MISMOExportProfiles,
     "TestingHub": TestingHub,
+    "BorrowerOnboarding": BorrowerOnboarding,
 }
 
 export const pagesConfig = {
