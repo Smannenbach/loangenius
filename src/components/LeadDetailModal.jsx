@@ -309,7 +309,7 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <h3 className="font-medium flex items-center gap-2 mb-3">
                   <Calculator className="h-4 w-4 text-blue-600" />
-                  DSCR Quick Calculator
+                  Quick DSCR Calculator
                 </h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
@@ -317,7 +317,7 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
                     <p className="font-semibold">${lead.loan_amount ? lead.loan_amount.toLocaleString() : 'TBD'}</p>
                   </div>
                   <div>
-                    <p className="text-gray-600">Est. Property Value</p>
+                    <p className="text-gray-600">Property Value</p>
                     <p className="font-semibold">${lead.estimated_value ? parseFloat(lead.estimated_value).toLocaleString() : 'TBD'}</p>
                   </div>
                   <div>
@@ -325,13 +325,29 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
                     <p className="font-semibold">${lead.monthly_rental_income ? parseFloat(lead.monthly_rental_income).toLocaleString() : 'TBD'}</p>
                   </div>
                   <div>
-                    <p className="text-gray-600">LTV</p>
+                    <p className="text-gray-600">LTV Ratio</p>
                     <p className="font-semibold">
                       {lead.loan_amount && lead.estimated_value 
                         ? ((lead.loan_amount / lead.estimated_value) * 100).toFixed(1) + '%' 
                         : 'TBD'}
                     </p>
                   </div>
+                  {lead.loan_amount && lead.monthly_rental_income && (
+                    <>
+                      <div>
+                        <p className="text-gray-600">Est. Monthly P&I</p>
+                        <p className="font-semibold">
+                          ${((lead.loan_amount * 0.07 / 12) / (1 - Math.pow(1 + 0.07/12, -360))).toFixed(0)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Est. DSCR</p>
+                        <p className="font-semibold">
+                          {(lead.monthly_rental_income / ((lead.loan_amount * 0.07 / 12) / (1 - Math.pow(1 + 0.07/12, -360)))).toFixed(2)}
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
               <Button 
