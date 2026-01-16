@@ -51,7 +51,7 @@ import {
         Sparkles,
         Zap,
         CheckCircle,
-        } from 'lucide-react';
+} from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -92,6 +92,7 @@ export default function Layout({ children, currentPageName }) {
 
   const toolsNav = [
       { name: 'Quote Generator', href: '/QuoteGenerator', icon: FileOutput },
+      { name: 'Calculator', href: '/Calculator', icon: Calculator },
       { name: 'AI Assistant', href: '/AIAssistant', icon: Bot },
       { name: 'Agent Execution', href: '/AgentExecutionViewer', icon: Zap },
       { name: 'Agent Performance', href: '/AgentPerformanceDashboard', icon: TrendingUp },
