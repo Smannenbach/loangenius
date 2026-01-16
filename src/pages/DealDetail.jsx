@@ -254,23 +254,23 @@ export default function DealDetail() {
               <CardContent className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Product</span>
-                  <span className="font-medium capitalize">{deal.loan_product?.replace(/_/g, ' ')}</span>
+                  <span className="font-medium capitalize">{deal.loan_product?.replace(/_/g, ' ') || 'DSCR'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Purpose</span>
-                  <span className="font-medium capitalize">{deal.loan_purpose?.replace(/_/g, ' ')}</span>
+                  <span className="font-medium capitalize">{deal.loan_purpose?.replace(/_/g, ' ') || 'Purchase'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Amount</span>
+                  <span className="font-medium">${(deal.loan_amount || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Rate</span>
+                  <span className="font-medium">{deal.interest_rate || '-'}%</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Term</span>
                   <span className="font-medium">{deal.loan_term_months ? `${deal.loan_term_months / 12} years` : '-'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Monthly P&I</span>
-                  <span className="font-medium">${deal.monthly_pi?.toLocaleString() || '-'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Total Monthly</span>
-                  <span className="font-medium">${deal.total_monthly_payment?.toLocaleString() || '-'}</span>
                 </div>
               </CardContent>
             </Card>
