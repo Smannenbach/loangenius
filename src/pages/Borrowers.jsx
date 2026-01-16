@@ -178,8 +178,20 @@ export default function Borrowers() {
                       </Badge>
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreVertical className="h-4 w-4 text-gray-400" />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8"
+                    onClick={() => {
+                      if (borrower.email) {
+                        window.location.href = `mailto:${borrower.email}`;
+                      } else {
+                        toast.error('No email available');
+                      }
+                    }}
+                    title="Send email"
+                  >
+                    <Mail className="h-4 w-4 text-gray-400" />
                   </Button>
                 </div>
                 
