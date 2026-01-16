@@ -3,15 +3,18 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 /**
  * Return Google Maps API key for frontend use
  * Called from frontend address autocomplete
+ * Supports both authenticated and public access for lead forms
  */
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     
-    // Verify user is authenticated
-    const user = await base44.auth.me();
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    // Check authentication but don't require it for public forms
+    let user = null;
+    try {
+      user = await base44.auth.me();
+    } catch {
+      // Allow unauthenticated access for public lead capture forms
     }
 
     // Get API key from environment (checking multiple possible spellings)
@@ -20,6 +23,7 @@ Deno.serve(async (req) => {
                 Deno.env.get('GOOGLE_MAPS_API_KEY');
     
     if (!key) {
+      console.error('Google Maps API key not configured in environment');
       return Response.json({ error: 'Google Maps API key not configured' }, { status: 500 });
     }
 
