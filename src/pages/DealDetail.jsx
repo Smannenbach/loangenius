@@ -250,11 +250,9 @@ export default function DealDetail() {
       </div>
 
       {/* Calculator */}
-      {properties.length > 0 && (
-        <div className="mb-6">
-          <DealCalculator deal={deal} properties={properties} />
-        </div>
-      )}
+      <div className="mb-6">
+        <DealCalculator deal={deal} properties={properties} />
+      </div>
 
       {/* Tabs */}
       <Tabs defaultValue="overview">
