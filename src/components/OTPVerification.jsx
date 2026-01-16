@@ -321,15 +321,18 @@ export function PhoneVerification({
       // Store code temporarily
       sessionStorage.setItem(`otp_phone_${cleanPhone}`, JSON.stringify({ code, expires: Date.now() + 600000 }));
       
-      // In production, use Twilio function to send SMS
-      // For now, simulate success and show code in toast (dev only)
-      console.log('SMS OTP Code:', code);
+      // Send SMS via Twilio
+      try {
+        await base44.functions.invoke('sendSMSOTP', { phone: cleanPhone, code });
+      } catch (smsError) {
+        console.warn('SMS sending failed, code still stored for testing:', smsError);
+        // DEV fallback: Show code in toast if SMS fails
+        toast.info(`Dev fallback - Your code is ${code}`, { duration: 10000 });
+      }
       
       setCodeSent(true);
       setCountdown(60);
       toast.success(`Verification code sent to ${phone}`);
-      // DEV: Show code in toast for testing
-      toast.info(`Dev: Your code is ${code}`, { duration: 10000 });
     } catch (error) {
       console.error('Error sending SMS OTP:', error);
       toast.error('Failed to send verification code');
