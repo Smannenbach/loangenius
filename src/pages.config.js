@@ -22,7 +22,6 @@ import BorrowerPortalLogin from './pages/BorrowerPortalLogin';
 import Borrowers from './pages/Borrowers';
 import BrandStudio from './pages/BrandStudio';
 import BrandingSettings from './pages/BrandingSettings';
-import Calculator from './pages/Calculator';
 import CoborrowerPortal from './pages/CoborrowerPortal';
 import Communications from './pages/Communications';
 import ComplianceDashboard from './pages/ComplianceDashboard';
@@ -57,7 +56,6 @@ import Roadmap from './pages/Roadmap';
 import Settings from './pages/Settings';
 import SubmissionPrep from './pages/SubmissionPrep';
 import SuperAdmin from './pages/SuperAdmin';
-import Tasks from './pages/Tasks';
 import TestingValidationHub from './pages/TestingValidationHub';
 import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
@@ -91,7 +89,6 @@ export const PAGES = {
     "Borrowers": Borrowers,
     "BrandStudio": BrandStudio,
     "BrandingSettings": BrandingSettings,
-    "Calculator": Calculator,
     "CoborrowerPortal": CoborrowerPortal,
     "Communications": Communications,
     "ComplianceDashboard": ComplianceDashboard,
@@ -126,7 +123,6 @@ export const PAGES = {
     "Settings": Settings,
     "SubmissionPrep": SubmissionPrep,
     "SuperAdmin": SuperAdmin,
-    "Tasks": Tasks,
     "TestingValidationHub": TestingValidationHub,
     "Underwriting": Underwriting,
     "UnderwritingChecklist": UnderwritingChecklist,
