@@ -83,9 +83,15 @@ export default function Lenders() {
     queryKey: ['lenders', orgId],
     queryFn: async () => {
       if (!orgId) return [];
-      // Filter lenders by contact_type = 'entity' and lender_type field existing
-      const contacts = await base44.entities.Contact.filter({ org_id: orgId, contact_type: 'entity' });
-      return contacts.filter(c => c.lender_type);
+      try {
+        // Filter lenders by contact_type = 'entity' and lender_type field existing
+        const contacts = await base44.entities.Contact.filter({ org_id: orgId, contact_type: 'entity' });
+        return contacts.filter(c => c.lender_type);
+      } catch (e) {
+        // Fallback
+        const allContacts = await base44.entities.Contact.list();
+        return allContacts.filter(c => c.contact_type === 'entity' && c.lender_type);
+      }
     },
     enabled: !!orgId,
   });
