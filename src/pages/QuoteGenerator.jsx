@@ -37,7 +37,6 @@ function SendQuoteButton({ quote }) {
     },
     onSuccess: () => {
       setIsOpen(false);
-      alert('Quote sent successfully!');
     },
   });
 
