@@ -21,8 +21,8 @@ Deno.serve(async (req) => {
       is_internal
     } = await req.json();
 
-    if (!activity_type || !title) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!activity_type) {
+      return Response.json({ error: 'Missing activity_type' }, { status: 400 });
     }
 
     // Default icons and colors by activity type
@@ -43,13 +43,18 @@ Deno.serve(async (req) => {
 
     const defaults_for_type = defaults[activity_type] || { icon: '📌', color: 'gray' };
 
-    if (!org_id) {
-      return Response.json({ error: 'Missing org_id' }, { status: 400 });
+    // Get org_id from user membership if not provided
+    let final_org_id = org_id;
+    if (!final_org_id && user) {
+      const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+        user_id: user.email,
+      });
+      final_org_id = memberships.length > 0 ? memberships[0].org_id : 'default';
     }
 
     // Create activity feed entry
     const activity = await base44.asServiceRole.entities.ActivityFeed.create({
-      org_id,
+      org_id: final_org_id,
       deal_id,
       borrower_id,
       user_id: user?.email,

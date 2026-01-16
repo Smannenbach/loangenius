@@ -8,18 +8,27 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 403 });
     }
 
-    const { dealId, borrowerId, reminderType, channel, escalationLevel } = await req.json();
+    const { dealId, deal_id, borrowerId, borrower_id, reminderType, reminder_type, channel, escalationLevel } = await req.json();
+
+    // Support both camelCase and snake_case
+    const finalDealId = dealId || deal_id;
+    const finalBorrowerId = borrowerId || borrower_id;
+    const finalReminderType = reminderType || reminder_type || 'document_missing';
+
+    if (!finalDealId || !finalBorrowerId) {
+      return new Response(JSON.stringify({ error: 'Missing deal_id or borrower_id' }), { status: 400 });
+    }
 
     // Get deal and borrower
-    const deal = await base44.asServiceRole.entities.Deal.filter({ id: dealId });
-    const borrower = await base44.asServiceRole.entities.Borrower.filter({ id: borrowerId });
+    const deal = await base44.asServiceRole.entities.Deal.filter({ id: finalDealId });
+    const borrower = await base44.asServiceRole.entities.Borrower.filter({ id: finalBorrowerId });
     
-    if (!deal || !borrower) {
+    if (!deal.length || !borrower.length) {
       return new Response(JSON.stringify({ error: 'Deal or borrower not found' }), { status: 404 });
     }
 
     // Get template for reminder type
-    const template = getTemplate(reminderType, escalationLevel);
+    const template = getTemplate(finalReminderType, escalationLevel);
 
     // Render merge fields
     const recipient = channel === 'sms' ? borrower[0].phone : borrower[0].email;
@@ -44,10 +53,10 @@ Deno.serve(async (req) => {
 
     // Create reminder log
     await base44.asServiceRole.entities.RemindersLog.create({
-      org_id: user.org_id,
-      deal_id: dealId,
-      borrower_id: borrowerId,
-      reminder_type: reminderType,
+      org_id: deal[0].org_id || 'default',
+      deal_id: finalDealId,
+      borrower_id: finalBorrowerId,
+      reminder_type: finalReminderType,
       channel: channel || 'email',
       escalation_level: escalationLevel || 1,
       recipient,

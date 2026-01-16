@@ -12,12 +12,18 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { lead_id, org_id } = await req.json();
+    const { lead_id, lead_ids, org_id: provided_org_id } = await req.json();
+
+    // Support single lead_id or array of lead_ids
+    const leadId = lead_id || (lead_ids && lead_ids[0]);
+    
+    if (!leadId) {
+      return Response.json({ error: 'Missing lead_id' }, { status: 400 });
+    }
 
     // Get lead
     const leads = await base44.asServiceRole.entities.Lead.filter({
-      id: lead_id,
-      org_id,
+      id: leadId,
     });
 
     if (leads.length === 0) {
@@ -25,6 +31,7 @@ Deno.serve(async (req) => {
     }
 
     const lead = leads[0];
+    const org_id = provided_org_id || lead.org_id || 'default';
 
     const enrichmentLog = await base44.asServiceRole.entities.EnrichmentLog.create({
       org_id,
