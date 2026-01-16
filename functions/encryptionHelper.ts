@@ -3,60 +3,71 @@
  * Uses AES-256-GCM with org-specific keys stored in environment
  */
 
-import crypto from 'crypto';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY; // 32-byte hex string
-const ALGORITHM = 'aes-256-gcm';
-const IV_LENGTH = 16; // bytes
+const ENCRYPTION_KEY = Deno.env.get('ENCRYPTION_KEY'); // 32-byte hex string
+const ALGORITHM = 'AES-GCM';
+const IV_LENGTH = 12; // bytes for GCM
 const AUTH_TAG_LENGTH = 16; // bytes
 
 /**
- * Encrypt a sensitive value
+ * Encrypt a sensitive value using Web Crypto API
  * @param {string} plaintext - Value to encrypt
- * @returns {string} - Base64-encoded ciphertext with IV and auth tag prepended
+ * @returns {Promise<string>} - Base64-encoded ciphertext with IV prepended
  */
-export function encrypt(plaintext) {
-  if (!plaintext) return null;
+async function encrypt(plaintext) {
+  if (!plaintext || !ENCRYPTION_KEY) return null;
   
-  const key = Buffer.from(ENCRYPTION_KEY, 'hex');
-  const iv = crypto.randomBytes(IV_LENGTH);
+  const keyData = hexToBytes(ENCRYPTION_KEY);
+  const key = await crypto.subtle.importKey(
+    'raw', keyData, { name: ALGORITHM }, false, ['encrypt']
+  );
   
-  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
-  let encrypted = cipher.update(String(plaintext), 'utf8', 'hex');
-  encrypted += cipher.final('hex');
+  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+  const encoded = new TextEncoder().encode(String(plaintext));
   
-  const authTag = cipher.getAuthTag();
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: ALGORITHM, iv }, key, encoded
+  );
   
-  // Format: IV (hex) + authTag (hex) + ciphertext (hex)
-  const combined = iv.toString('hex') + authTag.toString('hex') + encrypted;
-  return Buffer.from(combined, 'hex').toString('base64');
+  // Combine IV + ciphertext
+  const combined = new Uint8Array(iv.length + ciphertext.byteLength);
+  combined.set(iv);
+  combined.set(new Uint8Array(ciphertext), iv.length);
+  
+  return btoa(String.fromCharCode(...combined));
 }
 
 /**
- * Decrypt a sensitive value
+ * Decrypt a sensitive value using Web Crypto API
  * @param {string} encrypted - Base64-encoded ciphertext
- * @returns {string} - Decrypted plaintext
+ * @returns {Promise<string>} - Decrypted plaintext
  */
-export function decrypt(encrypted) {
-  if (!encrypted) return null;
+async function decrypt(encrypted) {
+  if (!encrypted || !ENCRYPTION_KEY) return null;
   
-  const key = Buffer.from(ENCRYPTION_KEY, 'hex');
-  const combined = Buffer.from(encrypted, 'base64').toString('hex');
-  
-  const iv = Buffer.from(combined.slice(0, IV_LENGTH * 2), 'hex');
-  const authTag = Buffer.from(
-    combined.slice(IV_LENGTH * 2, IV_LENGTH * 2 + AUTH_TAG_LENGTH * 2),
-    'hex'
+  const keyData = hexToBytes(ENCRYPTION_KEY);
+  const key = await crypto.subtle.importKey(
+    'raw', keyData, { name: ALGORITHM }, false, ['decrypt']
   );
-  const ciphertext = combined.slice(IV_LENGTH * 2 + AUTH_TAG_LENGTH * 2);
   
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-  decipher.setAuthTag(authTag);
+  const combined = Uint8Array.from(atob(encrypted), c => c.charCodeAt(0));
+  const iv = combined.slice(0, IV_LENGTH);
+  const ciphertext = combined.slice(IV_LENGTH);
   
-  let decrypted = decipher.update(ciphertext, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
+  const decrypted = await crypto.subtle.decrypt(
+    { name: ALGORITHM, iv }, key, ciphertext
+  );
   
-  return decrypted;
+  return new TextDecoder().decode(decrypted);
+}
+
+function hexToBytes(hex) {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+  }
+  return bytes;
 }
 
 /**
@@ -65,7 +76,7 @@ export function decrypt(encrypted) {
  * @param {string} value - Value to mask
  * @returns {string} - Masked value
  */
-export function maskSensitiveField(fieldName, value) {
+function maskSensitiveField(fieldName, value) {
   if (!value) return '[REDACTED]';
   
   const field = fieldName.toLowerCase();
@@ -99,7 +110,7 @@ export function maskSensitiveField(fieldName, value) {
  * @param {string} fieldName
  * @returns {boolean}
  */
-export function shouldEncrypt(fieldName) {
+function shouldEncrypt(fieldName) {
   const sensitiveFields = [
     'ssn', 'social_security_number',
     'dob', 'date_of_birth',
@@ -111,3 +122,53 @@ export function shouldEncrypt(fieldName) {
   ];
   return sensitiveFields.includes(fieldName.toLowerCase());
 }
+
+// HTTP handler
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const { action, data, field_name } = body;
+
+    if (!ENCRYPTION_KEY) {
+      return Response.json({ 
+        error: 'ENCRYPTION_KEY not configured',
+        warning: 'Encryption disabled - set ENCRYPTION_KEY environment variable'
+      }, { status: 400 });
+    }
+
+    if (action === 'encrypt' && data) {
+      const encrypted = await encrypt(data);
+      return Response.json({ success: true, encrypted });
+    }
+
+    if (action === 'decrypt' && data) {
+      const decrypted = await decrypt(data);
+      return Response.json({ success: true, decrypted });
+    }
+
+    if (action === 'mask' && data && field_name) {
+      const masked = maskSensitiveField(field_name, data);
+      return Response.json({ success: true, masked });
+    }
+
+    if (action === 'check' && field_name) {
+      const needsEncryption = shouldEncrypt(field_name);
+      return Response.json({ success: true, needs_encryption: needsEncryption });
+    }
+
+    return Response.json({ 
+      error: 'Invalid action. Use: encrypt, decrypt, mask, or check',
+      available_actions: ['encrypt', 'decrypt', 'mask', 'check']
+    }, { status: 400 });
+  } catch (error) {
+    console.error('Error in encryptionHelper:', error);
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+});
