@@ -15,19 +15,19 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { deal_id, org_id, export_profile_id, export_type } = await req.json();
+    const { deal_id, org_id: provided_org_id, export_profile_id, export_type } = await req.json();
 
-    if (!deal_id || !org_id) {
-      return Response.json({ error: 'Missing deal_id or org_id' }, { status: 400 });
+    if (!deal_id) {
+      return Response.json({ error: 'Missing deal_id' }, { status: 400 });
     }
 
-    // Fetch deal + supporting entities
-    const deals = await base44.asServiceRole.entities.Deal.filter({ id: deal_id });
-    if (!deals.length) {
+    // Fetch deal
+    const deal = await base44.asServiceRole.entities.Deal.get(deal_id);
+    if (!deal) {
       return Response.json({ error: 'Deal not found' }, { status: 404 });
     }
 
-    const deal = deals[0];
+    const org_id = provided_org_id || deal.org_id;
     const borrowers = await base44.asServiceRole.entities.DealBorrower.filter({ deal_id });
     const properties = await base44.asServiceRole.entities.DealProperty.filter({ deal_id });
     const documents = await base44.asServiceRole.entities.Document.filter({ deal_id });
