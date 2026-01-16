@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileOutput, Download, Send, Loader2, ChevronRight } from 'lucide-react';
 import PremiumQuoteSheet from './quote/PremiumQuoteSheet';
 import { toast } from 'sonner';
+import { jsPDF } from 'jspdf';
 
 export default function QuoteGeneratorModal({ isOpen, onClose, lead }) {
   const [tab, setTab] = useState('generate');
@@ -120,6 +121,89 @@ export default function QuoteGeneratorModal({ isOpen, onClose, lead }) {
       toast.error('Failed to send quote: ' + error.message);
     },
   });
+
+  const handleDownloadPDF = () => {
+    if (!generatedQuote) return;
+    
+    const doc = new jsPDF();
+    const q = generatedQuote;
+    
+    // Header
+    doc.setFontSize(20);
+    doc.setTextColor(30, 58, 138);
+    doc.text('Loan Quote', 20, 25);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generated: ${q.generatedAt}`, 20, 32);
+    
+    // Borrower Info
+    doc.setFontSize(14);
+    doc.setTextColor(0);
+    doc.text('Borrower Information', 20, 45);
+    doc.setFontSize(10);
+    doc.text(`Name: ${q.borrowerName}`, 20, 52);
+    doc.text(`Email: ${q.borrowerEmail}`, 20, 58);
+    doc.text(`Property: ${q.propertyAddress}`, 20, 64);
+    
+    // Loan Details
+    doc.setFontSize(14);
+    doc.text('Loan Details', 20, 78);
+    doc.setFontSize(10);
+    doc.text(`Loan Amount: $${parseFloat(q.loanAmount).toLocaleString()}`, 20, 85);
+    doc.text(`Property Value: $${parseFloat(q.propertyValue).toLocaleString()}`, 20, 91);
+    doc.text(`Loan Type: ${q.loanProduct}`, 20, 97);
+    doc.text(`Purpose: ${q.loanPurpose}`, 20, 103);
+    doc.text(`Term: ${q.term} years`, 20, 109);
+    doc.text(`Interest Rate: ${q.interestRate}%`, 20, 115);
+    doc.text(`APR: ${q.apr}%`, 120, 115);
+    doc.text(`LTV: ${q.ltv}%`, 20, 121);
+    
+    // Monthly Payment
+    doc.setFontSize(14);
+    doc.text('Monthly Payment', 20, 135);
+    doc.setFontSize(12);
+    doc.setTextColor(30, 58, 138);
+    doc.text(`$${parseFloat(q.monthlyPayment).toLocaleString()}`, 20, 143);
+    
+    // Costs
+    doc.setFontSize(14);
+    doc.setTextColor(0);
+    doc.text('Closing Costs', 20, 158);
+    doc.setFontSize(10);
+    let y = 165;
+    const costs = [
+      ['Origination Fee', q.originationFee],
+      ['Points', q.points],
+      ['Appraisal', q.appraisalFee],
+      ['Title Insurance', q.titleInsurance],
+      ['Title Search', q.titleSearch],
+      ['Home Inspection', q.homeInspection],
+      ['Survey', q.survey],
+      ['Other Fees', q.otherFees],
+    ];
+    costs.forEach(([label, value]) => {
+      doc.text(`${label}: $${parseFloat(value).toLocaleString()}`, 20, y);
+      y += 6;
+    });
+    
+    doc.setFontSize(11);
+    doc.text(`Total Closing Costs: $${parseFloat(q.totalClosingCosts).toLocaleString()}`, 20, y + 4);
+    doc.text(`Total Upfront Costs: $${parseFloat(q.totalUpfrontCosts).toLocaleString()}`, 20, y + 11);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(30, 58, 138);
+    doc.text(`Total Cost of Loan: $${parseFloat(q.totalCostOfLoan).toLocaleString()}`, 20, y + 22);
+    
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(128);
+    doc.text('Quote valid for 7 days. This is an estimate and not a commitment to lend.', 20, 280);
+    doc.text('LoanGenius - Professional Lending Solutions', 20, 285);
+    
+    doc.save(`Quote-${q.borrowerName.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`);
+    toast.success('PDF downloaded successfully!');
+  };
 
   if (!isOpen) return null;
 
@@ -338,7 +422,7 @@ export default function QuoteGeneratorModal({ isOpen, onClose, lead }) {
               <PremiumQuoteSheet 
                 quote={generatedQuote}
                 onEdit={() => setTab('generate')}
-                onDownload={() => toast.info('PDF download coming soon')}
+                onDownload={handleDownloadPDF}
                 onSend={() => sendMutation.mutate()}
               />
             )}
