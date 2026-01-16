@@ -325,7 +325,7 @@ export default function SettingsPage() {
               </div>
               <Button 
                 className="bg-blue-600 hover:bg-blue-500 gap-2"
-                onClick={() => alert('Organization settings saved!')}
+                onClick={() => toast.success('Organization settings saved!')}
               >
                 <Save className="h-4 w-4" />
                 Save Changes
