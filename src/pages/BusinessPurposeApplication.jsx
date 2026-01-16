@@ -25,15 +25,15 @@ import {
 } from 'lucide-react';
 
 // Step Components
-import BPAStep1LoanInfo from '@/components/bpa-wizard/BPAStep1LoanInfo';
-import BPAStep2PropertyInfo from '@/components/bpa-wizard/BPAStep2PropertyInfo';
-import BPAStep3Assets from '@/components/bpa-wizard/BPAStep3Assets';
-import BPAStep4REO from '@/components/bpa-wizard/BPAStep4REO';
-import BPAStep5Applicant from '@/components/bpa-wizard/BPAStep5Applicant';
-import BPAStep6Declarations from '@/components/bpa-wizard/BPAStep6Declarations';
-import BPAStep7Demographics from '@/components/bpa-wizard/BPAStep7Demographics';
-import BPAStep8Acknowledgement from '@/components/bpa-wizard/BPAStep8Acknowledgement';
-import BPAStep9Originator from '@/components/bpa-wizard/BPAStep9Originator';
+import BPAStep1LoanInfo from '@/components/bpa-wizard/BPAStep1LoanInfo.jsx';
+import BPAStep2PropertyInfo from '@/components/bpa-wizard/BPAStep2PropertyInfo.jsx';
+import BPAStep3Assets from '@/components/bpa-wizard/BPAStep3Assets.jsx';
+import BPAStep4REO from '@/components/bpa-wizard/BPAStep4REO.jsx';
+import BPAStep5Applicant from '@/components/bpa-wizard/BPAStep5Applicant.jsx';
+import BPAStep6Declarations from '@/components/bpa-wizard/BPAStep6Declarations.jsx';
+import BPAStep7Demographics from '@/components/bpa-wizard/BPAStep7Demographics.jsx';
+import BPAStep8Acknowledgement from '@/components/bpa-wizard/BPAStep8Acknowledgement.jsx';
+import BPAStep9Originator from '@/components/bpa-wizard/BPAStep9Originator.jsx';
 
 const STEPS = [
   { id: 1, title: 'Loan Information', icon: FileText, description: 'Financing request details' },
