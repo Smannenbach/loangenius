@@ -124,18 +124,21 @@ export default function Leads() {
 
   const orgId = memberships[0]?.org_id || user?.org_id;
 
-  const { data: leads = [], isLoading } = useQuery({
+  const { data: leads = [], isLoading, error } = useQuery({
     queryKey: ['leads', orgId],
     queryFn: async () => {
       try {
+        // Try with org_id first
         if (orgId) {
-          return await base44.entities.Lead.filter({ org_id: orgId, is_deleted: false });
+          const orgLeads = await base44.entities.Lead.filter({ org_id: orgId });
+          return orgLeads.filter(l => !l.is_deleted);
         }
         // Fallback: get all leads if no org_id
         const allLeads = await base44.entities.Lead.list();
         return allLeads.filter(l => !l.is_deleted);
       } catch (e) {
-        // Fallback: get all leads if filter fails
+        console.error('Error fetching leads:', e);
+        // Final fallback: get all leads
         try {
           const allLeads = await base44.entities.Lead.list();
           return allLeads.filter(l => !l.is_deleted);
@@ -145,14 +148,16 @@ export default function Leads() {
       }
     },
     enabled: true,
+    retry: 2,
+    staleTime: 30000,
   });
 
   const createLeadMutation = useMutation({
     mutationFn: async (data) => {
-      if (!orgId) throw new Error('Organization not found');
+      const effectiveOrgId = orgId || 'default';
       const processedData = {
         ...data,
-        org_id: orgId,
+        org_id: effectiveOrgId,
         estimated_value: data.estimated_value ? parseFloat(data.estimated_value) : null,
         loan_amount: data.loan_amount ? parseFloat(data.loan_amount) : null,
         current_balance: data.current_balance ? parseFloat(data.current_balance) : null,
@@ -930,8 +935,24 @@ export default function Leads() {
         </div>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+          <div className="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading leads...</p>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && !isLoading && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          <AlertCircle className="h-5 w-5 inline mr-2" />
+          Failed to load leads. Please refresh the page.
+        </div>
+      )}
+
       {/* View Mode */}
-      {viewMode === 'table' ? (
+      {!isLoading && !error && viewMode === 'table' ? (
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -983,7 +1004,7 @@ export default function Leads() {
             </table>
           </div>
         </div>
-      ) : (
+      ) : !isLoading && !error ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredLeads.length === 0 ? (
             <div className="col-span-full text-center py-12 text-gray-400"><AlertCircle className="h-8 w-8 mx-auto mb-2" /><p>No leads match your filters</p></div>
@@ -1014,7 +1035,7 @@ export default function Leads() {
             ))
           )}
         </div>
-      )}
+      ) : null}
 
       {quoteSelectedLead && (
         <QuoteGeneratorModal
