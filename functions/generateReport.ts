@@ -64,21 +64,24 @@ Deno.serve(async (req) => {
 
     const executionTime = Date.now() - startTime;
 
-    // Create report run record
-    const reportRun = await base44.asServiceRole.entities.ReportRun.create({
-      org_id,
-      report_id,
-      run_type: 'MANUAL',
-      filters_used: filters || {},
-      row_count: data.length,
-      status: 'COMPLETED',
-      execution_time_ms: executionTime,
-      run_by: user.email
-    });
+    // Create report run record only if we have a report_id
+    let reportRun = null;
+    if (report_id) {
+      reportRun = await base44.asServiceRole.entities.ReportRun.create({
+        org_id,
+        report_id,
+        run_type: 'MANUAL',
+        filters_used: filters || {},
+        row_count: data.length,
+        status: 'COMPLETED',
+        execution_time_ms: executionTime,
+        run_by: user.email
+      });
+    }
 
     return Response.json({
       success: true,
-      run_id: reportRun.id,
+      run_id: reportRun?.id || null,
       row_count: data.length,
       data: data.slice(0, 1000) // Limit to 1000 rows in response
     });
