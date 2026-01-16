@@ -118,84 +118,236 @@ Deno.serve(async (req) => {
 function buildMISMOXml(deal, borrowers, properties, fees) {
   const xmlDate = new Date().toISOString().split('T')[0];
   const escapeXml = (str) => (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+  
+  // Map loan purpose to MISMO enum
+  const mapLoanPurpose = (purpose) => {
+    const map = {
+      'Purchase': 'Purchase',
+      'Refinance': 'Refinance',
+      'Cash-Out': 'CashOutRefinance',
+      'Cash-Out Refinance': 'CashOutRefinance',
+      'Rate & Term': 'NoCashOutRefinance',
+      'Rate and Term': 'NoCashOutRefinance',
+      'Construction': 'ConstructionToPermanent',
+      'Home Equity': 'HomeEquityLineOfCredit',
+    };
+    return map[purpose] || 'Other';
+  };
+  
+  // Map property type to MISMO enum
+  const mapPropertyType = (type) => {
+    const map = {
+      'SFR': 'SingleFamily',
+      'Condo': 'Condominium',
+      'PUD Detached': 'PlannedUnitDevelopment',
+      'PUD Attached': 'PlannedUnitDevelopment',
+      'Townhouse': 'Townhouse',
+      '2-4 Units': 'TwoToFourUnits',
+      '5+ Units': 'Multifamily',
+      'Mixed Use': 'MixedUse',
+      'Manufactured': 'ManufacturedHousing',
+    };
+    return map[type] || 'Other';
+  };
+  
+  // Map occupancy to MISMO enum
+  const mapOccupancy = (occ) => {
+    const map = {
+      'Investment': 'Investment',
+      'Primary': 'PrimaryResidence',
+      'Secondary': 'SecondHome',
+      'Second Home': 'SecondHome',
+    };
+    return map[occ] || 'Investment';
+  };
+  
+  // Map amortization type
+  const mapAmortization = (type) => {
+    const map = {
+      'fixed': 'Fixed',
+      'arm': 'AdjustableRate',
+      'io': 'InterestOnly',
+      'bridge': 'InterestOnly',
+    };
+    return map[type?.toLowerCase()] || 'Fixed';
+  };
+  
+  // Calculate monthly P&I
+  const loanAmount = deal.loan_amount || 0;
+  const rate = (deal.interest_rate || 0) / 100 / 12;
+  const term = deal.loan_term_months || 360;
+  let monthlyPI = 0;
+  if (rate > 0 && loanAmount > 0) {
+    monthlyPI = loanAmount * (rate * Math.pow(1 + rate, term)) / (Math.pow(1 + rate, term) - 1);
+  }
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <MESSAGE xmlns="http://www.mismo.org/residential/2009/schemas" 
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         MISMOVersionID="3.4">
+         xmlns:ULAD="http://www.datamodelextension.org/Schema/ULAD"
+         xsi:schemaLocation="http://www.mismo.org/residential/2009/schemas MISMO_3.4.0_B334.xsd"
+         MISMOVersionID="3.4.0">
   <ABOUT_VERSIONS>
     <ABOUT_VERSION>
       <CreatedDatetime>${new Date().toISOString()}</CreatedDatetime>
       <DataVersionIdentifier>1</DataVersionIdentifier>
+      <DataVersionName>MISMO 3.4 Production</DataVersionName>
     </ABOUT_VERSION>
   </ABOUT_VERSIONS>
   <DEAL_SETS>
     <DEAL_SET>
       <DEALS>
         <DEAL>
+          <ASSETS>
+            <ASSET SequenceNumber="1">
+              <ASSET_DETAIL>
+                <AssetType>Collateral</AssetType>
+              </ASSET_DETAIL>
+            </ASSET>
+          </ASSETS>
           <LOANS>
-            <LOAN SequenceNumber="1">
-              <LOAN_DETAIL>
-                <LoanIdentifier>${escapeXml(deal.deal_number || deal.id)}</LoanIdentifier>
-                <LoanPurposeType>${escapeXml(deal.loan_purpose)}</LoanPurposeType>
-                <LoanAmount>${deal.loan_amount || 0}</LoanAmount>
-                <NoteRatePercent>${deal.interest_rate || 0}</NoteRatePercent>
-                <LoanTermMonths>${deal.loan_term_months || 360}</LoanTermMonths>
-                <ApplicationReceivedDate>${deal.application_date || xmlDate}</ApplicationReceivedDate>
-              </LOAN_DETAIL>
+            <LOAN SequenceNumber="1" LoanRoleType="SubjectLoan">
               <AMORTIZATION>
                 <AMORTIZATION_RULE>
-                  <AmortizationType>${escapeXml(deal.amortization_type || 'Fixed')}</AmortizationType>
+                  <AmortizationType>${mapAmortization(deal.amortization_type)}</AmortizationType>
+                  <LoanAmortizationPeriodCount>${term}</LoanAmortizationPeriodCount>
+                  <LoanAmortizationPeriodType>Month</LoanAmortizationPeriodType>
+                  ${deal.is_interest_only ? `<InterestOnlyIndicator>true</InterestOnlyIndicator>` : ''}
                   ${deal.interest_only_period_months ? `<InterestOnlyTermMonths>${deal.interest_only_period_months}</InterestOnlyTermMonths>` : ''}
                 </AMORTIZATION_RULE>
               </AMORTIZATION>
-              <PREPAYMENT_PENALTY>
-                <PrepaymentPenaltyType>${escapeXml(deal.prepay_penalty_type || 'None')}</PrepaymentPenaltyType>
-                ${deal.prepay_penalty_term_months ? `<PrepaymentPenaltyTermMonths>${deal.prepay_penalty_term_months}</PrepaymentPenaltyTermMonths>` : ''}
-              </PREPAYMENT_PENALTY>
+              <CLOSING_INFORMATION>
+                <CLOSING_INFORMATION_DETAIL>
+                  ${deal.application_date ? `<ClosingDate>${deal.application_date}</ClosingDate>` : ''}
+                  ${deal.closing_costs_estimate ? `<ClosingCostsAmount>${deal.closing_costs_estimate}</ClosingCostsAmount>` : ''}
+                </CLOSING_INFORMATION_DETAIL>
+              </CLOSING_INFORMATION>
+              <DOCUMENT_SPECIFIC_DATA_SETS>
+                <DOCUMENT_SPECIFIC_DATA_SET>
+                  <URLA>
+                    <URLA_DETAIL>
+                      <ApplicationSignedByLoanOriginatorDate>${xmlDate}</ApplicationSignedByLoanOriginatorDate>
+                    </URLA_DETAIL>
+                  </URLA>
+                </DOCUMENT_SPECIFIC_DATA_SET>
+              </DOCUMENT_SPECIFIC_DATA_SETS>
+              <HOUSING_EXPENSES>
+                <HOUSING_EXPENSE>
+                  <HousingExpensePaymentAmount>${monthlyPI.toFixed(2)}</HousingExpensePaymentAmount>
+                  <HousingExpenseType>FirstMortgagePrincipalAndInterest</HousingExpenseType>
+                </HOUSING_EXPENSE>
+              </HOUSING_EXPENSES>
+              <LOAN_DETAIL>
+                <ApplicationReceivedDate>${deal.application_date || xmlDate}</ApplicationReceivedDate>
+                <BalloonIndicator>${deal.is_bridge ? 'true' : 'false'}</BalloonIndicator>
+                <BuydownTemporarySubsidyFundingIndicator>false</BuydownTemporarySubsidyFundingIndicator>
+                <ConstructionLoanIndicator>false</ConstructionLoanIndicator>
+                <ConversionOfContractForDeedIndicator>false</ConversionOfContractForDeedIndicator>
+                <EscrowAbsentIndicator>false</EscrowAbsentIndicator>
+                <InterestOnlyIndicator>${deal.is_interest_only ? 'true' : 'false'}</InterestOnlyIndicator>
+                <LoanMaturityPeriodCount>${Math.floor(term / 12)}</LoanMaturityPeriodCount>
+                <LoanMaturityPeriodType>Year</LoanMaturityPeriodType>
+                <NegativeAmortizationIndicator>false</NegativeAmortizationIndicator>
+                <PrepaymentPenaltyIndicator>${deal.prepay_penalty_type ? 'true' : 'false'}</PrepaymentPenaltyIndicator>
+                ${deal.prepay_penalty_term_months ? `<PrepaymentPenaltyMaximumLifeOfLoanMonthsCount>${deal.prepay_penalty_term_months}</PrepaymentPenaltyMaximumLifeOfLoanMonthsCount>` : ''}
+              </LOAN_DETAIL>
               <LOAN_IDENTIFIERS>
                 <LOAN_IDENTIFIER>
                   <LoanIdentifier>${escapeXml(deal.deal_number || deal.id)}</LoanIdentifier>
                   <LoanIdentifierType>LenderLoan</LoanIdentifierType>
                 </LOAN_IDENTIFIER>
               </LOAN_IDENTIFIERS>
+              <MATURITY>
+                <MATURITY_RULE>
+                  <LoanMaturityPeriodCount>${Math.floor(term / 12)}</LoanMaturityPeriodCount>
+                  <LoanMaturityPeriodType>Year</LoanMaturityPeriodType>
+                </MATURITY_RULE>
+              </MATURITY>
+              <LOAN_PRODUCT>
+                <LOAN_PRODUCT_DETAIL>
+                  <DiscountPointsTotalAmount>0</DiscountPointsTotalAmount>
+                </LOAN_PRODUCT_DETAIL>
+              </LOAN_PRODUCT>
+              <PAYMENT>
+                <PAYMENT_RULE>
+                  <InitialPrincipalAndInterestPaymentAmount>${monthlyPI.toFixed(2)}</InitialPrincipalAndInterestPaymentAmount>
+                  <FullyIndexedInitialPrincipalAndInterestPaymentAmount>${monthlyPI.toFixed(2)}</FullyIndexedInitialPrincipalAndInterestPaymentAmount>
+                </PAYMENT_RULE>
+              </PAYMENT>
+              <PREPAYMENT_PENALTY>
+                <PREPAYMENT_PENALTY_LIFETIME_RULE>
+                  <PrepaymentPenaltyExpirationMonthsCount>${deal.prepay_penalty_term_months || 0}</PrepaymentPenaltyExpirationMonthsCount>
+                  <PrepaymentPenaltyType>${escapeXml(deal.prepay_penalty_type || 'None')}</PrepaymentPenaltyType>
+                </PREPAYMENT_PENALTY_LIFETIME_RULE>
+              </PREPAYMENT_PENALTY>
               <QUALIFICATION>
                 <QUALIFICATION_DETAIL>
-                  <LTV_Ratio>${deal.ltv || 0}</LTV_Ratio>
-                  <DSCR_Ratio>${deal.dscr || 0}</DSCR_Ratio>
+                  <LoanToValueRatioPercent>${(deal.ltv || 0).toFixed(3)}</LoanToValueRatioPercent>
+                  ${deal.dscr ? `<DebtServiceCoverageRatioPercent>${deal.dscr.toFixed(3)}</DebtServiceCoverageRatioPercent>` : ''}
                 </QUALIFICATION_DETAIL>
               </QUALIFICATION>
+              <TERMS_OF_LOAN>
+                <BaseLoanAmount>${loanAmount}</BaseLoanAmount>
+                <LienPriorityType>FirstLien</LienPriorityType>
+                <LoanPurposeType>${mapLoanPurpose(deal.loan_purpose)}</LoanPurposeType>
+                <MortgageType>Conventional</MortgageType>
+                <NoteAmount>${loanAmount}</NoteAmount>
+                <NoteRatePercent>${deal.interest_rate || 0}</NoteRatePercent>
+                <WeightedAverageInterestRatePercent>${deal.interest_rate || 0}</WeightedAverageInterestRatePercent>
+              </TERMS_OF_LOAN>
             </LOAN>
           </LOANS>
           <COLLATERALS>`;
 
   properties.forEach((prop, idx) => {
+    const propValue = prop.estimated_value || prop.appraised_value || (deal.loan_amount / 0.75);
     xml += `
             <COLLATERAL SequenceNumber="${idx + 1}">
               <SUBJECT_PROPERTY>
                 <ADDRESS>
                   <AddressLineText>${escapeXml(prop.address_street)}</AddressLineText>
-                  <AddressUnitIdentifier>${escapeXml(prop.address_unit || '')}</AddressUnitIdentifier>
+                  ${prop.address_unit ? `<AddressUnitIdentifier>${escapeXml(prop.address_unit)}</AddressUnitIdentifier>` : ''}
                   <CityName>${escapeXml(prop.address_city)}</CityName>
                   <StateCode>${escapeXml(prop.address_state)}</StateCode>
                   <PostalCode>${escapeXml(prop.address_zip)}</PostalCode>
-                  <CountyName>${escapeXml(prop.county || '')}</CountyName>
+                  ${prop.county ? `<CountyName>${escapeXml(prop.county)}</CountyName>` : ''}
+                  <CountryCode>US</CountryCode>
                 </ADDRESS>
+                ${prop.legal_description ? `
+                <LEGAL_DESCRIPTIONS>
+                  <LEGAL_DESCRIPTION>
+                    <LegalDescriptionText>${escapeXml(prop.legal_description)}</LegalDescriptionText>
+                    <LegalDescriptionType>LongLegal</LegalDescriptionType>
+                  </LEGAL_DESCRIPTION>
+                </LEGAL_DESCRIPTIONS>` : ''}
                 <PROPERTY_DETAIL>
-                  <PropertyStructureBuiltYear>${prop.year_built || ''}</PropertyStructureBuiltYear>
-                  <PropertyExistingLienAmount>${prop.existing_liens || 0}</PropertyExistingLienAmount>
-                  <FinancedUnitCount>${prop.units || 1}</FinancedUnitCount>
-                  <PropertyEstimatedValueAmount>${prop.estimated_value || deal.loan_amount / 0.75}</PropertyEstimatedValueAmount>
-                  <PropertyCurrentUsageType>${escapeXml(prop.occupancy_type || 'Investment')}</PropertyCurrentUsageType>
-                  <AttachmentType>${escapeXml(prop.property_type || 'Detached')}</AttachmentType>
+                  <ConstructionMethodType>SiteBuilt</ConstructionMethodType>
+                  ${prop.year_built ? `<PropertyStructureBuiltYear>${prop.year_built}</PropertyStructureBuiltYear>` : ''}
+                  <FinancedUnitCount>${prop.number_of_units || prop.units || 1}</FinancedUnitCount>
+                  <PropertyEstimatedValueAmount>${propValue}</PropertyEstimatedValueAmount>
+                  <PropertyUsageType>${mapOccupancy(prop.occupancy_type)}</PropertyUsageType>
+                  <AttachmentType>${mapPropertyType(prop.property_type)}</AttachmentType>
                   ${prop.sqft ? `<GrossLivingAreaSquareFeetCount>${prop.sqft}</GrossLivingAreaSquareFeetCount>` : ''}
-                  ${prop.bedrooms ? `<BedroomCount>${prop.bedrooms}</BedroomCount>` : ''}
-                  ${prop.bathrooms ? `<BathroomCount>${prop.bathrooms}</BathroomCount>` : ''}
-                  ${prop.lot_size ? `<LotAcreageAmount>${prop.lot_size}</LotAcreageAmount>` : ''}
-                  ${prop.apn ? `<AssessorParcelIdentifier>${escapeXml(prop.apn)}</AssessorParcelIdentifier>` : ''}
-                  ${prop.zoning ? `<ZoningClassificationType>${escapeXml(prop.zoning)}</ZoningClassificationType>` : ''}
+                  ${prop.beds ? `<BedroomCount>${prop.beds}</BedroomCount>` : ''}
+                  ${prop.baths ? `<BathroomsTotalCount>${prop.baths}</BathroomsTotalCount>` : ''}
+                  ${prop.lot_sqft ? `<LotSizeSquareFeetCount>${prop.lot_sqft}</LotSizeSquareFeetCount>` : ''}
+                  ${prop.apn ? `<AssessorUnformattedIdentifier>${escapeXml(prop.apn)}</AssessorUnformattedIdentifier>` : ''}
                 </PROPERTY_DETAIL>
-                ${prop.legal_description ? `<LEGAL_DESCRIPTION><LegalDescription>${escapeXml(prop.legal_description)}</LegalDescription></LEGAL_DESCRIPTION>` : ''}
+                <PROPERTY_VALUATIONS>
+                  <PROPERTY_VALUATION>
+                    <PROPERTY_VALUATION_DETAIL>
+                      <PropertyValuationAmount>${propValue}</PropertyValuationAmount>
+                      ${prop.appraised_value ? `<AppraisedValueAmount>${prop.appraised_value}</AppraisedValueAmount>` : ''}
+                      <PropertyValuationMethodType>AppraisalManagement</PropertyValuationMethodType>
+                    </PROPERTY_VALUATION_DETAIL>
+                  </PROPERTY_VALUATION>
+                </PROPERTY_VALUATIONS>
+                ${prop.gross_rent_monthly ? `
+                <SALES_CONTRACT>
+                  <SALES_CONTRACT_DETAIL>
+                    <RealPropertyAmount>${deal.purchase_price || propValue}</RealPropertyAmount>
+                  </SALES_CONTRACT_DETAIL>
+                </SALES_CONTRACT>` : ''}
               </SUBJECT_PROPERTY>
             </COLLATERAL>`;
   });
@@ -205,22 +357,76 @@ function buildMISMOXml(deal, borrowers, properties, fees) {
           <PARTIES>`;
 
   borrowers.forEach((b, idx) => {
+    const isPrimary = idx === 0 || b.role === 'primary' || b.role === 'Primary';
     xml += `
             <PARTY SequenceNumber="${idx + 1}">
               <INDIVIDUAL>
+                <CONTACT_POINTS>
+                  <CONTACT_POINT>
+                    <CONTACT_POINT_EMAIL>
+                      <ContactPointEmailValue>${escapeXml(b.email || '')}</ContactPointEmailValue>
+                    </CONTACT_POINT_EMAIL>
+                    <CONTACT_POINT_DETAIL>
+                      <ContactPointRoleType>Home</ContactPointRoleType>
+                    </CONTACT_POINT_DETAIL>
+                  </CONTACT_POINT>
+                  ${b.cell_phone || b.phone ? `
+                  <CONTACT_POINT>
+                    <CONTACT_POINT_TELEPHONE>
+                      <ContactPointTelephoneValue>${escapeXml(b.cell_phone || b.phone || '')}</ContactPointTelephoneValue>
+                    </CONTACT_POINT_TELEPHONE>
+                    <CONTACT_POINT_DETAIL>
+                      <ContactPointRoleType>Mobile</ContactPointRoleType>
+                    </CONTACT_POINT_DETAIL>
+                  </CONTACT_POINT>` : ''}
+                </CONTACT_POINTS>
                 <NAME>
                   <FirstName>${escapeXml(b.first_name)}</FirstName>
                   ${b.middle_name ? `<MiddleName>${escapeXml(b.middle_name)}</MiddleName>` : ''}
                   <LastName>${escapeXml(b.last_name)}</LastName>
                   ${b.suffix ? `<SuffixName>${escapeXml(b.suffix)}</SuffixName>` : ''}
+                  <FullName>${escapeXml(b.first_name)} ${escapeXml(b.middle_name || '')} ${escapeXml(b.last_name)}</FullName>
                 </NAME>
               </INDIVIDUAL>
               <ROLES>
                 <ROLE>
                   <BORROWER>
-                    <BorrowerBirthDate>${b.dob_encrypted || b.dob || ''}</BorrowerBirthDate>
-                    <BorrowerClassificationType>${escapeXml(b.role || 'Primary')}</BorrowerClassificationType>
-                    ${b.credit_score_est ? `<CreditScoreValue>${b.credit_score_est}</CreditScoreValue>` : ''}
+                    <BORROWER_DETAIL>
+                      <BorrowerBirthDate>${b.dob_encrypted || b.dob || ''}</BorrowerBirthDate>
+                      ${b.marital_status ? `<MaritalStatusType>${b.marital_status}</MaritalStatusType>` : ''}
+                      ${b.dependents_count !== undefined ? `<DependentCount>${b.dependents_count}</DependentCount>` : ''}
+                    </BORROWER_DETAIL>
+                    ${b.credit_score_est ? `
+                    <CREDIT_SCORES>
+                      <CREDIT_SCORE>
+                        <CreditScoreValue>${b.credit_score_est}</CreditScoreValue>
+                        <CreditScoreModelType>EquifaxBeacon5.0</CreditScoreModelType>
+                      </CREDIT_SCORE>
+                    </CREDIT_SCORES>` : ''}
+                    ${b.citizenship_status ? `
+                    <DECLARATION>
+                      <DECLARATION_DETAIL>
+                        <CitizenshipResidencyType>${b.citizenship_status}</CitizenshipResidencyType>
+                      </DECLARATION_DETAIL>
+                    </DECLARATION>` : ''}
+                    <RESIDENCES>
+                      ${b.current_address_street ? `
+                      <RESIDENCE>
+                        <ADDRESS>
+                          <AddressLineText>${escapeXml(b.current_address_street)}</AddressLineText>
+                          ${b.current_address_unit ? `<AddressUnitIdentifier>${escapeXml(b.current_address_unit)}</AddressUnitIdentifier>` : ''}
+                          <CityName>${escapeXml(b.current_address_city || '')}</CityName>
+                          <StateCode>${escapeXml(b.current_address_state || '')}</StateCode>
+                          <PostalCode>${escapeXml(b.current_address_zip || '')}</PostalCode>
+                          <CountryCode>US</CountryCode>
+                        </ADDRESS>
+                        <RESIDENCE_DETAIL>
+                          <BorrowerResidencyBasisType>${b.housing_status || 'Own'}</BorrowerResidencyBasisType>
+                          <BorrowerResidencyDurationMonthsCount>${(b.time_at_address_years || 0) * 12 + (b.time_at_address_months || 0)}</BorrowerResidencyDurationMonthsCount>
+                          <BorrowerResidencyType>Current</BorrowerResidencyType>
+                        </RESIDENCE_DETAIL>
+                      </RESIDENCE>` : ''}
+                    </RESIDENCES>
                   </BORROWER>
                   <ROLE_DETAIL>
                     <PartyRoleType>Borrower</PartyRoleType>
@@ -229,29 +435,10 @@ function buildMISMOXml(deal, borrowers, properties, fees) {
               </ROLES>
               <TAXPAYER_IDENTIFIERS>
                 <TAXPAYER_IDENTIFIER>
-                  ${b.ssn_encrypted ? `<TaxpayerIdentifierValue>XXX-XX-${(b.ssn_encrypted || '').slice(-4)}</TaxpayerIdentifierValue>` : ''}
-                  <TaxpayerIdentifierType>SocialSecurityNumber</TaxpayerIdentifierType>
+                  <TaxpayerIdentifierType>${b.taxpayer_id_type || 'SocialSecurityNumber'}</TaxpayerIdentifierType>
+                  ${b.ssn_last4 ? `<TaxpayerIdentifierValue>XXX-XX-${b.ssn_last4}</TaxpayerIdentifierValue>` : ''}
                 </TAXPAYER_IDENTIFIER>
               </TAXPAYER_IDENTIFIERS>
-              <ADDRESSES>
-                ${b.mailing_address ? `
-                <ADDRESS>
-                  <AddressLineText>${escapeXml(b.mailing_address)}</AddressLineText>
-                  <AddressType>Mailing</AddressType>
-                </ADDRESS>` : ''}
-              </ADDRESSES>
-              <CONTACTS>
-                ${b.email ? `
-                <CONTACT>
-                  <ContactPointValue>${escapeXml(b.email)}</ContactPointValue>
-                  <ContactPointType>Email</ContactPointType>
-                </CONTACT>` : ''}
-                ${b.phone ? `
-                <CONTACT>
-                  <ContactPointValue>${escapeXml(b.phone)}</ContactPointValue>
-                  <ContactPointType>Phone</ContactPointType>
-                </CONTACT>` : ''}
-              </CONTACTS>
             </PARTY>`;
   });
 
