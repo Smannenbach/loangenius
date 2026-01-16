@@ -20,7 +20,8 @@ Deno.serve(async (req) => {
     // Get API key from environment (checking multiple possible spellings)
     const key = Deno.env.get('Goolge_Maps_Platform_API_Key') || 
                 Deno.env.get('Google_Maps_Platform_API_Key') ||
-                Deno.env.get('GOOGLE_MAPS_API_KEY');
+                Deno.env.get('GOOGLE_MAPS_API_KEY') ||
+                Deno.env.get('Google_Cloud_OAuth_Client_ID'); // fallback
     
     if (!key) {
       console.error('Google Maps API key not configured in environment');
