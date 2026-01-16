@@ -30,6 +30,7 @@ import {
   ChevronRight,
   FileText,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function Deals() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -130,6 +131,7 @@ export default function Deals() {
               a.download = 'deals-export.csv';
               a.click();
               window.URL.revokeObjectURL(url);
+              toast.success('Deals exported to CSV');
             }}
           >
             <Download className="h-4 w-4" />
