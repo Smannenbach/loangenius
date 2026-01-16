@@ -107,21 +107,33 @@ export default function Leads() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: leads = [], isLoading } = useQuery({
-    queryKey: ['leads', user?.org_id],
+  // Get user's org membership
+  const { data: memberships = [] } = useQuery({
+    queryKey: ['userMembership', user?.email],
     queryFn: async () => {
-      if (!user?.org_id) return [];
-      return await base44.entities.Lead.filter({ org_id: user.org_id, is_deleted: false });
+      if (!user?.email) return [];
+      return await base44.entities.OrgMembership.filter({ user_id: user.email });
     },
-    enabled: !!user?.org_id,
+    enabled: !!user?.email,
+  });
+
+  const orgId = memberships[0]?.org_id || user?.org_id;
+
+  const { data: leads = [], isLoading } = useQuery({
+    queryKey: ['leads', orgId],
+    queryFn: async () => {
+      if (!orgId) return [];
+      return await base44.entities.Lead.filter({ org_id: orgId, is_deleted: false });
+    },
+    enabled: !!orgId,
   });
 
   const createLeadMutation = useMutation({
     mutationFn: async (data) => {
-      if (!user?.org_id) throw new Error('User org_id not found');
+      if (!orgId) throw new Error('Organization not found');
       const processedData = {
         ...data,
-        org_id: user.org_id,
+        org_id: orgId,
         estimated_value: data.estimated_value ? parseFloat(data.estimated_value) : null,
         loan_amount: data.loan_amount ? parseFloat(data.loan_amount) : null,
         current_balance: data.current_balance ? parseFloat(data.current_balance) : null,
