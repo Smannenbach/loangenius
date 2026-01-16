@@ -17,11 +17,9 @@ Deno.serve(async (req) => {
       // Allow unauthenticated access for public lead capture forms
     }
 
-    // Get API key from environment (checking multiple possible spellings)
-    const key = Deno.env.get('Goolge_Maps_Platform_API_Key') || 
-                Deno.env.get('Google_Maps_Platform_API_Key') ||
-                Deno.env.get('GOOGLE_MAPS_API_KEY') ||
-                Deno.env.get('Google_Cloud_OAuth_Client_ID'); // fallback
+    // Get API key from environment - using exact secret name from app config
+    // Note: The secret name has a typo "Goolge" instead of "Google"
+    const key = Deno.env.get('Goolge_Maps_Platform_API_Key');
     
     if (!key) {
       console.error('Google Maps API key not configured in environment');
