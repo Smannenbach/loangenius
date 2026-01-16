@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
 
 async function getAVMValuation(property, org_id, deal_id, user, base44) {
   const enrichmentLog = await base44.asServiceRole.entities.EnrichmentLog.create({
-    org_id,
+    org_id: org_id || 'default',
     deal_id,
     entity_type: 'property',
     entity_id: property.id,
@@ -134,7 +134,7 @@ async function getAVMValuation(property, org_id, deal_id, user, base44) {
 
 async function floodRiskCheck(property, org_id, deal_id, user, base44) {
   const enrichmentLog = await base44.asServiceRole.entities.EnrichmentLog.create({
-    org_id,
+    org_id: org_id || 'default',
     deal_id,
     entity_type: 'property',
     entity_id: property.id,

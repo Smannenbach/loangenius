@@ -14,10 +14,19 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { deal_id, org_id } = await req.json();
+    const { deal_id, org_id: provided_org_id } = await req.json();
 
-    if (!deal_id || !org_id) {
-     return Response.json({ error: 'Missing deal_id or org_id' }, { status: 400 });
+    if (!deal_id) {
+     return Response.json({ error: 'Missing deal_id' }, { status: 400 });
+    }
+
+    // Get org_id from user membership if not provided
+    let org_id = provided_org_id;
+    if (!org_id) {
+      const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+        user_id: user.email,
+      });
+      org_id = memberships.length > 0 ? memberships[0].org_id : 'default';
     }
 
     // Verify user belongs to org
