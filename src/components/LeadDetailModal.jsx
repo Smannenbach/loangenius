@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Phone, MessageSquare, Eye, Edit, FileOutput, MessageCircle, CheckCircle2, AlertCircle, Loader2, ArrowRight, ClipboardList, Clock, Plus, Calculator, Trash2 } from 'lucide-react';
+import { Mail, Phone, MessageSquare, Eye, Edit, FileOutput, MessageCircle, CheckCircle2, AlertCircle, Loader2, ArrowRight, ClipboardList, Clock, Plus, Calculator as CalcIcon, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import QuoteGeneratorModal from './QuoteGeneratorModal';
+import DealCalculator from './deal-wizard/DealCalculator';
 
 export default function LeadDetailModal({ lead, onEdit, trigger }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -325,50 +326,19 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
 
             {/* Calculator Tab */}
             <TabsContent value="calculator" className="space-y-4">
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h3 className="font-medium flex items-center gap-2 mb-3">
-                  <Calculator className="h-4 w-4 text-blue-600" />
-                  Quick DSCR Calculator
-                </h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-600">Loan Amount</p>
-                    <p className="font-semibold">${lead.loan_amount ? lead.loan_amount.toLocaleString() : 'TBD'}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600">Property Value</p>
-                    <p className="font-semibold">${lead.estimated_value ? parseFloat(lead.estimated_value).toLocaleString() : 'TBD'}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600">Monthly Rent</p>
-                    <p className="font-semibold">${lead.monthly_rental_income ? parseFloat(lead.monthly_rental_income).toLocaleString() : 'TBD'}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600">LTV Ratio</p>
-                    <p className="font-semibold">
-                      {lead.loan_amount && lead.estimated_value 
-                        ? ((lead.loan_amount / lead.estimated_value) * 100).toFixed(1) + '%' 
-                        : 'TBD'}
-                    </p>
-                  </div>
-                  {lead.loan_amount && lead.monthly_rental_income && (
-                    <>
-                      <div>
-                        <p className="text-gray-600">Est. Monthly P&I</p>
-                        <p className="font-semibold">
-                          ${((lead.loan_amount * 0.07 / 12) / (1 - Math.pow(1 + 0.07/12, -360))).toFixed(0)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600">Est. DSCR</p>
-                        <p className="font-semibold">
-                          {(lead.monthly_rental_income / ((lead.loan_amount * 0.07 / 12) / (1 - Math.pow(1 + 0.07/12, -360)))).toFixed(2)}
-                        </p>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
+              <DealCalculator 
+                deal={{
+                  loan_amount: lead.loan_amount || 0,
+                  interest_rate: lead.current_rate || 7.5,
+                  loan_term_months: 360,
+                }}
+                properties={lead.estimated_value ? [{
+                  appraised_value: parseFloat(lead.estimated_value) || 0,
+                  gross_rent_monthly: parseFloat(lead.monthly_rental_income) || 0,
+                  taxes_monthly: (parseFloat(lead.property_taxes) || 0) / 12,
+                  insurance_monthly: (parseFloat(lead.annual_homeowners_insurance) || 0) / 12,
+                }] : []}
+              />
               <Button 
                 onClick={() => setQuoteModalOpen(true)} 
                 className="w-full gap-2 bg-blue-600 hover:bg-blue-700"
