@@ -385,7 +385,7 @@ export default function SettingsPage() {
               </div>
               <Button 
                 className="bg-blue-600 hover:bg-blue-500 gap-2"
-                onClick={() => alert('Notification preferences saved!')}
+                onClick={() => toast.success('Notification preferences saved!')}
               >
                 <Save className="h-4 w-4" />
                 Save Preferences
