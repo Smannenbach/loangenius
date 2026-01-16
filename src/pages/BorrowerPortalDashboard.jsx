@@ -91,7 +91,7 @@ export default function BorrowerPortalDashboard() {
 
   const activeDeal = deals[0];
   const pendingTasks = tasks.filter(t => t.status === 'pending');
-  const latestPreQual = preQuals[0];
+  const latestPreQual = preQuals && preQuals.length > 0 ? preQuals[0] : null;
 
   const getStageProgress = (stage) => {
     const stages = ['inquiry', 'application', 'processing', 'underwriting', 'approved', 'closing', 'funded'];
