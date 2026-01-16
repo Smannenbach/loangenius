@@ -110,6 +110,8 @@ export default function LoanApplicationWizard() {
         throw new Error('TCPA consent is required');
       }
 
+      const formattedVestingType = formData.borrowers?.some(b => b.entity_name) ? 'Entity' : 'Individual';
+
       const formattedBorrowers = (formData.borrowers || []).map(b => ({
         firstName: b.first_name,
         lastName: b.last_name,
@@ -178,9 +180,27 @@ export default function LoanApplicationWizard() {
 
       return response.data?.deal;
     },
-    onSuccess: (deal) => {
+    onSuccess: async (deal) => {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
-      toast.success('Loan application submitted successfully!');
+      
+      // Create DSCR document requirements automatically
+      if (deal?.id && (formData.loanType === 'DSCR' || formData.loanType?.includes('DSCR'))) {
+        try {
+          const vestingType = formData.borrowers?.some(b => b.entity_name) ? 'Entity' : 'Individual';
+          await base44.functions.invoke('createDSCRDocumentRequirements', {
+            deal_id: deal.id,
+            loan_purpose: formData.loanPurpose,
+            vesting_type: vestingType
+          });
+          toast.success('Application submitted! Document checklist created.');
+        } catch (e) {
+          console.log('Document requirements creation failed (non-critical):', e);
+          toast.success('Loan application submitted successfully!');
+        }
+      } else {
+        toast.success('Loan application submitted successfully!');
+      }
+      
       if (deal?.id) {
         navigate(createPageUrl(`DealDetail?id=${deal.id}`));
       } else {
