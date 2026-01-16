@@ -62,12 +62,11 @@ export default function Pipeline() {
   });
 
   const stages = [
-    { id: 'lead', name: 'Lead', color: 'bg-gray-500' },
+    { id: 'inquiry', name: 'Inquiry', color: 'bg-gray-500' },
     { id: 'application', name: 'Application', color: 'bg-blue-500' },
     { id: 'processing', name: 'Processing', color: 'bg-yellow-500' },
     { id: 'underwriting', name: 'Underwriting', color: 'bg-purple-500' },
-    { id: 'conditional_approval', name: 'Conditional', color: 'bg-indigo-500' },
-    { id: 'clear_to_close', name: 'CTC', color: 'bg-emerald-500' },
+    { id: 'approved', name: 'Approved', color: 'bg-indigo-500' },
     { id: 'closing', name: 'Closing', color: 'bg-teal-500' },
     { id: 'funded', name: 'Funded', color: 'bg-green-500' },
   ];
