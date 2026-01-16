@@ -84,13 +84,15 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Dashboard', href: '/Dashboard', icon: LayoutDashboard },
     { name: 'Pipeline', href: '/Pipeline', icon: TrendingUp },
     { name: 'Leads', href: '/Leads', icon: Users },
+    { name: 'Deals', href: '/Deals', icon: FolderOpen },
     { name: 'Loans', href: '/Loans', icon: Briefcase },
     { name: 'Contacts', href: '/Contacts', icon: Users },
-    { name: 'Portal', href: '/BorrowerPortalHome', icon: FolderOpen },
+    { name: 'Tasks', href: '/Tasks', icon: ClipboardList },
   ];
 
   const toolsNav = [
       { name: 'Quote Generator', href: '/QuoteGenerator', icon: FileOutput },
+      { name: 'Calculator', href: '/Calculator', icon: Calculator },
       { name: 'AI Hub', href: '/AIAssistant', icon: Bot },
       { name: 'Conversations', href: '/Conversations', icon: MessageSquare },
     ];
