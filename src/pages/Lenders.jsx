@@ -91,7 +91,7 @@ export default function Lenders() {
   const addLenderMutation = useMutation({
     mutationFn: async (data) => {
       return base44.entities.Contact.create({
-        org_id: user?.org_id,
+        org_id: orgId,
         contact_type: 'entity',
         ...data,
         is_lender: true,
