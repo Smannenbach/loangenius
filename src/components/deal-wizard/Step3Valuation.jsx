@@ -28,7 +28,7 @@ export default function Step3Valuation({ data, onChange, onNext, onPrev, loanPur
       {/* Header */}
       <div className="flex items-start gap-4">
         <div className="h-12 w-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-xl font-bold flex-shrink-0">
-          3
+          4
         </div>
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Valuation & Loan Terms</h2>

@@ -45,7 +45,7 @@ export default function Step1LoanType({ data, onChange, onNext, onPrev }) {
       {/* Header */}
       <div className="flex items-start gap-4">
         <div className="h-12 w-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-xl font-bold flex-shrink-0">
-          1
+          2
         </div>
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Loan Type & Purpose</h2>
