@@ -43,11 +43,12 @@ export default function DealDetail() {
   const [showPortalInviteModal, setShowPortalInviteModal] = useState(false);
   const [selectedBorrower, setSelectedBorrower] = useState(null);
 
-  const { data: deal, isLoading: dealLoading } = useQuery({
+  const { data: deal, isLoading: dealLoading, error: dealError } = useQuery({
     queryKey: ['deal', dealId],
     queryFn: async () => {
-      const deals = await base44.entities.Deal.filter({ id: dealId });
-      return deals[0];
+      if (!dealId) return null;
+      const deals = await base44.entities.Deal.list();
+      return deals.find(d => d.id === dealId);
     },
     enabled: !!dealId,
   });
@@ -135,12 +136,38 @@ export default function DealDetail() {
     return index >= 0 ? ((index + 1) / stages.length) * 100 : 0;
   };
 
-  if (dealLoading || !deal) {
+  if (!dealId) {
+    return (
+      <div className="p-6 lg:p-8">
+        <div className="text-center py-12">
+          <p className="text-gray-500">No deal ID provided</p>
+          <Link to={createPageUrl('Pipeline')} className="text-blue-600 hover:underline mt-2 inline-block">
+            Back to Pipeline
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (dealLoading) {
     return (
       <div className="p-6 lg:p-8">
         <div className="animate-pulse space-y-6">
           <div className="h-8 bg-gray-200 rounded w-64" />
           <div className="h-48 bg-gray-200 rounded" />
+        </div>
+      </div>
+    );
+  }
+
+  if (dealError || !deal) {
+    return (
+      <div className="p-6 lg:p-8">
+        <div className="text-center py-12">
+          <p className="text-red-600 mb-2">Failed to load deal</p>
+          <Link to={createPageUrl('Pipeline')} className="text-blue-600 hover:underline">
+            Back to Pipeline
+          </Link>
         </div>
       </div>
     );
