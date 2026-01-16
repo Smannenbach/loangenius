@@ -9,12 +9,23 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    // Get org_id from query params
+    // Get org_id from body or query params or user membership
+    const body = await req.json().catch(() => ({}));
     const url = new URL(req.url);
-    const orgId = url.searchParams.get('org_id');
+    let orgId = body.org_id || url.searchParams.get('org_id');
 
     if (!orgId) {
-      return Response.json({ error: 'org_id required' }, { status: 400 });
+      // Try to get from user membership
+      const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+        user_id: user.email
+      });
+      if (memberships.length > 0) {
+        orgId = memberships[0].org_id;
+      }
+    }
+
+    if (!orgId) {
+      orgId = 'default';
     }
 
     const defaultFees = [
