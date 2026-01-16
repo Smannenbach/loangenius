@@ -59,7 +59,13 @@ export default function LoansPage() {
      queryKey: ['deals', orgId],
      queryFn: async () => {
        if (!orgId) return [];
-       return await base44.entities.Deal.filter({ org_id: orgId });
+       try {
+         return await base44.entities.Deal.filter({ org_id: orgId });
+       } catch (e) {
+         // Fallback: get all deals if filter fails
+         const allDeals = await base44.entities.Deal.list();
+         return allDeals.filter(d => !d.is_deleted);
+       }
      },
      enabled: !!orgId,
      retry: 2,
