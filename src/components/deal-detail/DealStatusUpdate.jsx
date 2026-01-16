@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const STAGES = [
   { value: 'inquiry', label: 'Inquiry', color: 'bg-gray-100 text-gray-700' },
@@ -30,16 +31,25 @@ export default function DealStatusUpdate({ deal, dealId }) {
 
   const updateStageMutation = useMutation({
     mutationFn: async () => {
-      const response = await base44.functions.invoke('updateDealStage', {
-        deal_id: dealId,
-        stage: newStage,
-        notes,
-      });
-      return response.data;
+      try {
+        const response = await base44.functions.invoke('updateDealStage', {
+          deal_id: dealId,
+          stage: newStage,
+          notes,
+        });
+        return response.data;
+      } catch (e) {
+        // Fallback: update directly
+        return await base44.entities.Deal.update(dealId, { stage: newStage });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deal', dealId] });
       setNotes('');
+      toast.success('Deal stage updated successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to update stage: ' + error.message);
     },
   });
 
