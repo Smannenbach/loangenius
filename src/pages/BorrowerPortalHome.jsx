@@ -50,7 +50,8 @@ export default function BorrowerPortalHome() {
       <div className="min-h-screen bg-gray-50">
         <div className="bg-white border-b">
           <div className="max-w-6xl mx-auto px-6 py-8">
-            <h1 className="text-3xl font-bold">Select Your Loan Application</h1>
+            <h1 className="text-3xl font-bold">Borrower Portal - Select Loan</h1>
+            <p className="text-gray-600 mt-2">View and manage loan applications from the borrower's perspective</p>
           </div>
         </div>
         <div className="max-w-6xl mx-auto px-6 py-8">
@@ -68,7 +69,8 @@ export default function BorrowerPortalHome() {
                     <h3 className="font-semibold text-lg mb-2">{deal.deal_number}</h3>
                     <p className="text-sm text-gray-600 mb-3">{deal.loan_product}</p>
                     <p className="text-sm font-medium">${(deal.loan_amount / 1000).toFixed(0)}K</p>
-                    <Button className="w-full mt-4 bg-blue-600 hover:bg-blue-700">View Application</Button>
+                    <Badge className="mt-2" variant="secondary">{deal.stage?.replace(/_/g, ' ')}</Badge>
+                    <Button className="w-full mt-4 bg-blue-600 hover:bg-blue-700">View Borrower Portal</Button>
                   </CardContent>
                 </Card>
               ))}

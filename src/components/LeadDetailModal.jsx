@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Phone, MessageSquare, Eye, Edit, FileOutput, MessageCircle, CheckCircle2, AlertCircle, Loader, ArrowRight } from 'lucide-react';
+import { Mail, Phone, MessageSquare, Eye, Edit, FileOutput, MessageCircle, CheckCircle2, AlertCircle, Loader, ArrowRight, ClipboardList, Clock, Plus } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import QuoteGeneratorModal from './QuoteGeneratorModal';
@@ -100,9 +100,10 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
           </DialogHeader>
 
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="tasks">Tasks</TabsTrigger>
               <TabsTrigger value="actions">Actions</TabsTrigger>
             </TabsList>
 
@@ -210,6 +211,21 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
                 {lead.monthly_rental_income && <div><span className="text-gray-600">Monthly Rental Income:</span> ${parseFloat(lead.monthly_rental_income).toLocaleString()}</div>}
                 {lead.source && <div><span className="text-gray-600">Source:</span> {lead.source}</div>}
                 {lead.notes && <div><span className="text-gray-600">Notes:</span> {lead.notes}</div>}
+              </div>
+            </TabsContent>
+
+            {/* Tasks Tab */}
+            <TabsContent value="tasks" className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="font-medium">Lead Tasks</h3>
+                <Button size="sm" variant="outline" className="gap-2">
+                  <Plus className="h-3 w-3" />
+                  Add Task
+                </Button>
+              </div>
+              <div className="text-center py-8 text-gray-500">
+                <ClipboardList className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                <p className="text-sm">No tasks yet</p>
               </div>
             </TabsContent>
 
