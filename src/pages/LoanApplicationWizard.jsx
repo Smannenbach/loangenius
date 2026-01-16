@@ -571,7 +571,7 @@ function BorrowerStep({ data, onChange }) {
             </div>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       {data.borrowers?.length > 0 && (
         <div className="space-y-3">
