@@ -19,7 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileOutput, Download, Send, Building2, DollarSign, Percent, TrendingUp, AlertCircle, Check, Loader } from 'lucide-react';
+import { FileOutput, Download, Send, Building2, DollarSign, Percent, TrendingUp, AlertCircle, Check, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import AmortizationSchedule from "@/components/quote/AmortizationSchedule";
 import ComparisonTool from "@/components/quote/ComparisonTool";
@@ -37,6 +38,11 @@ function SendQuoteButton({ quote }) {
     },
     onSuccess: () => {
       setIsOpen(false);
+      toast.success('Quote sent successfully!');
+    },
+    onError: (error) => {
+      console.error('Send quote error:', error);
+      toast.error('Failed to send quote: ' + error.message);
     },
   });
 
@@ -71,7 +77,7 @@ function SendQuoteButton({ quote }) {
               >
                 {sendMutation.isPending ? (
                   <>
-                    <Loader className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Sending...
                   </>
                 ) : (
@@ -327,8 +333,10 @@ export default function QuoteGenerator() {
       doc.text(`${generatedQuote.apr}% APR`, margin + 5, yPos + 18);
 
       doc.save(`quote-${generatedQuote.borrowerName.replace(/\s+/g, '-')}.pdf`);
+      toast.success('PDF downloaded successfully!');
     } catch (error) {
       console.error('PDF generation error:', error);
+      toast.error('Failed to generate PDF');
     }
   };
 
