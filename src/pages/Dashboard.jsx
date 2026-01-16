@@ -128,12 +128,7 @@ export default function Dashboard() {
         {/* Right Column */}
         <div className="space-y-6">
           {/* Tasks */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-bold mb-4">My Tasks</h3>
-            <div className="space-y-2">
-              <p className="text-sm text-gray-500">No tasks assigned</p>
-            </div>
-          </div>
+          <MyTasksWidget orgId={orgId} />
 
           {/* Deals Needing Attention */}
           <AttentionDeals deals={attentionDeals} />
