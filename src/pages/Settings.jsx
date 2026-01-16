@@ -98,10 +98,13 @@ export default function SettingsPage() {
                       const file = e.target.files?.[0];
                       if (file) {
                         try {
-                          const { data } = await base44.functions.invoke('uploadUserHeadshot', { file });
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          const { data } = await base44.functions.invoke('uploadUserHeadshot', formData);
                           setProfile({ ...profile, headshot_url: data.url });
                         } catch (err) {
                           console.error('Upload failed:', err);
+                          alert('Upload failed: ' + err.message);
                         }
                       }
                     }}
@@ -175,10 +178,14 @@ export default function SettingsPage() {
                       const file = e.target.files?.[0];
                       if (file) {
                         try {
-                          const { data } = await base44.functions.invoke('uploadOrgLogo', { file });
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          const { data } = await base44.functions.invoke('uploadOrgLogo', formData);
                           console.log('Logo uploaded:', data.url);
+                          alert('Logo uploaded successfully!');
                         } catch (err) {
                           console.error('Upload failed:', err);
+                          alert('Upload failed: ' + err.message);
                         }
                       }
                     }}
