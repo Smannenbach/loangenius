@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Pin } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function ActivityTimeline({ dealId, showInternal = false }) {
   const [showAddNote, setShowAddNote] = useState(false);
@@ -14,14 +15,38 @@ export default function ActivityTimeline({ dealId, showInternal = false }) {
 
   const { data: activities = [] } = useQuery({
     queryKey: ['activities', dealId],
-    queryFn: () => base44.entities.ActivityFeed.filter({ deal_id: dealId })
+    queryFn: async () => {
+      try {
+        return await base44.entities.ActivityFeed.filter({ deal_id: dealId });
+      } catch {
+        return await base44.entities.ActivityLog.filter({ deal_id: dealId });
+      }
+    }
   });
 
   const addNoteMutation = useMutation({
-    mutationFn: (data) => base44.functions.invoke('logActivity', data),
+    mutationFn: async (data) => {
+      try {
+        return await base44.functions.invoke('logActivity', data);
+      } catch {
+        // Fallback: create activity directly
+        return await base44.entities.ActivityFeed.create({
+          org_id: data.org_id,
+          deal_id: data.deal_id,
+          activity_type: data.activity_type,
+          title: data.title,
+          description: data.description,
+          is_internal: data.is_internal,
+        });
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activities', dealId] });
       setShowAddNote(false);
+      toast.success('Note added successfully!');
+    },
+    onError: (error) => {
+      toast.error('Failed to add note: ' + error.message);
     }
   });
 
