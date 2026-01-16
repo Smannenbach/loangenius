@@ -104,7 +104,22 @@ export default function Leads() {
     source: '',
     status: 'new',
     notes: '',
+    zillow_link: '',
     tcpa_consent: false,
+    custom_disclaimer: '',
+    platform: '',
+    fb_campaign_name: '',
+    fb_campaign_id: '',
+    fb_adset_name: '',
+    fb_adset_id: '',
+    fb_ad_name: '',
+    fb_ad_id: '',
+    fb_form_name: '',
+    fb_form_id: '',
+    fb_page_name: '',
+    fb_page_id: '',
+    fb_lead_id: '',
+    lead_received_date: '',
   });
 
   const { data: user } = useQuery({
@@ -216,6 +231,22 @@ export default function Leads() {
         source: '',
         status: 'new',
         notes: '',
+        zillow_link: '',
+        tcpa_consent: false,
+        custom_disclaimer: '',
+        platform: '',
+        fb_campaign_name: '',
+        fb_campaign_id: '',
+        fb_adset_name: '',
+        fb_adset_id: '',
+        fb_ad_name: '',
+        fb_ad_id: '',
+        fb_form_name: '',
+        fb_form_id: '',
+        fb_page_name: '',
+        fb_page_id: '',
+        fb_lead_id: '',
+        lead_received_date: '',
       });
     },
     onError: (error) => {
@@ -310,6 +341,22 @@ export default function Leads() {
       source: lead.source || '',
       status: lead.status || 'new',
       notes: lead.notes || '',
+      zillow_link: lead.zillow_link || '',
+      tcpa_consent: lead.tcpa_consent || false,
+      custom_disclaimer: lead.custom_disclaimer || '',
+      platform: lead.platform || '',
+      fb_campaign_name: lead.fb_campaign_name || '',
+      fb_campaign_id: lead.fb_campaign_id || '',
+      fb_adset_name: lead.fb_adset_name || '',
+      fb_adset_id: lead.fb_adset_id || '',
+      fb_ad_name: lead.fb_ad_name || '',
+      fb_ad_id: lead.fb_ad_id || '',
+      fb_form_name: lead.fb_form_name || '',
+      fb_form_id: lead.fb_form_id || '',
+      fb_page_name: lead.fb_page_name || '',
+      fb_page_id: lead.fb_page_id || '',
+      fb_lead_id: lead.fb_lead_id || '',
+      lead_received_date: lead.lead_received_date || '',
     });
     setIsAddOpen(true);
   };
@@ -595,44 +642,50 @@ export default function Leads() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Loan Type</Label>
-                  <Select
-                    value={newLead.loan_type}
-                    onValueChange={(v) => setNewLead({ ...newLead, loan_type: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="DSCR">DSCR</SelectItem>
-                      <SelectItem value="Conventional">Conventional</SelectItem>
-                      <SelectItem value="FHA">FHA</SelectItem>
-                      <SelectItem value="VA">VA</SelectItem>
-                      <SelectItem value="Hard Money">Hard Money</SelectItem>
-                      <SelectItem value="Bridge">Bridge</SelectItem>
-                      <SelectItem value="Portfolio">Portfolio</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Loan Purpose</Label>
-                  <Select
-                    value={newLead.loan_purpose}
-                    onValueChange={(v) => setNewLead({ ...newLead, loan_purpose: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select purpose" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Purchase">Purchase</SelectItem>
-                      <SelectItem value="Refinance">Refinance</SelectItem>
-                      <SelectItem value="Cash-Out">Cash-Out</SelectItem>
-                      <SelectItem value="Rate and Term">Rate and Term</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label>Loan Type</Label>
+                <Select
+                  value={newLead.loan_type}
+                  onValueChange={(v) => setNewLead({ ...newLead, loan_type: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DSCR">DSCR</SelectItem>
+                    <SelectItem value="Conventional">Conventional</SelectItem>
+                    <SelectItem value="FHA">FHA</SelectItem>
+                    <SelectItem value="VA">VA</SelectItem>
+                    <SelectItem value="Non-QM">Non-QM</SelectItem>
+                    <SelectItem value="Bank Statement">Bank Statement</SelectItem>
+                    <SelectItem value="Hard Money">Hard Money</SelectItem>
+                    <SelectItem value="Bridge">Bridge</SelectItem>
+                    <SelectItem value="Portfolio">Portfolio</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Loan Purpose</Label>
+                <Select
+                  value={newLead.loan_purpose}
+                  onValueChange={(v) => setNewLead({ ...newLead, loan_purpose: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select purpose" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Purchase">Purchase</SelectItem>
+                    <SelectItem value="Refinance">Refinance</SelectItem>
+                    <SelectItem value="Cash-Out">Cash-Out</SelectItem>
+                    <SelectItem value="Cash Out Refi">Cash Out Refi</SelectItem>
+                    <SelectItem value="Rate and Term">Rate and Term</SelectItem>
+                    <SelectItem value="Lower Rate Refi">Lower Rate Refi</SelectItem>
+                    <SelectItem value="Home Equity">Home Equity</SelectItem>
+                    <SelectItem value="Construction">Construction</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
@@ -718,11 +771,15 @@ export default function Leads() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="SFR">Single Family</SelectItem>
+                      <SelectItem value="Condo">Condo</SelectItem>
+                      <SelectItem value="Townhouse">Townhouse</SelectItem>
+                      <SelectItem value="Duplex 2-Unit">Duplex (2-Unit)</SelectItem>
+                      <SelectItem value="Triplex 3-Unit">Triplex (3-Unit)</SelectItem>
+                      <SelectItem value="Quadplex 4-Unit">Quadplex (4-Unit)</SelectItem>
+                      <SelectItem value="5+ Units">5+ Units</SelectItem>
                       <SelectItem value="Multi-Family">Multi-Family</SelectItem>
                       <SelectItem value="Commercial">Commercial</SelectItem>
                       <SelectItem value="Land">Land</SelectItem>
-                      <SelectItem value="Condo">Condo</SelectItem>
-                      <SelectItem value="Townhouse">Townhouse</SelectItem>
                       <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
@@ -737,13 +794,21 @@ export default function Leads() {
                       <SelectValue placeholder="Select occupancy" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Primary Residence">Primary Residence</SelectItem>
-                      <SelectItem value="Investment Property">Investment Property</SelectItem>
-                      <SelectItem value="Second Home">Second Home</SelectItem>
+                      <SelectItem value="Primary">Primary Residence</SelectItem>
+                      <SelectItem value="Investment">Investment Property</SelectItem>
+                      <SelectItem value="2nd Home">Second Home</SelectItem>
                       <SelectItem value="Vacation Home">Vacation Home</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Zillow Link</Label>
+                <Input
+                  value={newLead.zillow_link}
+                  onChange={(e) => setNewLead({ ...newLead, zillow_link: e.target.value })}
+                  placeholder="https://www.zillow.com/..."
+                />
               </div>
               <div className="space-y-2">
                 <Label>Notes</Label>
@@ -753,6 +818,141 @@ export default function Leads() {
                   placeholder="Add any notes..."
                 />
               </div>
+              
+              {/* Ad Platform Tracking Section */}
+              <div className="border-t pt-4 mt-4">
+                <h4 className="font-semibold text-sm text-gray-700 mb-3">Ad Platform Tracking (FB/IG)</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Platform</Label>
+                    <Select
+                      value={newLead.platform}
+                      onValueChange={(v) => setNewLead({ ...newLead, platform: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select platform" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="FB">Facebook</SelectItem>
+                        <SelectItem value="IG">Instagram</SelectItem>
+                        <SelectItem value="Google">Google</SelectItem>
+                        <SelectItem value="TikTok">TikTok</SelectItem>
+                        <SelectItem value="LinkedIn">LinkedIn</SelectItem>
+                        <SelectItem value="Email">Email</SelectItem>
+                        <SelectItem value="Direct">Direct</SelectItem>
+                        <SelectItem value="Referral">Referral</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Lead Received Date</Label>
+                    <Input
+                      type="datetime-local"
+                      value={newLead.lead_received_date}
+                      onChange={(e) => setNewLead({ ...newLead, lead_received_date: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                  <div className="space-y-2">
+                    <Label>Campaign Name</Label>
+                    <Input
+                      value={newLead.fb_campaign_name}
+                      onChange={(e) => setNewLead({ ...newLead, fb_campaign_name: e.target.value })}
+                      placeholder="e.g., Cash Out Refi LS-17"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Campaign ID</Label>
+                    <Input
+                      value={newLead.fb_campaign_id}
+                      onChange={(e) => setNewLead({ ...newLead, fb_campaign_id: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                  <div className="space-y-2">
+                    <Label>Ad Set Name</Label>
+                    <Input
+                      value={newLead.fb_adset_name}
+                      onChange={(e) => setNewLead({ ...newLead, fb_adset_name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Ad Set ID</Label>
+                    <Input
+                      value={newLead.fb_adset_id}
+                      onChange={(e) => setNewLead({ ...newLead, fb_adset_id: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                  <div className="space-y-2">
+                    <Label>Ad Name</Label>
+                    <Input
+                      value={newLead.fb_ad_name}
+                      onChange={(e) => setNewLead({ ...newLead, fb_ad_name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Ad ID</Label>
+                    <Input
+                      value={newLead.fb_ad_id}
+                      onChange={(e) => setNewLead({ ...newLead, fb_ad_id: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                  <div className="space-y-2">
+                    <Label>Form Name</Label>
+                    <Input
+                      value={newLead.fb_form_name}
+                      onChange={(e) => setNewLead({ ...newLead, fb_form_name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Form ID</Label>
+                    <Input
+                      value={newLead.fb_form_id}
+                      onChange={(e) => setNewLead({ ...newLead, fb_form_id: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                  <div className="space-y-2">
+                    <Label>Page Name</Label>
+                    <Input
+                      value={newLead.fb_page_name}
+                      onChange={(e) => setNewLead({ ...newLead, fb_page_name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Page ID</Label>
+                    <Input
+                      value={newLead.fb_page_id}
+                      onChange={(e) => setNewLead({ ...newLead, fb_page_id: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                  <div className="space-y-2">
+                    <Label>FB Lead ID</Label>
+                    <Input
+                      value={newLead.fb_lead_id}
+                      onChange={(e) => setNewLead({ ...newLead, fb_lead_id: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Custom Disclaimer</Label>
+                    <Input
+                      value={newLead.custom_disclaimer}
+                      onChange={(e) => setNewLead({ ...newLead, custom_disclaimer: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+              
               {!editingLead && (
                 <div className="pt-3 border-t">
                   <TCPAConsentCompact

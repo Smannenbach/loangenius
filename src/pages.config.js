@@ -44,6 +44,7 @@ import ExecutiveDashboard from './pages/ExecutiveDashboard';
 import LandingPage from './pages/LandingPage';
 import LeadIntelligence from './pages/LeadIntelligence';
 import Leads from './pages/Leads';
+import LenderIntegrations from './pages/LenderIntegrations';
 import Lenders from './pages/Lenders';
 import LoanApplication from './pages/LoanApplication';
 import LoanApplicationWizard from './pages/LoanApplicationWizard';
@@ -66,7 +67,6 @@ import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
-import LenderIntegrations from './pages/LenderIntegrations';
 import __Layout from './Layout.jsx';
 
 
@@ -117,6 +117,7 @@ export const PAGES = {
     "LandingPage": LandingPage,
     "LeadIntelligence": LeadIntelligence,
     "Leads": Leads,
+    "LenderIntegrations": LenderIntegrations,
     "Lenders": Lenders,
     "LoanApplication": LoanApplication,
     "LoanApplicationWizard": LoanApplicationWizard,
@@ -139,7 +140,6 @@ export const PAGES = {
     "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
-    "LenderIntegrations": LenderIntegrations,
 }
 
 export const pagesConfig = {
