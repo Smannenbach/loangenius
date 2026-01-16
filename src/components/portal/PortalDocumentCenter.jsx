@@ -24,8 +24,22 @@ export default function PortalDocumentCenter({ dealId, borrowerEmail }) {
   const [uploadingReq, setUploadingReq] = useState(null);
   const fileInputRefs = useRef({});
 
+  // Default document requirements if none exist for the deal
+  const defaultRequirements = [
+    { id: 'default-1', requirement_name: 'Government-Issued Photo ID', requirement_type: 'photo_id', category: 'identity', is_required: true, status: 'pending', instructions: 'Upload a valid driver\'s license, passport, or state ID (front and back)' },
+    { id: 'default-2', requirement_name: 'Bank Statements (Last 2 Months)', requirement_type: 'bank_statements', category: 'financials', is_required: true, status: 'pending', instructions: 'All pages of your most recent 2 months of bank statements' },
+    { id: 'default-3', requirement_name: 'Current Mortgage Statement', requirement_type: 'mortgage_statement', category: 'financials', is_required: false, status: 'pending', instructions: 'Most recent mortgage statement showing current balance (for refinances)', is_conditional: true, condition_description: 'Required for refinance' },
+    { id: 'default-4', requirement_name: 'LLC Articles of Organization', requirement_type: 'llc_articles', category: 'entity', is_required: false, status: 'pending', instructions: 'State-filed Articles of Organization for your LLC', is_conditional: true, condition_description: 'Required if entity vesting' },
+    { id: 'default-5', requirement_name: 'LLC Operating Agreement', requirement_type: 'llc_operating_agreement', category: 'entity', is_required: false, status: 'pending', instructions: 'Fully executed Operating Agreement showing ownership', is_conditional: true, condition_description: 'Required if entity vesting' },
+    { id: 'default-6', requirement_name: 'Current Lease Agreement', requirement_type: 'lease_agreement', category: 'property', is_required: true, status: 'pending', instructions: 'Signed lease agreement for the property (if currently rented)' },
+    { id: 'default-7', requirement_name: 'Homeowners Insurance Quote/Dec Page', requirement_type: 'homeowners_insurance', category: 'property', is_required: true, status: 'pending', instructions: 'Insurance quote or declarations page showing coverage' },
+    { id: 'default-8', requirement_name: 'Purchase Contract', requirement_type: 'purchase_contract', category: 'property', is_required: false, status: 'pending', instructions: 'Fully executed purchase contract', is_conditional: true, condition_description: 'Required for purchase loans' },
+    { id: 'default-9', requirement_name: 'Credit Authorization', requirement_type: 'credit_authorization', category: 'authorization', is_required: true, status: 'pending', instructions: 'Signed authorization to pull credit report' },
+    { id: 'default-10', requirement_name: 'Borrower Certification', requirement_type: 'borrower_certification', category: 'authorization', is_required: true, status: 'pending', instructions: 'Signed borrower certification form' },
+  ];
+
   // Fetch document requirements for this deal
-  const { data: requirements = [], isLoading } = useQuery({
+  const { data: fetchedRequirements = [], isLoading } = useQuery({
     queryKey: ['dealDocumentRequirements', dealId],
     queryFn: async () => {
       if (!dealId) return [];
@@ -37,6 +51,9 @@ export default function PortalDocumentCenter({ dealId, borrowerEmail }) {
     },
     enabled: !!dealId
   });
+
+  // Use fetched requirements if they exist, otherwise show defaults
+  const requirements = fetchedRequirements.length > 0 ? fetchedRequirements : defaultRequirements;
 
   // Upload mutation
   const uploadMutation = useMutation({
