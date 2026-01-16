@@ -6,19 +6,19 @@ Deno.serve(async (req) => {
 
     // Check OpenAI availability
     let openaiStatus = 'unconfigured';
-    if (Deno.env.get('OPENAI_API_KEY')) {
+    if (Deno.env.get('OpenAI_API_Key')) {
       openaiStatus = 'available';
     }
 
     // Check Anthropic availability
     let anthropicStatus = 'unconfigured';
-    if (Deno.env.get('ANTHROPIC_API_KEY')) {
+    if (Deno.env.get('Anthropic_API_Key')) {
       anthropicStatus = 'available';
     }
 
     // Check Google AI availability
     let googleStatus = 'unconfigured';
-    if (Deno.env.get('GOOGLE_AI_STUDIO_API_KEY')) {
+    if (Deno.env.get('Google_Gemini_API_Key')) {
       googleStatus = 'available';
     }
 
