@@ -281,7 +281,7 @@ export default function PortalDocumentCenter({ dealId, borrowerEmail }) {
 
                         {/* Actions */}
                         <div className="flex gap-2 mt-3">
-                          {canUpload && (
+                          {canUpload && !showDefaults && (
                             <>
                               <input
                                 type="file"
@@ -312,6 +312,11 @@ export default function PortalDocumentCenter({ dealId, borrowerEmail }) {
                                 )}
                               </Button>
                             </>
+                          )}
+                          {canUpload && showDefaults && (
+                            <Badge variant="outline" className="text-gray-500">
+                              Upload available after application starts
+                            </Badge>
                           )}
                           {req.document_id && (
                             <Button
