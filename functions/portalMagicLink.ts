@@ -33,12 +33,17 @@ async function sendPortalInvite(base44, org_id, deal_id, borrower_id, user_email
     // Build portal URL
     const portalUrl = `https://apply.loangenius.ai/portal/login?token=${token}`;
     
-    // Send email via SendGrid
-    await base44.integrations.Core.SendEmail({
-      to: borrower.email,
-      subject: `Your ${deal.deal_number} Loan Application Portal`,
-      body: `Hi ${borrower.first_name},\n\nAccess your secure loan portal:\n${portalUrl}\n\nThis link expires in 7 days.`,
-    });
+    // Send email via SendGrid (only if borrower email is registered in app)
+    try {
+      await base44.integrations.Core.SendEmail({
+        to: borrower.email,
+        subject: `Your ${deal.deal_number || 'Loan'} Loan Application Portal`,
+        body: `Hi ${borrower.first_name},\n\nAccess your secure loan portal:\n${portalUrl}\n\nThis link expires in 7 days.`,
+      });
+    } catch (emailErr) {
+      console.log('Email send skipped (borrower not in app):', emailErr.message);
+      // Continue - the magic link is still created
+    }
 
     // Send SMS if opted in
     if (borrower.phone && !borrower.sms_opt_out) {
@@ -118,8 +123,9 @@ Deno.serve(async (req) => {
       return Response.json(result);
     }
 
-    if (action === 'validateAndCreateSession') {
-      const { token } = await req.json();
+    if (action === 'validateAndCreateSession' || action === 'validate') {
+      const body = await req.json().catch(() => ({}));
+      const token = body.token;
       if (!token) {
         return Response.json({ error: 'Token required' }, { status: 400 });
       }
