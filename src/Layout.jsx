@@ -88,6 +88,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Loans', href: '/Loans', icon: Briefcase },
     { name: 'Contacts', href: '/Contacts', icon: Users },
     { name: 'Business Purpose App', href: '/BusinessPurposeApplication', icon: ClipboardList },
+    { name: 'Borrower Portal', href: '/BorrowerPortalDashboard', icon: User },
   ];
 
   const toolsNav = [
