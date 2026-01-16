@@ -148,7 +148,22 @@ export default function SettingsPage() {
                   />
                 </div>
               </div>
-              <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
+              <Button 
+                className="bg-blue-600 hover:bg-blue-500 gap-2"
+                onClick={async () => {
+                  try {
+                    await base44.auth.updateMe({
+                      full_name: profile.full_name,
+                      phone: profile.phone,
+                      nmls_id: profile.nmls_id,
+                      headshot_url: profile.headshot_url,
+                    });
+                    alert('Profile saved successfully!');
+                  } catch (err) {
+                    alert('Error saving profile: ' + err.message);
+                  }
+                }}
+              >
                 <Save className="h-4 w-4" />
                 Save Changes
               </Button>
