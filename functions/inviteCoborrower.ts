@@ -14,13 +14,12 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const {
-      deal_id,
-      coborrower_email,
-      coborrower_first_name,
-      coborrower_last_name,
-      send_email = true
-    } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const deal_id = body.deal_id;
+    const coborrower_email = body.coborrower_email || body.email;
+    const coborrower_first_name = body.coborrower_first_name || body.first_name;
+    const coborrower_last_name = body.coborrower_last_name || body.last_name;
+    const send_email = body.send_email !== false;
 
     if (!deal_id || !coborrower_email) {
       return Response.json({
@@ -93,10 +92,11 @@ Deno.serve(async (req) => {
     await base44.asServiceRole.entities.ActivityLog.create({
       org_id: deal.org_id,
       deal_id,
-      contact_id: coborrower_email,
-      action_type: 'coborrower_invited',
+      borrower_id: coborrower.id,
+      activity_type: 'PORTAL_INVITE_SENT',
       description: `Co-borrower invited: ${coborrower_email}`,
-      metadata_json: { borrower_id: coborrower.id }
+      source: 'admin',
+      metadata: { borrower_id: coborrower.id, email: coborrower_email }
     });
 
     return Response.json({

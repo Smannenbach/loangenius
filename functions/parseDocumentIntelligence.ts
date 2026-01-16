@@ -13,9 +13,19 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { document_id, file_url } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const document_id = body.document_id;
+    let file_url = body.file_url;
 
-    if (!document_id || !file_url) {
+    // If only document_id provided, get file_url from document
+    if (document_id && !file_url) {
+      const docCheck = await base44.entities.Document.get(document_id);
+      if (docCheck && docCheck.file_key) {
+        file_url = docCheck.file_key;
+      }
+    }
+
+    if (!document_id && !file_url) {
       return Response.json({
         error: 'Missing document_id or file_url'
       }, { status: 400 });
@@ -113,11 +123,12 @@ Deno.serve(async (req) => {
 
     // Log activity
     await base44.asServiceRole.entities.ActivityLog.create({
-      org_id: user.org_id || 'default',
+      org_id: doc.org_id || 'default',
       deal_id: doc.deal_id,
-      action_type: 'document_analyzed',
+      activity_type: 'DOCUMENT_UPLOADED',
       description: `Document analyzed: ${llmResult.document_type} (confidence: ${llmResult.confidence}%)`,
-      metadata_json: { document_id, intelligence_id: intelligence.id }
+      source: 'system',
+      metadata: { document_id, intelligence_id: intelligence.id }
     });
 
     return Response.json({
