@@ -236,6 +236,7 @@ export default function DealDetail() {
           <TabsTrigger value="fees">Fees</TabsTrigger>
           <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
           <TabsTrigger value="conditions">Conditions ({conditions.length})</TabsTrigger>
+          <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
 
@@ -521,6 +522,44 @@ export default function DealDetail() {
                   <p className="font-semibold mt-1">5-4-3-2-1</p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="tasks">
+          <Card className="border-gray-200">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-lg">Tasks</CardTitle>
+              <Button variant="outline" size="sm">Add Task</Button>
+            </CardHeader>
+            <CardContent>
+              {tasks.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <ClipboardList className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                  <p>No tasks yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {tasks.map((task) => (
+                    <div key={task.id} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg border">
+                      <div className="flex items-start gap-3">
+                        {task.status === 'completed' ? (
+                          <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
+                        ) : (
+                          <Clock className="h-5 w-5 text-gray-400 mt-0.5" />
+                        )}
+                        <div>
+                          <div className="font-medium">{task.title || task.description}</div>
+                          <div className="text-sm text-gray-500">{task.assigned_to}</div>
+                        </div>
+                      </div>
+                      <Badge className={task.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
+                        {task.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
