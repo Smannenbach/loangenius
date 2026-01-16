@@ -94,9 +94,10 @@ Deno.serve(async (req) => {
     await base44.asServiceRole.entities.ActivityLog.create({
       org_id: docuSign.org_id,
       deal_id,
-      action_type: 'envelope_sent',
+      activity_type: 'DEAL_UPDATED',
       description: `DocuSign envelope sent for ${document_type}`,
-      metadata_json: { envelope_id: envelopeId }
+      source: 'system',
+      metadata: { envelope_id: envelopeId }
     });
 
     return Response.json({

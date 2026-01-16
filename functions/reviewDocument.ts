@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
-  if (req.method !== 'PATCH') {
+  if (req.method !== 'PATCH' && req.method !== 'POST') {
     return Response.json({ error: 'Method not allowed' }, { status: 405 });
   }
 
@@ -13,13 +13,14 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const url = new URL(req.url);
-    const documentId = url.pathname.split('/')[3];
-    const { status, reviewer_notes } = await req.json();
+    const body = await req.json();
+    const documentId = body.document_id;
+    const status = body.status;
+    const reviewer_notes = body.reviewer_notes || body.notes;
 
     if (!documentId || !['approved', 'rejected'].includes(status)) {
       return Response.json({
-        error: 'Missing document ID or invalid status'
+        error: 'Missing document_id or invalid status (must be approved or rejected)'
       }, { status: 400 });
     }
 

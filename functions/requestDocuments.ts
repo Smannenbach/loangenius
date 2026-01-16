@@ -13,13 +13,42 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const url = new URL(req.url);
-    const dealId = url.pathname.split('/')[3];
-    const { requirement_ids, due_at, instructions_text, visible_to_borrower = true, notify = true } = await req.json();
+    const body = await req.json();
+    const dealId = body.deal_id;
+    const requirement_ids = body.requirement_ids || body.document_types || [];
+    const due_at = body.due_at || body.due_date;
+    const instructions_text = body.instructions_text || body.instructions;
+    const visible_to_borrower = body.visible_to_borrower !== false;
+    const notify = body.notify !== false;
 
-    if (!dealId || !Array.isArray(requirement_ids) || requirement_ids.length === 0) {
+    if (!dealId) {
       return Response.json({
-        error: 'Missing deal ID or requirement_ids'
+        error: 'Missing deal_id'
+      }, { status: 400 });
+    }
+
+    // If document_types provided instead of requirement_ids, create requirements
+    if (body.document_types && Array.isArray(body.document_types)) {
+      const deal = await base44.asServiceRole.entities.Deal.get(dealId);
+      for (const docType of body.document_types) {
+        const newReq = await base44.asServiceRole.entities.DealDocumentRequirement.create({
+          org_id: deal.org_id || 'default',
+          deal_id: dealId,
+          document_type: docType,
+          display_name: docType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          status: 'requested',
+          is_required: true,
+          is_visible_to_borrower: visible_to_borrower,
+          requested_at: new Date().toISOString(),
+          due_date: due_at
+        });
+        requirement_ids.push(newReq.id);
+      }
+    }
+
+    if (requirement_ids.length === 0) {
+      return Response.json({
+        error: 'No requirement_ids or document_types provided'
       }, { status: 400 });
     }
 
@@ -86,10 +115,11 @@ Deno.serve(async (req) => {
         await base44.asServiceRole.entities.ActivityLog.create({
           org_id: user.org_id || 'default',
           deal_id: dealId,
-          contact_id: borrower.email,
-          action_type: 'docs_requested',
+          borrower_id: borrower.id,
+          activity_type: 'DOCUMENT_UPLOADED',
           description: `LO requested ${requirement_ids.length} documents`,
-          metadata_json: { requirement_ids }
+          source: 'admin',
+          metadata: { requirement_ids }
         });
       }
     }

@@ -12,10 +12,14 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { channel, to, subject, body } = await req.json();
+    const body = await req.json();
+    const channel = body.channel || body.type || 'email';
+    const to = body.to || body.recipient;
+    const subject = body.subject || 'LoanGenius Notification';
+    const messageBody = body.body || body.message || body.content;
 
-    if (!channel || !to || !body) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!to || !messageBody) {
+      return Response.json({ error: 'Missing required fields (to, body)' }, { status: 400 });
     }
 
     let result;
@@ -25,7 +29,7 @@ Deno.serve(async (req) => {
       result = await base44.integrations.Core.SendEmail({
         to,
         subject,
-        body,
+        body: messageBody,
         from_name: user.full_name || 'LoanGenius',
       });
     } else if (channel === 'sms') {
@@ -34,15 +38,27 @@ Deno.serve(async (req) => {
       result = { success: true, message: 'SMS queued' };
     }
 
-    // Log the communication
+    // Log the communication - get org_id from membership
+    let orgId = user.org_id || 'default';
+    try {
+      const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+        user_id: user.email
+      });
+      if (memberships.length > 0) {
+        orgId = memberships[0].org_id;
+      }
+    } catch (e) {
+      console.log('Could not get org membership:', e.message);
+    }
+
     await base44.asServiceRole.entities.CommunicationsLog.create({
-      org_id: user.org_id || 'default',
+      org_id: orgId,
       channel,
       direction: 'outbound',
       to,
       from: user.email,
       subject,
-      body,
+      body: messageBody,
       status: 'sent',
     });
 
