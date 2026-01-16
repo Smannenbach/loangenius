@@ -40,11 +40,13 @@ import FeesTab from '@/components/deal-detail/FeesTab';
 import DealCalculator from '@/components/deal-wizard/DealCalculator';
 import DealStatusUpdate from '@/components/deal-detail/DealStatusUpdate';
 import TasksTab from '@/components/deal-detail/TasksTab';
+import SubmitToLenderModal from '@/components/deal-detail/SubmitToLenderModal';
 
 export default function DealDetail() {
   const urlParams = new URLSearchParams(window.location.search);
   const dealId = urlParams.get('id');
   const [showPortalInviteModal, setShowPortalInviteModal] = useState(false);
+  const [showSubmitToLenderModal, setShowSubmitToLenderModal] = useState(false);
   const [selectedBorrower, setSelectedBorrower] = useState(null);
 
   const { data: deal, isLoading: dealLoading, error: dealError } = useQuery({
@@ -283,6 +285,13 @@ export default function DealDetail() {
                 Edit
               </Button>
             </Link>
+            <Button 
+              className="gap-2 bg-green-600 hover:bg-green-700"
+              onClick={() => setShowSubmitToLenderModal(true)}
+            >
+              <Send className="h-4 w-4" />
+              Submit to Lenders
+            </Button>
           </div>
         </div>
       </div>
@@ -713,6 +722,12 @@ export default function DealDetail() {
           </Card>
         </div>
       )}
+
+      <SubmitToLenderModal 
+        dealId={dealId}
+        open={showSubmitToLenderModal}
+        onOpenChange={setShowSubmitToLenderModal}
+      />
     </div>
   );
 }

@@ -100,6 +100,7 @@ export default function Layout({ children, currentPageName }) {
   const adminNav = [
     { name: 'Users', href: '/Users', icon: Users },
     { name: 'Lenders', href: '/Lenders', icon: Building },
+    { name: 'Lender Integrations', href: '/LenderIntegrations', icon: Zap },
     { name: 'Reports', href: '/Reports', icon: FileText },
     { name: 'Documents', href: '/Documents', icon: FileText },
     { name: 'Borrowers', href: '/Borrowers', icon: Users },
