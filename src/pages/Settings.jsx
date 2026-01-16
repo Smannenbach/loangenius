@@ -19,6 +19,8 @@ import {
   Upload,
 } from 'lucide-react';
 import debounce from 'lodash/debounce';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 
 function OrgLogoUpload() {
   const [logoUrl, setLogoUrl] = useState('');
@@ -482,12 +484,11 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-gray-600">Configure your logo, colors, and contact info that appears on generated documents and exports.</p>
-              <Button 
-                className="bg-blue-600 hover:bg-blue-500"
-                onClick={() => window.location.href = '/BrandingSettings'}
-              >
-                Edit Branding
-              </Button>
+              <Link to={createPageUrl('BrandingSettings')}>
+                <Button className="bg-blue-600 hover:bg-blue-500">
+                  Edit Branding
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </TabsContent>
