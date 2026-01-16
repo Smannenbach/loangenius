@@ -122,16 +122,24 @@ export default function Leads() {
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ['leads', orgId],
     queryFn: async () => {
-      if (!orgId) return [];
       try {
-        return await base44.entities.Lead.filter({ org_id: orgId, is_deleted: false });
-      } catch (e) {
-        // Fallback: get all leads if org_id filter fails (for new installs)
+        if (orgId) {
+          return await base44.entities.Lead.filter({ org_id: orgId, is_deleted: false });
+        }
+        // Fallback: get all leads if no org_id
         const allLeads = await base44.entities.Lead.list();
         return allLeads.filter(l => !l.is_deleted);
+      } catch (e) {
+        // Fallback: get all leads if filter fails
+        try {
+          const allLeads = await base44.entities.Lead.list();
+          return allLeads.filter(l => !l.is_deleted);
+        } catch {
+          return [];
+        }
       }
     },
-    enabled: !!orgId,
+    enabled: true,
   });
 
   const createLeadMutation = useMutation({

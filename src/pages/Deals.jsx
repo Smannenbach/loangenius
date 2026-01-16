@@ -55,10 +55,22 @@ export default function Deals() {
   const { data: deals = [], isLoading } = useQuery({
     queryKey: ['deals', orgId],
     queryFn: async () => {
-      if (!orgId) return [];
-      return await base44.entities.Deal.filter({ org_id: orgId, is_deleted: false });
+      try {
+        if (orgId) {
+          return await base44.entities.Deal.filter({ org_id: orgId, is_deleted: false });
+        }
+        const allDeals = await base44.entities.Deal.list();
+        return allDeals.filter(d => !d.is_deleted);
+      } catch (e) {
+        try {
+          const allDeals = await base44.entities.Deal.list();
+          return allDeals.filter(d => !d.is_deleted);
+        } catch {
+          return [];
+        }
+      }
     },
-    enabled: !!orgId,
+    enabled: true,
   });
 
   const getStatusColor = (status) => {

@@ -1,7 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { CheckCircle2, Circle, Calendar, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -54,11 +53,9 @@ export default function MyTasksWidget({ orgId }) {
     <div className="bg-white rounded-lg border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold">My Tasks</h3>
-        <Link to={createPageUrl('Tasks')}>
-          <Button variant="ghost" size="sm" className="text-blue-600">
-            View All
-          </Button>
-        </Link>
+        <Button variant="ghost" size="sm" className="text-blue-600" onClick={() => window.location.href = '/Pipeline'}>
+          View Pipeline
+        </Button>
       </div>
       
       {tasks.length === 0 ? (
