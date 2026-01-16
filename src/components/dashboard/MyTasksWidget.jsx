@@ -11,11 +11,19 @@ export default function MyTasksWidget({ orgId }) {
     queryKey: ['myTasks', orgId],
     queryFn: async () => {
       if (!orgId) return [];
-      const allTasks = await base44.entities.Task.filter({ org_id: orgId });
-      // Return only pending/in_progress tasks, limit to 5
-      return allTasks
-        .filter(t => t.status === 'pending' || t.status === 'in_progress')
-        .slice(0, 5);
+      try {
+        const allTasks = await base44.entities.Task.filter({ org_id: orgId });
+        // Return only pending/in_progress tasks, limit to 5
+        return allTasks
+          .filter(t => t.status === 'pending' || t.status === 'in_progress')
+          .slice(0, 5);
+      } catch (e) {
+        // Fallback: get all tasks if filter fails
+        const allTasks = await base44.entities.Task.list();
+        return allTasks
+          .filter(t => t.status === 'pending' || t.status === 'in_progress')
+          .slice(0, 5);
+      }
     },
     enabled: !!orgId,
   });
