@@ -48,9 +48,10 @@ export default function Dashboard() {
   });
 
   const kpis = kpiData?.data?.kpis || {};
-  const activities = activityData?.data?.activities || [];
+  const activities = kpiData?.data?.recentActivities || activityData?.data?.activities || [];
   const attentionDeals = attentionData?.data?.deals || [];
-  const pipelineStages = kpiData?.data?.pipeline_by_stage || [];
+  const pipelineStages = kpis?.stageDistribution ? 
+    Object.entries(kpis.stageDistribution).map(([stage, count]) => ({ stage, count })) : [];
 
   // Show loading state for KPIs
   if (kpisLoading) {
