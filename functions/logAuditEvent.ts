@@ -7,10 +7,28 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { org_id, user_id, action_type, entity_type, entity_id, description, severity = 'Info', old_values, new_values, changed_fields } = await req.json();
+    const { org_id: provided_org_id, user_id, action_type, entity_type, entity_id, description, severity = 'Info', old_values, new_values, changed_fields } = await req.json();
 
-    if (!org_id || !action_type || !entity_type || !description) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!action_type || !entity_type || !description) {
+      return Response.json({ error: 'Missing required fields: action_type, entity_type, description' }, { status: 400 });
+    }
+
+    // Get org_id from membership if not provided
+    let org_id = provided_org_id;
+    if (!org_id) {
+      const user = await base44.auth.me();
+      if (user) {
+        const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+          user_id: user.email
+        });
+        if (memberships.length > 0) {
+          org_id = memberships[0].org_id;
+        }
+      }
+    }
+
+    if (!org_id) {
+      org_id = 'default';
     }
 
     // Get user agent and IP from request

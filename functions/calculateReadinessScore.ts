@@ -8,18 +8,25 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { org_id, deal_id, checklist_id } = await req.json();
+    const { org_id: provided_org_id, deal_id, checklist_id } = await req.json();
 
-    if (!org_id || !deal_id) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!deal_id) {
+      return Response.json({ error: 'Missing deal_id' }, { status: 400 });
     }
+
+    // Get org_id from deal if not provided
+    let org_id = provided_org_id;
 
     // Get deal
-    const deals = await base44.asServiceRole.entities.Deal.filter({ id: deal_id });
-    if (!deals.length) {
+    const deal = await base44.asServiceRole.entities.Deal.get(deal_id);
+    if (!deal) {
       return Response.json({ error: 'Deal not found' }, { status: 404 });
     }
-    const deal = deals[0];
+    
+    // Use org_id from deal if not provided
+    if (!org_id) {
+      org_id = deal.org_id;
+    }
 
     // Get checklist (use default if not specified)
     let checklists = [];
