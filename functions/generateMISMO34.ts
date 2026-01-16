@@ -444,22 +444,48 @@ function buildMISMOXml(deal, borrowers, properties, fees) {
 
   xml += `
           </PARTIES>
-          ${fees.length > 0 ? '<SERVICES>' : ''}`;
-
-  fees.forEach((fee, idx) => {
+          <RELATIONSHIPS>`;
+  
+  // Link borrowers to loans
+  borrowers.forEach((b, idx) => {
     xml += `
-            <SERVICE SequenceNumber="${idx + 1}">
-              <FEE_INFORMATION>
-                <FeeActualTotalAmount>${fee.calculated_amount || fee.amount || 0}</FeeActualTotalAmount>
-                <FeePaidByType>${fee.is_borrower_paid ? 'Borrower' : 'Lender'}</FeePaidByType>
-                <FeeType>${escapeXml(fee.fee_name || fee.trid_category)}</FeeType>
-                ${fee.trid_category ? `<IntegratedDisclosureSectionType>${escapeXml(fee.trid_category)}</IntegratedDisclosureSectionType>` : ''}
-              </FEE_INFORMATION>
-            </SERVICE>`;
+            <RELATIONSHIP SequenceNumber="${idx + 1}" xlink:from="Party_${idx + 1}" xlink:to="Loan_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/PARTY_IsVerifiedBy_VERIFICATION"/>`;
   });
-
+  
+  // Link properties to loans
+  properties.forEach((p, idx) => {
+    xml += `
+            <RELATIONSHIP SequenceNumber="${borrowers.length + idx + 1}" xlink:from="Collateral_${idx + 1}" xlink:to="Loan_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/COLLATERAL_IsCollateralFor_LOAN"/>`;
+  });
+  
   xml += `
-          ${fees.length > 0 ? '</SERVICES>' : ''}
+          </RELATIONSHIPS>`;
+  
+  // Services/Fees section
+  if (fees.length > 0) {
+    xml += `
+          <SERVICES>`;
+    fees.forEach((fee, idx) => {
+      xml += `
+            <SERVICE SequenceNumber="${idx + 1}">
+              <FEES>
+                <FEE>
+                  <FEE_DETAIL>
+                    <FeeActualTotalAmount>${fee.calculated_amount || fee.amount || 0}</FeeActualTotalAmount>
+                    <FeePaidByType>${fee.is_borrower_paid ? 'Borrower' : 'Lender'}</FeePaidByType>
+                    <FeeType>${escapeXml(fee.fee_name || fee.trid_category || 'Other')}</FeeType>
+                    <FeeTotalPercent>${fee.fee_percent || 0}</FeeTotalPercent>
+                    ${fee.trid_category ? `<IntegratedDisclosureSectionType>${escapeXml(fee.trid_category)}</IntegratedDisclosureSectionType>` : ''}
+                  </FEE_DETAIL>
+                </FEE>
+              </FEES>
+            </SERVICE>`;
+    });
+    xml += `
+          </SERVICES>`;
+  }
+  
+  xml += `
         </DEAL>
       </DEALS>
     </DEAL_SET>
