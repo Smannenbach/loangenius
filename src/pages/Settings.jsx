@@ -312,7 +312,7 @@ export default function SettingsPage() {
               <p className="text-sm text-gray-600">Configure your logo, colors, and contact info that appears on generated documents and exports.</p>
               <Button 
                 className="bg-blue-600 hover:bg-blue-500"
-                onClick={() => window.location.href = '/BrandStudio'}
+                onClick={() => window.location.href = '/BrandingSettings'}
               >
                 Edit Branding
               </Button>

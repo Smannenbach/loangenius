@@ -62,7 +62,12 @@ export default function Tasks() {
     queryKey: ['tasks', orgId],
     queryFn: async () => {
       if (!orgId) return [];
-      return await base44.entities.Task.filter({ org_id: orgId });
+      try {
+        return await base44.entities.Task.filter({ org_id: orgId });
+      } catch (e) {
+        // Fallback: get all tasks
+        return await base44.entities.Task.list();
+      }
     },
     enabled: !!orgId,
   });
