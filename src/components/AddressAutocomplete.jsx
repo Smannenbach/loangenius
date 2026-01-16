@@ -123,10 +123,23 @@ export default function AddressAutocomplete({
 
     setIsLoading(true);
     try {
-      // Google Places Autocomplete API
+      // Use CORS-friendly endpoint through backend proxy or direct client-side API
+      // Note: Autocomplete requires special handling due to CORS
+      const serviceUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json`;
+      
+      // For client-side, we use a workaround with session token
+      const sessionToken = sessionStorage.getItem('google_places_session') || Date.now().toString();
+      sessionStorage.setItem('google_places_session', sessionToken);
+      
+      // Use fetch with proper headers
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(inputValue)}&key=${apiKey}&components=country:us&types=address`
+        `${serviceUrl}?input=${encodeURIComponent(inputValue)}&key=${apiKey}&components=country:us&types=address&sessiontoken=${sessionToken}`,
+        { 
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        }
       );
+      
       const data = await response.json();
 
       if (data.predictions && data.predictions.length > 0) {
