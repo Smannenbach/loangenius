@@ -12,7 +12,21 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { start_date, end_date, org_id } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { start_date, end_date, borrower_id } = body;
+    
+    // Get org_id from membership
+    let org_id = body.org_id || 'default';
+    try {
+      const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+        user_id: user.email
+      });
+      if (memberships.length > 0) {
+        org_id = memberships[0].org_id;
+      }
+    } catch (e) {
+      console.log('Could not get org membership:', e.message);
+    }
 
     const startTime = performance.now();
 
@@ -61,13 +75,13 @@ Deno.serve(async (req) => {
     // Log report run
     await base44.asServiceRole.entities.ReportRun.create({
       org_id,
-      report_type: 'risk',
-      start_date,
-      end_date,
-      filters_applied: {},
-      generated_by: user.email,
+      report_id: `risk_${Date.now()}`,
+      run_type: 'MANUAL',
+      filters_used: { start_date, end_date, borrower_id },
       row_count: filteredReports.length,
-      execution_ms: Math.round(execTime),
+      status: 'COMPLETED',
+      execution_time_ms: Math.round(execTime),
+      run_by: user.email
     });
 
     return Response.json({
