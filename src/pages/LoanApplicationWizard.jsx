@@ -6,11 +6,11 @@ import { createPageUrl } from '../utils';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from 'lucide-react';
 
-import Step1LoanType from '@/components/deal-wizard/Step1LoanType';
-import Step2Property from '@/components/deal-wizard/Step2Property';
-import Step3Valuation from '@/components/deal-wizard/Step3Valuation';
-import Step4Expenses from '@/components/deal-wizard/Step4Expenses';
-import Step5Borrower from '@/components/deal-wizard/Step5Borrower';
+import Step1Borrower from '@/components/deal-wizard/Step5Borrower';
+import Step2LoanType from '@/components/deal-wizard/Step1LoanType';
+import Step3Property from '@/components/deal-wizard/Step2Property';
+import Step4Valuation from '@/components/deal-wizard/Step3Valuation';
+import Step5Expenses from '@/components/deal-wizard/Step4Expenses';
 import Step6Review from '@/components/deal-wizard/Step6Review';
 
 export default function LoanApplicationWizard() {
@@ -149,7 +149,7 @@ export default function LoanApplicationWizard() {
 
         {/* Steps */}
         {step === 1 && (
-          <Step1LoanType
+          <Step1Borrower
             data={formData}
             onChange={handleChange}
             onNext={handleNext}
@@ -157,7 +157,15 @@ export default function LoanApplicationWizard() {
           />
         )}
         {step === 2 && (
-          <Step2Property
+          <Step2LoanType
+            data={formData}
+            onChange={handleChange}
+            onNext={handleNext}
+            onPrev={handlePrev}
+          />
+        )}
+        {step === 3 && (
+          <Step3Property
             data={formData}
             onChange={handleChange}
             onNext={handleNext}
@@ -165,8 +173,8 @@ export default function LoanApplicationWizard() {
             isBlanket={formData.isBlanket}
           />
         )}
-        {step === 3 && (
-          <Step3Valuation
+        {step === 4 && (
+          <Step4Valuation
             data={formData}
             onChange={handleChange}
             onNext={handleNext}
@@ -174,16 +182,8 @@ export default function LoanApplicationWizard() {
             loanPurpose={formData.loanPurpose}
           />
         )}
-        {step === 4 && (
-          <Step4Expenses
-            data={formData}
-            onChange={handleChange}
-            onNext={handleNext}
-            onPrev={handlePrev}
-          />
-        )}
         {step === 5 && (
-          <Step5Borrower
+          <Step5Expenses
             data={formData}
             onChange={handleChange}
             onNext={handleNext}
