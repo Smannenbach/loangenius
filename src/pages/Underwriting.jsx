@@ -9,26 +9,35 @@ import { Scale, Clock, CheckCircle2, AlertTriangle, Brain, FileText, TrendingUp 
 export default function Underwriting() {
   const { data: deals = [] } = useQuery({
     queryKey: ['deals'],
-    queryFn: () => base44.entities.Deal.filter({ is_deleted: false }),
+    queryFn: async () => {
+      try {
+        return await base44.entities.Deal.filter({ is_deleted: false });
+      } catch {
+        return await base44.entities.Deal.list();
+      }
+    },
   });
 
   const underwritingDeals = deals.filter(d => 
+    ['underwriting', 'conditional_approval'].includes(d.stage) || 
     ['underwriting', 'conditional_approval'].includes(d.status)
   );
 
   const getStatusBadge = (deal) => {
-    if (deal.dscr_ratio >= 1.25 && deal.ltv_ratio <= 75) {
+    const dscr = deal.dscr || deal.dscr_ratio || 0;
+    const ltv = deal.ltv || deal.ltv_ratio || 0;
+    if (dscr >= 1.25 && ltv <= 75) {
       return <Badge className="bg-green-100 text-green-700">Pre-Approved</Badge>;
-    } else if (deal.dscr_ratio >= 1.0) {
+    } else if (dscr >= 1.0) {
       return <Badge className="bg-yellow-100 text-yellow-700">Review Required</Badge>;
     }
     return <Badge className="bg-red-100 text-red-700">High Risk</Badge>;
   };
 
   const stats = [
-    { label: 'Pending Review', value: underwritingDeals.filter(d => d.status === 'underwriting').length, icon: Clock, color: 'text-gray-600' },
-    { label: 'Conditional', value: underwritingDeals.filter(d => d.status === 'conditional_approval').length, icon: AlertTriangle, color: 'text-yellow-600' },
-    { label: 'Approved Today', value: deals.filter(d => d.status === 'clear_to_close').length, icon: CheckCircle2, color: 'text-green-600' },
+    { label: 'Pending Review', value: underwritingDeals.filter(d => d.stage === 'underwriting' || d.status === 'underwriting').length, icon: Clock, color: 'text-gray-600' },
+    { label: 'Conditional', value: underwritingDeals.filter(d => d.stage === 'conditional_approval' || d.status === 'conditional_approval').length, icon: AlertTriangle, color: 'text-yellow-600' },
+    { label: 'Approved Today', value: deals.filter(d => d.stage === 'approved' || d.status === 'clear_to_close').length, icon: CheckCircle2, color: 'text-green-600' },
   ];
 
   return (
@@ -91,19 +100,19 @@ export default function Underwriting() {
                     <div className="text-center">
                       <p className="text-xs text-gray-500">DSCR</p>
                       <p className={`font-semibold ${
-                        deal.dscr_ratio >= 1.25 ? 'text-green-600' : 
-                        deal.dscr_ratio >= 1.0 ? 'text-yellow-600' : 'text-red-600'
+                        (deal.dscr || deal.dscr_ratio) >= 1.25 ? 'text-green-600' : 
+                        (deal.dscr || deal.dscr_ratio) >= 1.0 ? 'text-yellow-600' : 'text-red-600'
                       }`}>
-                        {deal.dscr_ratio?.toFixed(2) || '-'}
+                        {(deal.dscr || deal.dscr_ratio)?.toFixed(2) || '-'}
                       </p>
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-gray-500">LTV</p>
                       <p className={`font-semibold ${
-                        deal.ltv_ratio <= 75 ? 'text-green-600' : 
-                        deal.ltv_ratio <= 80 ? 'text-yellow-600' : 'text-red-600'
+                        (deal.ltv || deal.ltv_ratio) <= 75 ? 'text-green-600' : 
+                        (deal.ltv || deal.ltv_ratio) <= 80 ? 'text-yellow-600' : 'text-red-600'
                       }`}>
-                        {deal.ltv_ratio?.toFixed(1)}%
+                        {(deal.ltv || deal.ltv_ratio)?.toFixed(1) || '-'}%
                       </p>
                     </div>
                   </div>

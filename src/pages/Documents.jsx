@@ -30,7 +30,13 @@ export default function Documents() {
 
   const { data: documents = [], isLoading } = useQuery({
     queryKey: ['documents'],
-    queryFn: () => base44.entities.Document.filter({ is_deleted: false }),
+    queryFn: async () => {
+      try {
+        return await base44.entities.Document.filter({ is_deleted: false });
+      } catch {
+        return await base44.entities.Document.list();
+      }
+    },
   });
 
   const getStatusIcon = (status) => {

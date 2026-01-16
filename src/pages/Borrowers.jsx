@@ -21,7 +21,13 @@ export default function Borrowers() {
 
   const { data: borrowers = [], isLoading } = useQuery({
     queryKey: ['borrowers'],
-    queryFn: () => base44.entities.Borrower.filter({ is_deleted: false }),
+    queryFn: async () => {
+      try {
+        return await base44.entities.Borrower.filter({ is_deleted: false });
+      } catch {
+        return await base44.entities.Borrower.list();
+      }
+    },
   });
 
   const filteredBorrowers = borrowers.filter(borrower => {
