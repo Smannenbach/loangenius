@@ -72,9 +72,10 @@ Deno.serve(async (req) => {
     await base44.asServiceRole.entities.ActivityLog.create({
       org_id: deal.org_id,
       deal_id,
-      action_type: 'submission_package_generated',
+      activity_type: 'DEAL_UPDATED',
       description: `Submission package generated: ${pkg.package_name}`,
-      metadata_json: { package_id: pkg.id, readiness_score: readinessSnapshot.readiness_score }
+      source: 'system',
+      metadata: { package_id: pkg.id, readiness_score: readinessSnapshot.readiness_score }
     });
 
     return Response.json({
