@@ -11,10 +11,12 @@ export default function PipelineChart({ data }) {
         <CardTitle className="text-lg font-bold">Pipeline by Stage</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {data?.map(stage => (
+        {(!data || data.length === 0) ? (
+          <p className="text-sm text-gray-500">No deals in pipeline</p>
+        ) : data.map(stage => (
           <div key={stage.stage}>
             <div className="flex justify-between mb-1">
-              <span className="text-sm font-medium capitalize text-gray-700">{stage.stage}</span>
+              <span className="text-sm font-medium capitalize text-gray-700">{stage.stage?.replace(/_/g, ' ')}</span>
               <span className="text-sm font-semibold text-gray-900">{stage.count}</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
@@ -23,7 +25,7 @@ export default function PipelineChart({ data }) {
                 style={{ width: `${(stage.count / maxCount) * 100}%` }}
               />
             </div>
-            <div className="text-xs text-gray-500 mt-1">${(stage.volume / 1000000).toFixed(1)}M</div>
+            {stage.volume && <div className="text-xs text-gray-500 mt-1">${(stage.volume / 1000000).toFixed(1)}M</div>}
           </div>
         ))}
       </CardContent>
