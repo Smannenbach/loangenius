@@ -82,18 +82,24 @@ export default function Lenders() {
   const { data: lenders = [] } = useQuery({
     queryKey: ['lenders', orgId],
     queryFn: async () => {
-      if (!orgId) return [];
       try {
-        // Filter lenders by contact_type = 'entity' and lender_type field existing
-        const contacts = await base44.entities.Contact.filter({ org_id: orgId, contact_type: 'entity' });
-        return contacts.filter(c => c.lender_type);
-      } catch (e) {
+        if (orgId) {
+          const contacts = await base44.entities.Contact.filter({ org_id: orgId, contact_type: 'entity' });
+          return contacts.filter(c => c.lender_type);
+        }
         // Fallback
         const allContacts = await base44.entities.Contact.list();
         return allContacts.filter(c => c.contact_type === 'entity' && c.lender_type);
+      } catch (e) {
+        try {
+          const allContacts = await base44.entities.Contact.list();
+          return allContacts.filter(c => c.contact_type === 'entity');
+        } catch {
+          return [];
+        }
       }
     },
-    enabled: !!orgId,
+    enabled: true,
   });
 
   const addLenderMutation = useMutation({
