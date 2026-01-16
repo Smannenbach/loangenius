@@ -884,15 +884,17 @@ export default function Leads() {
                       <td className="px-6 py-4 font-semibold text-gray-900">{lead.loan_amount ? `$${(lead.loan_amount / 1000).toFixed(0)}K` : '-'}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">{lead.property_city}, {lead.property_state}</td>
                       <td className="px-6 py-4 text-right">
-                        <LeadDetailModal lead={lead} onEdit={handleEditLead} trigger={<Button variant="ghost" size="sm" className="h-8">View</Button>} />
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => { setQuoteSelectedLead(lead); setQuoteModalOpen(true); }}><FileOutput className="h-3 w-3 mr-2" />Quote</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEditLead(lead)}>Edit</DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600" onClick={() => deleteLeadMutation.mutate(lead.id)}>Delete</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                       <div className="flex gap-2 justify-end">
+                         <LeadDetailModal lead={lead} onEdit={handleEditLead} trigger={<Button variant="ghost" size="sm" className="h-8">View</Button>} />
+                         <DropdownMenu>
+                           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                           <DropdownMenuContent align="end">
+                             <DropdownMenuItem onClick={() => { setQuoteSelectedLead(lead); setQuoteModalOpen(true); }}><FileOutput className="h-3 w-3 mr-2" />Quote</DropdownMenuItem>
+                             <DropdownMenuItem onClick={() => handleEditLead(lead)}>Edit</DropdownMenuItem>
+                             <DropdownMenuItem className="text-red-600" onClick={() => deleteLeadMutation.mutate(lead.id)}>Delete</DropdownMenuItem>
+                           </DropdownMenuContent>
+                         </DropdownMenu>
+                       </div>
                       </td>
                     </tr>
                   ))
@@ -922,8 +924,10 @@ export default function Leads() {
                     {lead.mobile_phone && <div className="flex items-center gap-2 text-sm text-gray-600"><Phone className="h-4 w-4" />{lead.mobile_phone}</div>}
                   </div>
                   <div className="flex gap-2">
-                    <LeadDetailModal lead={lead} onEdit={handleEditLead} trigger={<Button variant="outline" size="sm" className="flex-1">View</Button>} />
-                    <Button variant="ghost" size="sm" onClick={() => { setQuoteSelectedLead(lead); setQuoteModalOpen(true); }}><FileOutput className="h-4 w-4" /></Button>
+                    <LeadDetailModal lead={lead} onEdit={handleEditLead} trigger={<Button variant="outline" size="sm" className="flex-1">Details</Button>} />
+                    <Button variant="outline" size="sm" onClick={() => { setQuoteSelectedLead(lead); setQuoteModalOpen(true); }}>
+                      <FileOutput className="h-4 w-4" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
