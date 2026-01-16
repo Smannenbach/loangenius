@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-export default function Step9Declarations({ data, onChange, onNext, onPrev }) {
+export default function Step9Declarations({ data, onChange, onNext, onPrev, loading }) {
   const declarations = [
     { id: 'outstanding_judgments', label: 'Are there any outstanding judgments against you?' },
     { id: 'declared_bankruptcy', label: 'Have you been declared bankrupt within the past 7 years?' },
