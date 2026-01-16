@@ -58,11 +58,18 @@ export default function DealDetail() {
     queryKey: ['deal-properties', dealId],
     queryFn: async () => {
       if (!dealId) return [];
-      const dealProps = await base44.entities.DealProperty.filter({ deal_id: dealId });
-      const propertyIds = dealProps.map(dp => dp.property_id);
-      if (!propertyIds.length) return [];
-      const props = await base44.entities.Property.filter({ id: { $in: propertyIds } });
-      return props;
+      try {
+        const dealProps = await base44.entities.DealProperty.filter({ deal_id: dealId });
+        const propertyIds = dealProps.map(dp => dp.property_id);
+        if (!propertyIds.length) {
+          // Try fetching properties directly linked to deal
+          return await base44.entities.Property.filter({ deal_id: dealId });
+        }
+        const props = await base44.entities.Property.filter({ id: { $in: propertyIds } });
+        return props;
+      } catch {
+        return [];
+      }
     },
     enabled: !!dealId,
   });
@@ -71,33 +78,55 @@ export default function DealDetail() {
     queryKey: ['deal-borrowers', dealId],
     queryFn: async () => {
       if (!dealId) return [];
-      const dealBorrs = await base44.entities.DealBorrower.filter({ deal_id: dealId });
-      const borrowerIds = dealBorrs.map(db => db.borrower_id);
-      if (!borrowerIds.length) return [];
-      const borrs = await base44.entities.Borrower.filter({ id: { $in: borrowerIds } });
-      return borrs.map(b => ({
-        ...b,
-        dealRole: dealBorrs.find(db => db.borrower_id === b.id)?.role
-      }));
+      try {
+        const dealBorrs = await base44.entities.DealBorrower.filter({ deal_id: dealId });
+        const borrowerIds = dealBorrs.map(db => db.borrower_id);
+        if (!borrowerIds.length) return [];
+        const borrs = await base44.entities.Borrower.filter({ id: { $in: borrowerIds } });
+        return borrs.map(b => ({
+          ...b,
+          dealRole: dealBorrs.find(db => db.borrower_id === b.id)?.role
+        }));
+      } catch {
+        return [];
+      }
     },
     enabled: !!dealId,
   });
 
   const { data: documents = [] } = useQuery({
     queryKey: ['deal-documents', dealId],
-    queryFn: () => base44.entities.Document.filter({ deal_id: dealId }),
+    queryFn: async () => {
+      try {
+        return await base44.entities.Document.filter({ deal_id: dealId });
+      } catch {
+        return [];
+      }
+    },
     enabled: !!dealId,
   });
 
   const { data: conditions = [] } = useQuery({
     queryKey: ['deal-conditions', dealId],
-    queryFn: () => base44.entities.Condition.filter({ deal_id: dealId }),
+    queryFn: async () => {
+      try {
+        return await base44.entities.Condition.filter({ deal_id: dealId });
+      } catch {
+        return [];
+      }
+    },
     enabled: !!dealId,
   });
 
   const { data: tasks = [] } = useQuery({
     queryKey: ['deal-tasks', dealId],
-    queryFn: () => base44.entities.Task.filter({ deal_id: dealId }),
+    queryFn: async () => {
+      try {
+        return await base44.entities.Task.filter({ deal_id: dealId });
+      } catch {
+        return [];
+      }
+    },
     enabled: !!dealId,
   });
 
