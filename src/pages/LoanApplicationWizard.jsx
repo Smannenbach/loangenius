@@ -401,12 +401,13 @@ function BorrowerStep({ data, onChange }) {
         <p className="text-gray-600 mt-1">Add all borrowers and guarantors for this loan (MISMO 3.4 compliant)</p>
       </div>
 
-      {!showForm ? (
-        <Button onClick={() => setShowForm(true)} className="gap-2 bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4" />
-          Add Borrower
-        </Button>
-      ) : (
+      {data.borrowers?.length === 0 ? (
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+          <p className="text-sm text-gray-700">Enter primary borrower information below to get started.</p>
+        </div>
+      ) : null}
+
+      {(showForm || data.borrowers?.length === 0) ? (
         <Card className="border-blue-200 bg-blue-50/30">
           <CardContent className="pt-6 space-y-4">
             {/* Name Fields */}
@@ -561,8 +562,12 @@ function BorrowerStep({ data, onChange }) {
             </div>
 
             <div className="flex gap-2 pt-2">
-              <Button onClick={handleAdd} className="bg-blue-600 hover:bg-blue-700">Add Borrower</Button>
-              <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+              <Button onClick={handleAdd} className="bg-blue-600 hover:bg-blue-700">
+                {data.borrowers?.length > 0 ? 'Add Another Borrower' : 'Add Borrower'}
+              </Button>
+              {data.borrowers?.length > 0 && (
+                <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -570,7 +575,15 @@ function BorrowerStep({ data, onChange }) {
 
       {data.borrowers?.length > 0 && (
         <div className="space-y-3">
-          <h3 className="font-semibold text-gray-900">Added Borrowers ({data.borrowers.length})</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900">Added Borrowers ({data.borrowers.length})</h3>
+            {!showForm && (
+              <Button onClick={() => setShowForm(true)} variant="outline" size="sm" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Another
+              </Button>
+            )}
+          </div>
           {data.borrowers.map((b, idx) => (
             <div key={idx} className="flex items-center justify-between p-4 bg-white border rounded-lg">
               <div className="flex items-center gap-3">
@@ -594,13 +607,7 @@ function BorrowerStep({ data, onChange }) {
         </div>
       )}
 
-      {data.borrowers?.length === 0 && !showForm && (
-        <div className="p-6 border-2 border-dashed rounded-lg text-center">
-          <User className="h-12 w-12 mx-auto text-gray-300 mb-2" />
-          <p className="text-gray-500">No borrowers added yet.</p>
-          <p className="text-sm text-gray-400">At least one borrower is required to continue.</p>
-        </div>
-      )}
+
     </div>
   );
 }
