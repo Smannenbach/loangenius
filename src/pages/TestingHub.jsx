@@ -39,24 +39,22 @@ export default function TestingHub() {
   const orgId = memberships[0]?.org_id;
 
   const testSuites = {
-    'MISMO Export': [
-      { id: 'export_generic', name: 'Generic MISMO 3.4 Export', function: 'exportDealMISMO' },
-      { id: 'export_profile', name: 'Profile-Based Export', function: 'exportWithProfile' },
-      { id: 'export_validation', name: 'Validation Rules', function: 'exportDealMISMO' },
+    'Core Functions': [
+      { id: 'deal_create', name: 'Deal Creation', function: 'createOrUpdateDeal', description: 'Tests creating a new deal with borrowers and properties' },
+      { id: 'ai_status', name: 'AI Service Status', function: 'aiStatus', description: 'Checks if AI services are operational' },
+      { id: 'ai_chat', name: 'AI Chat Response', function: 'aiAssistantChat', description: 'Tests AI assistant chat functionality' },
     ],
-    'Data Integrity': [
-      { id: 'deal_create', name: 'Deal Creation', function: 'createOrUpdateDeal' },
-      { id: 'borrower_link', name: 'Borrower-Deal Linkage', function: 'createOrUpdateDeal' },
-      { id: 'property_link', name: 'Property-Deal Linkage', function: 'createOrUpdateDeal' },
+    'MISMO Export': [
+      { id: 'export_generic', name: 'Generic MISMO 3.4 Export', function: 'exportDealMISMO', description: 'Requires existing deal' },
+      { id: 'export_profile', name: 'Profile-Based Export', function: 'exportWithProfile', description: 'Requires deal and profile' },
     ],
     'Workflows': [
-      { id: 'autosave', name: 'BPA Wizard Autosave', function: 'applicationAutosave' },
-      { id: 'resume', name: 'Resume Application', function: 'applicationResume' },
-      { id: 'submit', name: 'Submit Application', function: 'applicationSubmit' },
+      { id: 'autosave', name: 'BPA Wizard Autosave', function: 'applicationAutosave', description: 'Requires existing application' },
+      { id: 'resume', name: 'Resume Application', function: 'applicationResume', description: 'Requires resume token' },
+      { id: 'submit', name: 'Submit Application', function: 'applicationSubmit', description: 'Requires completed application' },
     ],
     'Integrations': [
-      { id: 'ghl_sync', name: 'GoHighLevel Sync', function: 'syncGoogleSheets' },
-      { id: 'sheets_import', name: 'Google Sheets Import', function: 'importLeadsFromGoogleSheets' },
+      { id: 'sheets_import', name: 'Google Sheets Import', function: 'importLeadsFromGoogleSheets', description: 'Requires Sheets configuration' },
     ],
   };
 
@@ -125,6 +123,14 @@ export default function TestingHub() {
               }]
             }
           };
+          break;
+          
+        case 'aiStatus':
+          payload = {};
+          break;
+          
+        case 'aiAssistantChat':
+          payload = { message: 'What is DSCR?', conversation_context: [] };
           break;
           
         case 'applicationAutosave':
@@ -299,10 +305,12 @@ export default function TestingHub() {
                           )}
                           <div>
                             <p className="font-medium text-sm">{test.name}</p>
+                            <p className="text-xs text-gray-400">{test.description}</p>
                             {result?.message && (
-                              <p className={`text-xs ${
+                              <p className={`text-xs mt-1 ${
                                 result.status === 'fail' ? 'text-red-600' : 
                                 result.status === 'skip' ? 'text-yellow-600' : 
+                                result.status === 'pass' ? 'text-green-600' :
                                 'text-gray-500'
                               }`}>
                                 {result.message}
