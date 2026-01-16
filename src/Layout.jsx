@@ -86,16 +86,12 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Leads', href: '/Leads', icon: Users },
     { name: 'Loans', href: '/Loans', icon: Briefcase },
     { name: 'Contacts', href: '/Contacts', icon: Users },
-    { name: 'Tasks', href: '/Tasks', icon: ClipboardList },
     { name: 'Portal', href: '/BorrowerPortalHome', icon: FolderOpen },
   ];
 
   const toolsNav = [
       { name: 'Quote Generator', href: '/QuoteGenerator', icon: FileOutput },
-      { name: 'Calculator', href: '/Calculator', icon: Calculator },
-      { name: 'AI Assistant', href: '/AIAssistant', icon: Bot },
-      { name: 'Agent Execution', href: '/AgentExecutionViewer', icon: Zap },
-      { name: 'Agent Performance', href: '/AgentPerformanceDashboard', icon: TrendingUp },
+      { name: 'AI Hub', href: '/AIAssistant', icon: Bot },
       { name: 'Conversations', href: '/Conversations', icon: MessageSquare },
     ];
 
@@ -104,8 +100,6 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Lenders', href: '/Lenders', icon: Building },
     { name: 'Reports', href: '/Reports', icon: FileText },
     { name: 'Analytics', href: '/Analytics', icon: TrendingUp },
-    { name: 'Agents', href: '/AdminAgents', icon: Sparkles },
-    { name: 'Audit & Compliance', href: '/AuditComplianceViewer', icon: FileText },
     { name: 'Integrations', href: '/AdminIntegrations', icon: Settings },
     { name: 'Settings', href: '/Settings', icon: Settings },
   ];
