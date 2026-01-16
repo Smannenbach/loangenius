@@ -11,22 +11,36 @@ export default function ComplianceDashboard() {
 
   const { data: auditLogs } = useQuery({
     queryKey: ['auditLogs'],
-    queryFn: () => base44.functions.invoke('getAuditLog', {})
+    queryFn: async () => {
+      try {
+        return await base44.functions.invoke('getAuditLog', {});
+      } catch {
+        return { data: { logs: [], total_logs: 0 } };
+      }
+    }
   });
 
   const { data: loginHistory } = useQuery({
     queryKey: ['loginHistory'],
     queryFn: async () => {
-      const history = await base44.entities.LoginHistory.filter({});
-      return history.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 50);
+      try {
+        const history = await base44.entities.LoginHistory.filter({});
+        return history.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 50);
+      } catch {
+        return [];
+      }
     }
   });
 
   const { data: dataAccessLogs } = useQuery({
     queryKey: ['dataAccessLogs'],
     queryFn: async () => {
-      const logs = await base44.entities.DataAccessLog.filter({});
-      return logs.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 50);
+      try {
+        const logs = await base44.entities.DataAccessLog.filter({});
+        return logs.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 50);
+      } catch {
+        return [];
+      }
     }
   });
 
