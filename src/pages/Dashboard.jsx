@@ -86,31 +86,30 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <KPICard
           title="Active Deals"
-          value={kpis.active_deals?.current || 0}
+          value={kpis.deals?.active || kpis.active_deals?.current || 0}
           changePercent={kpis.active_deals?.change_pct}
           trend={kpis.active_deals?.trend}
           isLoading={kpisLoading}
         />
         <KPICard
           title="Pipeline Value"
-          value={kpis.pipeline_value?.current || 0}
+          value={kpis.deals?.totalAmount || kpis.pipeline_value?.current || 0}
           changePercent={kpis.pipeline_value?.change_pct}
           trend={kpis.pipeline_value?.trend}
           isCurrency={true}
           isLoading={kpisLoading}
         />
         <KPICard
-          title="Closing This Month"
-          value={kpis.closing_this_month?.count || 0}
+          title="Total Leads"
+          value={kpis.leads?.total || kpis.closing_this_month?.count || 0}
           target={kpis.closing_this_month?.target}
           isLoading={kpisLoading}
         />
         <KPICard
-          title="Funded This Month"
-          value={kpis.funded_this_month?.volume || 0}
+          title="Funded Deals"
+          value={kpis.deals?.funded || kpis.funded_this_month?.volume || 0}
           changePercent={kpis.funded_this_month?.change_pct}
           trend={kpis.funded_this_month?.trend}
-          isCurrency={true}
           isLoading={kpisLoading}
         />
       </div>
