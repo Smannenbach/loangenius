@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CheckCircle, AlertCircle, Zap, Settings, Eye } from 'lucide-react';
+import { toast } from 'sonner';
 
 const AGENTS = [
   { id: 'document-intelligence-agent', name: 'Document Intelligence', status: 'active', latency: '320ms' },
@@ -299,7 +300,7 @@ export default function AdminAgents() {
                     </label>
                   </div>
 
-                  <Button className="w-full bg-blue-600 hover:bg-blue-500" onClick={() => alert('Settings saved!')}>Save Settings</Button>
+                  <Button className="w-full bg-blue-600 hover:bg-blue-500" onClick={() => { toast.success('Settings saved successfully!'); }}>Save Settings</Button>
                 </div>
               </CardContent>
             </Card>
