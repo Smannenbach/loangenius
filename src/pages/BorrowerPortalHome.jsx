@@ -36,9 +36,30 @@ export default function BorrowerPortalHome() {
     enabled: !!dealId
   });
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  // Get user's org membership
+  const { data: memberships = [] } = useQuery({
+    queryKey: ['userMembership', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return await base44.entities.OrgMembership.filter({ user_id: user.email });
+    },
+    enabled: !!user?.email,
+  });
+
+  const orgId = memberships[0]?.org_id || user?.org_id;
+
   const { data: deals = [] } = useQuery({
-    queryKey: ['availableDeals'],
-    queryFn: () => base44.entities.Deal.filter({ status: 'active' }),
+    queryKey: ['availableDeals', orgId],
+    queryFn: async () => {
+      if (!orgId) return [];
+      return await base44.entities.Deal.filter({ org_id: orgId, status: 'active' });
+    },
+    enabled: !!orgId,
   });
 
   const handleSelectDeal = (id) => {
