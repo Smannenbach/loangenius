@@ -91,10 +91,9 @@ export default function UsersPage() {
       setIsInviteOpen(false);
       setInviteData({ email: '', role: 'loan_officer' });
       queryClient.invalidateQueries({ queryKey: ['orgMemberships'] });
-      alert('Invitation sent successfully!');
     },
     onError: (error) => {
-      alert('Error sending invitation: ' + error.message);
+      console.error('Error sending invitation:', error.message);
     },
   });
 
