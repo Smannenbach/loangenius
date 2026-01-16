@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -7,14 +8,27 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { FileOutput, Download, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
+import { FileOutput, Download, Loader2, CheckCircle, AlertTriangle, Settings } from 'lucide-react';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '../utils';
 
-export default function MISMOExportButton({ dealId, className = "" }) {
+export default function MISMOExportButton({ dealId, orgId, className = "" }) {
   const [isExporting, setIsExporting] = useState(false);
 
-  const handleExport = async (bestEffort = true) => {
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['mismoProfiles', orgId],
+    queryFn: async () => {
+      if (!orgId) return [];
+      const all = await base44.entities.FieldMappingProfile.filter({ org_id: orgId, is_active: true });
+      return all;
+    },
+    enabled: !!orgId,
+  });
+
+  const handleExport = async (bestEffort = true, profileId = null) => {
     if (!dealId) {
       toast.error('No deal selected');
       return;
@@ -22,10 +36,12 @@ export default function MISMOExportButton({ dealId, className = "" }) {
 
     setIsExporting(true);
     try {
-      const response = await base44.functions.invoke('exportDealMISMO', { 
-        deal_id: dealId,
-        best_effort: bestEffort,
-      });
+      const functionName = profileId ? 'exportWithProfile' : 'exportDealMISMO';
+      const params = profileId 
+        ? { deal_id: dealId, profile_id: profileId }
+        : { deal_id: dealId, best_effort: bestEffort };
+      
+      const response = await base44.functions.invoke(functionName, params);
       
       const data = response.data;
       
@@ -91,18 +107,41 @@ export default function MISMOExportButton({ dealId, className = "" }) {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuLabel>Quick Export</DropdownMenuLabel>
         <DropdownMenuItem onClick={() => handleExport(true)} className="gap-2">
           <Download className="h-4 w-4" />
-          MISMO 3.4 XML (Best Effort)
+          Generic (Best Effort)
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleExport(false)} className="gap-2">
           <CheckCircle className="h-4 w-4" />
-          MISMO 3.4 XML (Strict)
+          Generic (Strict)
         </DropdownMenuItem>
+        
+        {profiles.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Export Profiles</DropdownMenuLabel>
+            {profiles.map((p) => (
+              <DropdownMenuItem
+                key={p.id}
+                onClick={() => handleExport(true, p.id)}
+                className="gap-2 text-sm"
+              >
+                <FileOutput className="h-3 w-3" />
+                {p.profile_name}
+                {p.is_default && <span className="text-xs text-green-600">✓</span>}
+              </DropdownMenuItem>
+            ))}
+          </>
+        )}
+        
         <DropdownMenuSeparator />
-        <DropdownMenuItem disabled className="text-xs text-gray-500">
-          More formats coming soon
+        <DropdownMenuItem asChild>
+          <Link to={createPageUrl('MISMOExportProfiles')} className="gap-2 cursor-pointer">
+            <Settings className="h-4 w-4" />
+            Manage Profiles
+          </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

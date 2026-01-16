@@ -22,6 +22,7 @@ import BorrowerPortalLogin from './pages/BorrowerPortalLogin';
 import Borrowers from './pages/Borrowers';
 import BrandStudio from './pages/BrandStudio';
 import BrandingSettings from './pages/BrandingSettings';
+import BusinessPurposeApplication from './pages/BusinessPurposeApplication';
 import CoborrowerPortal from './pages/CoborrowerPortal';
 import Communications from './pages/Communications';
 import ComplianceDashboard from './pages/ComplianceDashboard';
@@ -61,7 +62,7 @@ import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
-import BusinessPurposeApplication from './pages/BusinessPurposeApplication';
+import MISMOExportProfiles from './pages/MISMOExportProfiles';
 import __Layout from './Layout.jsx';
 
 
@@ -90,6 +91,7 @@ export const PAGES = {
     "Borrowers": Borrowers,
     "BrandStudio": BrandStudio,
     "BrandingSettings": BrandingSettings,
+    "BusinessPurposeApplication": BusinessPurposeApplication,
     "CoborrowerPortal": CoborrowerPortal,
     "Communications": Communications,
     "ComplianceDashboard": ComplianceDashboard,
@@ -129,7 +131,7 @@ export const PAGES = {
     "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
-    "BusinessPurposeApplication": BusinessPurposeApplication,
+    "MISMOExportProfiles": MISMOExportProfiles,
 }
 
 export const pagesConfig = {
