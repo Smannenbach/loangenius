@@ -1,17 +1,55 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Phone, MessageSquare, Eye, Edit, FileOutput, MessageCircle, CheckCircle2, AlertCircle, Loader, ArrowRight, ClipboardList, Clock, Plus } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Mail, Phone, MessageSquare, Eye, Edit, FileOutput, MessageCircle, CheckCircle2, AlertCircle, Loader, ArrowRight, ClipboardList, Clock, Plus, Calculator, Trash2 } from 'lucide-react';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import QuoteGeneratorModal from './QuoteGeneratorModal';
 
 export default function LeadDetailModal({ lead, onEdit, trigger }) {
   const [isOpen, setIsOpen] = useState(false);
   const [quoteModalOpen, setQuoteModalOpen] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
   const queryClient = useQueryClient();
+
+  // Fetch tasks for this lead
+  const { data: tasks = [], refetch: refetchTasks } = useQuery({
+    queryKey: ['lead-tasks', lead.id],
+    queryFn: async () => {
+      try {
+        return await base44.entities.Task.filter({ lead_id: lead.id });
+      } catch {
+        return [];
+      }
+    },
+    enabled: isOpen,
+  });
+
+  const createTaskMutation = useMutation({
+    mutationFn: async (title) => {
+      return base44.entities.Task.create({
+        org_id: lead.org_id,
+        lead_id: lead.id,
+        title,
+        status: 'pending',
+        priority: 'medium',
+      });
+    },
+    onSuccess: () => {
+      refetchTasks();
+      setNewTaskTitle('');
+    },
+  });
+
+  const updateTaskMutation = useMutation({
+    mutationFn: async ({ id, status }) => {
+      return base44.entities.Task.update(id, { status });
+    },
+    onSuccess: () => refetchTasks(),
+  });
 
   const verifyMutation = useMutation({
     mutationFn: async ({ type, value }) => {
@@ -99,10 +137,11 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
           </DialogHeader>
 
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="tasks">Tasks</TabsTrigger>
+              <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
+              <TabsTrigger value="calculator">Calculator</TabsTrigger>
               <TabsTrigger value="actions">Actions</TabsTrigger>
             </TabsList>
 
@@ -215,17 +254,93 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
 
             {/* Tasks Tab */}
             <TabsContent value="tasks" className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="font-medium">Lead Tasks</h3>
-                <Button size="sm" variant="outline" className="gap-2">
-                  <Plus className="h-3 w-3" />
-                  Add Task
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Add a new task..."
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && newTaskTitle.trim() && createTaskMutation.mutate(newTaskTitle)}
+                  className="flex-1"
+                />
+                <Button 
+                  size="sm" 
+                  onClick={() => newTaskTitle.trim() && createTaskMutation.mutate(newTaskTitle)}
+                  disabled={!newTaskTitle.trim() || createTaskMutation.isPending}
+                >
+                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="text-center py-8 text-gray-500">
-                <ClipboardList className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                <p className="text-sm">No tasks yet</p>
+              {tasks.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <ClipboardList className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm">No tasks yet</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {tasks.map((task) => (
+                    <div key={task.id} className="flex items-center gap-3 p-3 border rounded-lg">
+                      <button
+                        onClick={() => updateTaskMutation.mutate({ 
+                          id: task.id, 
+                          status: task.status === 'completed' ? 'pending' : 'completed' 
+                        })}
+                        className="flex-shrink-0"
+                      >
+                        {task.status === 'completed' ? (
+                          <CheckCircle2 className="h-5 w-5 text-green-500" />
+                        ) : (
+                          <Clock className="h-5 w-5 text-gray-400" />
+                        )}
+                      </button>
+                      <span className={`flex-1 text-sm ${task.status === 'completed' ? 'line-through text-gray-400' : ''}`}>
+                        {task.title}
+                      </span>
+                      <Badge className={task.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
+                        {task.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Calculator Tab */}
+            <TabsContent value="calculator" className="space-y-4">
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 className="font-medium flex items-center gap-2 mb-3">
+                  <Calculator className="h-4 w-4 text-blue-600" />
+                  DSCR Quick Calculator
+                </h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-600">Loan Amount</p>
+                    <p className="font-semibold">${lead.loan_amount ? lead.loan_amount.toLocaleString() : 'TBD'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">Est. Property Value</p>
+                    <p className="font-semibold">${lead.estimated_value ? parseFloat(lead.estimated_value).toLocaleString() : 'TBD'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">Monthly Rent</p>
+                    <p className="font-semibold">${lead.monthly_rental_income ? parseFloat(lead.monthly_rental_income).toLocaleString() : 'TBD'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">LTV</p>
+                    <p className="font-semibold">
+                      {lead.loan_amount && lead.estimated_value 
+                        ? ((lead.loan_amount / lead.estimated_value) * 100).toFixed(1) + '%' 
+                        : 'TBD'}
+                    </p>
+                  </div>
+                </div>
               </div>
+              <Button 
+                onClick={() => setQuoteModalOpen(true)} 
+                className="w-full gap-2 bg-blue-600 hover:bg-blue-700"
+              >
+                <FileOutput className="h-4 w-4" />
+                Open Full Quote Generator
+              </Button>
             </TabsContent>
 
             {/* Actions Tab */}
