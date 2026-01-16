@@ -26,6 +26,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import QuoteGeneratorModal from '@/components/QuoteGeneratorModal';
+import DealCalculator from '@/components/deal-wizard/DealCalculator';
 
 function SubmitButton({ formData }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -679,6 +680,23 @@ export default function LoanApplication() {
               style={{ width: `${progress}%` }}
             />
           </div>
+        </div>
+
+        {/* Calculator */}
+        <div className="mb-6">
+          <DealCalculator 
+            deal={{
+              loan_amount: parseFloat(formData.loan_amount) || 0,
+              interest_rate: parseFloat(formData.interest_rate) || 7.5,
+              loan_term_months: parseInt(formData.loan_term_months) || 360,
+            }}
+            properties={formData.property_value ? [{
+              appraised_value: parseFloat(formData.property_value) || 0,
+              gross_rent_monthly: parseFloat(formData.gross_rent) || 0,
+              taxes_monthly: 0,
+              insurance_monthly: 0,
+            }] : []}
+          />
         </div>
 
         {/* Quote Tool */}
