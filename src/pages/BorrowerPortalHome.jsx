@@ -56,10 +56,22 @@ export default function BorrowerPortalHome() {
   const { data: deals = [] } = useQuery({
     queryKey: ['availableDeals', orgId],
     queryFn: async () => {
-      if (!orgId) return [];
-      return await base44.entities.Deal.filter({ org_id: orgId, status: 'active' });
+      try {
+        if (orgId) {
+          return await base44.entities.Deal.filter({ org_id: orgId, status: 'active' });
+        }
+        const allDeals = await base44.entities.Deal.list();
+        return allDeals.filter(d => d.status === 'active');
+      } catch (e) {
+        try {
+          const allDeals = await base44.entities.Deal.list();
+          return allDeals.filter(d => d.status === 'active');
+        } catch {
+          return [];
+        }
+      }
     },
-    enabled: !!orgId,
+    enabled: true,
   });
 
   const handleSelectDeal = (id) => {

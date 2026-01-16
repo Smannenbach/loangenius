@@ -60,7 +60,13 @@ export default function Conversations() {
 
   const { data: communications = [] } = useQuery({
     queryKey: ['communications'],
-    queryFn: () => base44.entities.CommunicationsLog.list(),
+    queryFn: async () => {
+      try {
+        return await base44.entities.CommunicationsLog.list();
+      } catch {
+        return [];
+      }
+    },
     refetchInterval: 5000,
   });
 
