@@ -3,8 +3,18 @@ import crypto from 'node:crypto';
 
 Deno.serve(async (req) => {
   try {
-    const url = new URL(req.url);
-    const token = url.pathname.split('/').pop();
+    const base44 = createClientFromRequest(req);
+    
+    // Get token from body or URL
+    const body = await req.json().catch(() => ({}));
+    let token = body.token || body.resume_token;
+    
+    // Also try URL path
+    if (!token) {
+      const url = new URL(req.url);
+      token = url.pathname.split('/').pop();
+      if (token === 'applicationResume') token = null;
+    }
 
     if (!token) {
       return Response.json({ error: 'Invalid or missing token' }, { status: 400 });

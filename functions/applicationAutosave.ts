@@ -14,10 +14,28 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { org_id, application_id, step, data } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const application_id = body.application_id || body.deal_id;
+    const step = body.step;
+    const data = body.data;
+    
+    // Get org_id from membership if not provided
+    let org_id = body.org_id;
+    if (!org_id) {
+      try {
+        const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+          user_id: user.email
+        });
+        if (memberships.length > 0) {
+          org_id = memberships[0].org_id;
+        }
+      } catch (e) {
+        org_id = 'default';
+      }
+    }
 
-    if (!org_id || !application_id || step === undefined || !data) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!application_id || step === undefined || !data) {
+      return Response.json({ error: 'Missing required fields: application_id/deal_id, step, data' }, { status: 400 });
     }
 
     // Fetch application
