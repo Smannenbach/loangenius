@@ -61,15 +61,21 @@ export default function Tasks() {
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['tasks', orgId],
     queryFn: async () => {
-      if (!orgId) return [];
       try {
-        return await base44.entities.Task.filter({ org_id: orgId });
-      } catch (e) {
+        if (orgId) {
+          return await base44.entities.Task.filter({ org_id: orgId });
+        }
         // Fallback: get all tasks
         return await base44.entities.Task.list();
+      } catch (e) {
+        try {
+          return await base44.entities.Task.list();
+        } catch {
+          return [];
+        }
       }
     },
-    enabled: !!orgId,
+    enabled: true,
   });
 
   const createTaskMutation = useMutation({
