@@ -566,36 +566,40 @@ export default function DealDetail() {
               <CardTitle>Borrower Portal Access</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {dealBorrowers?.map((db) => (
-                <div key={db.id} className="border rounded-lg p-4 space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-medium">{db.borrower?.first_name} {db.borrower?.last_name}</p>
-                      <p className="text-sm text-gray-600">{db.borrower?.email}</p>
-                      <p className="text-sm text-gray-600">{db.borrower?.phone}</p>
+              {borrowers.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">No borrowers added</p>
+              ) : (
+                borrowers.map((borrower) => (
+                  <div key={borrower.id} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-medium">{borrower.first_name} {borrower.last_name}</p>
+                        <p className="text-sm text-gray-600">{borrower.email}</p>
+                        <p className="text-sm text-gray-600">{borrower.phone}</p>
+                      </div>
+                      <Badge>{borrower.dealRole || 'Borrower'}</Badge>
                     </div>
-                    <Badge>Primary</Badge>
+                    
+                    <div className="flex gap-2 flex-wrap">
+                      <Button size="sm" variant="outline" onClick={() => {
+                        setSelectedBorrower(borrower.id);
+                        setShowPortalInviteModal(true);
+                      }}>
+                        <Send className="h-4 w-4 mr-2" />
+                        Send Invite
+                      </Button>
+                      <Button size="sm" variant="outline">
+                        <Eye className="h-4 w-4 mr-2" />
+                        Preview
+                      </Button>
+                      <Button size="sm" variant="outline">
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        Resend
+                      </Button>
+                    </div>
                   </div>
-                  
-                  <div className="flex gap-2 flex-wrap">
-                    <Button size="sm" variant="outline" onClick={() => {
-                      setSelectedBorrower(db.borrower_id);
-                      setShowPortalInviteModal(true);
-                    }}>
-                      <Send className="h-4 w-4 mr-2" />
-                      Send Invite
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      <Eye className="h-4 w-4 mr-2" />
-                      Preview
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      <RotateCcw className="h-4 w-4 mr-2" />
-                      Resend
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
 
@@ -604,16 +608,20 @@ export default function DealDetail() {
               <CardTitle>Document Checklist</CardTitle>
             </CardHeader>
             <CardContent>
-              {documentRequirements?.map((req) => (
-                <div key={req.id} className="border-b py-3 last:border-0 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{req.display_name}</p>
-                    <Badge variant={req.status === 'approved' ? 'default' : 'secondary'}>
-                      {req.status}
-                    </Badge>
+              {documents.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">No documents uploaded</p>
+              ) : (
+                documents.map((doc) => (
+                  <div key={doc.id} className="border-b py-3 last:border-0 flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{doc.name || doc.document_type}</p>
+                      <Badge variant={doc.status === 'approved' ? 'default' : 'secondary'}>
+                        {doc.status || 'pending'}
+                      </Badge>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
         </TabsContent>
