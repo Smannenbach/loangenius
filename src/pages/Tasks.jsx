@@ -69,10 +69,9 @@ export default function Tasks() {
 
   const createTaskMutation = useMutation({
     mutationFn: async (data) => {
-      const user = await base44.auth.me();
       const formattedData = {
         ...data,
-        org_id: user.org_id || 'default',
+        org_id: orgId || 'default',
         status: 'pending',
         due_date: data.due_date ? new Date(data.due_date).toISOString() : null,
       };
