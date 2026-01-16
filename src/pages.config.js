@@ -18,6 +18,7 @@ import Assumptions from './pages/Assumptions';
 import AuditComplianceViewer from './pages/AuditComplianceViewer';
 import BorrowerOnboarding from './pages/BorrowerOnboarding';
 import BorrowerPortal from './pages/BorrowerPortal';
+import BorrowerPortalDashboard from './pages/BorrowerPortalDashboard';
 import BorrowerPortalHome from './pages/BorrowerPortalHome';
 import BorrowerPortalLogin from './pages/BorrowerPortalLogin';
 import Borrowers from './pages/Borrowers';
@@ -65,7 +66,6 @@ import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
-import BorrowerPortalDashboard from './pages/BorrowerPortalDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -90,6 +90,7 @@ export const PAGES = {
     "AuditComplianceViewer": AuditComplianceViewer,
     "BorrowerOnboarding": BorrowerOnboarding,
     "BorrowerPortal": BorrowerPortal,
+    "BorrowerPortalDashboard": BorrowerPortalDashboard,
     "BorrowerPortalHome": BorrowerPortalHome,
     "BorrowerPortalLogin": BorrowerPortalLogin,
     "Borrowers": Borrowers,
@@ -137,7 +138,6 @@ export const PAGES = {
     "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
-    "BorrowerPortalDashboard": BorrowerPortalDashboard,
 }
 
 export const pagesConfig = {

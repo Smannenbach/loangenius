@@ -951,6 +951,25 @@ export default function Leads() {
         </div>
       )}
 
+      {/* Empty State */}
+      {!isLoading && !error && leads.length === 0 && (
+        <Card className="p-8 text-center">
+          <TrendingUp className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">No leads yet</h3>
+          <p className="text-gray-500 mb-4">Start building your pipeline by adding leads</p>
+          <div className="flex gap-3 justify-center">
+            <Button onClick={() => setIsQuickAddOpen(true)} className="bg-blue-600 hover:bg-blue-500 gap-2">
+              <Plus className="h-4 w-4" />
+              Quick Add Lead
+            </Button>
+            <LeadsImportModal 
+              trigger={<Button variant="outline" className="gap-2"><Upload className="h-4 w-4" />Import Leads</Button>}
+              onImportComplete={() => queryClient.invalidateQueries({ queryKey: ['leads'] })} 
+            />
+          </div>
+        </Card>
+      )}
+
       {/* View Mode */}
       {!isLoading && !error && viewMode === 'table' ? (
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
@@ -985,17 +1004,31 @@ export default function Leads() {
                       <td className="px-6 py-4 font-semibold text-gray-900">{lead.loan_amount ? `$${(lead.loan_amount / 1000).toFixed(0)}K` : '-'}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">{lead.property_city}, {lead.property_state}</td>
                       <td className="px-6 py-4 text-right">
-                       <div className="flex gap-2 justify-end">
-                         <LeadDetailModal lead={lead} onEdit={handleEditLead} trigger={<Button variant="ghost" size="sm" className="h-8">View</Button>} />
-                         <DropdownMenu>
-                           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                           <DropdownMenuContent align="end">
-                             <DropdownMenuItem onClick={() => { setQuoteSelectedLead(lead); setQuoteModalOpen(true); }}><FileOutput className="h-3 w-3 mr-2" />Quote</DropdownMenuItem>
-                             <DropdownMenuItem onClick={() => handleEditLead(lead)}>Edit</DropdownMenuItem>
-                             <DropdownMenuItem className="text-red-600" onClick={() => deleteLeadMutation.mutate(lead.id)}>Delete</DropdownMenuItem>
-                           </DropdownMenuContent>
-                         </DropdownMenu>
-                       </div>
+                      <div className="flex gap-2 justify-end">
+                        <LeadDetailModal lead={lead} onEdit={handleEditLead} trigger={<Button variant="ghost" size="sm" className="h-8">View</Button>} />
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 text-blue-600 hover:text-blue-700"
+                          onClick={() => { setQuoteSelectedLead(lead); setQuoteModalOpen(true); }}
+                        >
+                          <FileOutput className="h-3 w-3 mr-1" />
+                          Quote
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditLead(lead)}>Edit Lead</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => window.location.href = `mailto:${lead.home_email || lead.work_email}`} disabled={!lead.home_email && !lead.work_email}>
+                              <Mail className="h-3 w-3 mr-2" />Send Email
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => window.location.href = `tel:${lead.mobile_phone || lead.home_phone}`} disabled={!lead.mobile_phone && !lead.home_phone}>
+                              <Phone className="h-3 w-3 mr-2" />Call
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600" onClick={() => deleteLeadMutation.mutate(lead.id)}>Delete</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                       </td>
                     </tr>
                   ))
