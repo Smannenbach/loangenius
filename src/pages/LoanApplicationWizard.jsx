@@ -61,23 +61,42 @@ export default function LoanApplicationWizard() {
 
   const createDealMutation = useMutation({
     mutationFn: async () => {
-      if (!user?.org_id) throw new Error('Organization not found');
+      // Format borrowers for the API
+      const formattedBorrowers = (formData.borrowers || []).map(b => ({
+        firstName: b.first_name,
+        lastName: b.last_name,
+        email: b.email,
+        phone: b.phone,
+        role: b.party_type === 'Primary Borrower' ? 'primary' : 
+              b.party_type === 'Co-Borrower' ? 'co_borrower' : 'guarantor',
+      }));
+
+      // Format properties for the API
+      const formattedProperties = (formData.properties || []).map(p => ({
+        street: p.address_street,
+        unit: p.address_unit,
+        city: p.address_city,
+        state: p.address_state,
+        zip: p.address_zip,
+        propertyType: p.property_type,
+        occupancyType: 'investment',
+        yearBuilt: p.year_built ? parseInt(p.year_built) : null,
+        squareFeet: p.sqft ? parseInt(p.sqft) : null,
+        monthlyRent: parseFloat(formData.currentLeaseRent) || 0,
+      }));
 
       const response = await base44.functions.invoke('createOrUpdateDeal', {
-        org_id: user.org_id,
-        loan_product: formData.loanType,
-        loan_purpose: formData.loanPurpose,
-        is_blanket: formData.isBlanket,
-        loan_amount: parseFloat(formData.loanAmount),
-        purchase_price: parseFloat(formData.purchasePrice) || null,
-        interest_rate: parseFloat(formData.interestRate),
-        loan_term_months: parseInt(formData.loanTermMonths),
-        amortization_type: formData.rateType === 'Interest Only' ? 'io' : 'fixed',
-        assigned_to_user_id: user.email,
-        borrowers: formData.borrowers,
-        properties: formData.properties,
-        meta_json: {
-          application_data: formData
+        action: 'create',
+        dealData: {
+          loan_product: formData.loanType,
+          loan_purpose: formData.loanPurpose,
+          is_blanket: formData.isBlanket,
+          loan_amount: parseFloat(formData.loanAmount) || 0,
+          interest_rate: parseFloat(formData.interestRate) || 0,
+          loan_term_months: parseInt(formData.loanTermMonths) || 360,
+          amortization_type: formData.rateType === 'Interest Only' ? 'io' : 'fixed',
+          borrowers: formattedBorrowers,
+          properties: formattedProperties,
         }
       });
 
@@ -87,7 +106,13 @@ export default function LoanApplicationWizard() {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
       if (deal?.id) {
         navigate(createPageUrl(`DealDetail?id=${deal.id}`));
+      } else {
+        navigate(createPageUrl('Loans'));
       }
+    },
+    onError: (error) => {
+      console.error('Error creating deal:', error);
+      alert('Error creating loan application: ' + (error.message || 'Unknown error'));
     },
   });
 
