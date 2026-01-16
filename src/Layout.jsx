@@ -284,13 +284,21 @@ export default function Layout({ children, currentPageName }) {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <Link 
+            to={createPageUrl('BusinessPurposeApplication')}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium text-sm transition-colors shadow-sm"
+          >
+            <Plus className="h-4 w-4" />
+            Business Purpose App
+          </Link>
+          
           <Link 
             to={createPageUrl('LoanApplicationWizard')}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition-colors"
           >
             <Plus className="h-4 w-4" />
-            New Loan
+            Quick Application
           </Link>
 
           {/* Notifications */}
