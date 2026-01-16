@@ -4,7 +4,6 @@
  */
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { logAudit, logActivity } from './auditLogHelper.js';
 
 Deno.serve(async (req) => {
   try {
@@ -15,10 +14,20 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { action, deal_id, org_id, pricing_data } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { action, deal_id, pricing_data } = body;
+    
+    // Get org_id from membership if not provided
+    let org_id = body.org_id;
+    if (!org_id) {
+      const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+        user_id: user.email
+      });
+      org_id = memberships.length > 0 ? memberships[0].org_id : 'default';
+    }
 
-    if (!action || !deal_id || !org_id) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!action || !deal_id) {
+      return Response.json({ error: 'Missing action or deal_id' }, { status: 400 });
     }
 
     let result;
@@ -88,13 +97,12 @@ async function createPricingSnapshot(base44, org_id, deal_id, pricingData, user)
     created_by: user.id
   });
 
-  await logActivity(base44, {
+  await base44.asServiceRole.entities.ActivityLog.create({
+    org_id,
     deal_id,
-    activity_type: 'Note',
-    title: 'Pricing snapshot created',
-    description: `Rate: ${interest_rate}% | Points: ${points} | ${lender_name || 'Internal quote'}`,
-    icon: '📊',
-    color: 'blue'
+    activity_type: 'DEAL_UPDATED',
+    description: `Pricing snapshot created: ${interest_rate}% | Points: ${points} | ${lender_name || 'Internal quote'}`,
+    source: 'admin'
   });
 
   return { success: true, snapshot };
@@ -128,23 +136,12 @@ async function lockRate(base44, org_id, deal_id, pricingData, user) {
     locked_by_user_id: user.id
   });
 
-  await logAudit(base44, {
-    action_type: 'Create',
-    entity_type: 'RateLock',
-    entity_id: rateLock.id,
-    entity_name: `${interest_rate}% ${lock_days}d lock`,
-    description: `Rate locked: ${interest_rate}% for ${lock_days} days`,
-    severity: 'Info',
-    metadata: { org_id, user_id: user.id, deal_id }
-  });
-
-  await logActivity(base44, {
+  await base44.asServiceRole.entities.ActivityLog.create({
+    org_id,
     deal_id,
-    activity_type: 'Note',
-    title: 'Rate locked',
-    description: `${interest_rate}% locked for ${lock_days} days, expires ${expirationDate.toLocaleDateString()}`,
-    icon: '🔒',
-    color: 'green'
+    activity_type: 'DEAL_UPDATED',
+    description: `Rate locked: ${interest_rate}% for ${lock_days} days, expires ${expirationDate.toLocaleDateString()}`,
+    source: 'admin'
   });
 
   return { success: true, rate_lock: rateLock };
@@ -163,15 +160,7 @@ async function releaseLock(base44, rateLockId, user) {
     released_at: new Date().toISOString()
   });
 
-  await logAudit(base44, {
-    action_type: 'Update',
-    entity_type: 'RateLock',
-    entity_id: rateLockId,
-    entity_name: `${lock.interest_rate}% lock released`,
-    description: `Rate lock released`,
-    severity: 'Info',
-    metadata: { user_id: user.id }
-  });
+
 
   return { success: true, rate_lock: releasedLock };
 }
