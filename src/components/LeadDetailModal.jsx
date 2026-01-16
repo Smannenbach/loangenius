@@ -84,16 +84,15 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
 
   return (
     <>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button variant="ghost" size="sm" className="gap-1">
-            <Eye className="h-3 w-3" />
-            View
-          </Button>
-        )}
-      </DialogTrigger>
-
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          {trigger || (
+            <Button variant="ghost" size="sm" className="gap-1">
+              <Eye className="h-3 w-3" />
+              View
+            </Button>
+          )}
+        </DialogTrigger>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{lead.first_name} {lead.last_name}</DialogTitle>
