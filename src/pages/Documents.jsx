@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
   Search,
   Upload,
   FileText,
@@ -22,11 +29,47 @@ import {
   CheckCircle2,
   AlertCircle,
   Filter,
+  Loader2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function Documents() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [uploadData, setUploadData] = useState({ name: '', document_type: 'other' });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const fileInputRef = useRef(null);
+  const queryClient = useQueryClient();
+
+  const uploadMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedFile) throw new Error('Please select a file');
+      
+      // Upload file
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: selectedFile });
+      
+      // Create document record
+      return await base44.entities.Document.create({
+        name: uploadData.name || selectedFile.name,
+        document_type: uploadData.document_type,
+        file_url,
+        file_name: selectedFile.name,
+        status: 'pending',
+        is_deleted: false
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['documents']);
+      setIsUploadOpen(false);
+      setUploadData({ name: '', document_type: 'other' });
+      setSelectedFile(null);
+      toast.success('Document uploaded successfully!');
+    },
+    onError: (error) => {
+      toast.error('Upload failed: ' + error.message);
+    }
+  });
 
   const { data: documents = [], isLoading } = useQuery({
     queryKey: ['documents'],
@@ -78,7 +121,10 @@ export default function Documents() {
           <h1 className="text-2xl font-semibold text-gray-900">Documents</h1>
           <p className="text-gray-500 mt-1">Manage loan documents and files</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
+        <Button 
+          className="bg-blue-600 hover:bg-blue-500 gap-2"
+          onClick={() => setIsUploadOpen(true)}
+        >
           <Upload className="h-4 w-4" />
           Upload Document
         </Button>
@@ -122,7 +168,11 @@ export default function Documents() {
             <div className="py-12 text-center">
               <FileText className="h-8 w-8 mx-auto mb-3 text-gray-300" />
               <p className="text-gray-500">No documents found</p>
-              <Button variant="link" className="text-blue-600 mt-2">
+              <Button 
+                variant="link" 
+                className="text-blue-600 mt-2"
+                onClick={() => setIsUploadOpen(true)}
+              >
                 Upload your first document
               </Button>
             </div>
@@ -154,10 +204,35 @@ export default function Documents() {
                       <span className="ml-1">{doc.status?.replace(/_/g, ' ')}</span>
                     </Badge>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => {
+                          if (doc.file_url) {
+                            window.open(doc.file_url, '_blank');
+                          } else {
+                            toast.error('No file available to view');
+                          }
+                        }}
+                      >
                         <Eye className="h-4 w-4 text-gray-400" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => {
+                          if (doc.file_url) {
+                            const a = document.createElement('a');
+                            a.href = doc.file_url;
+                            a.download = doc.file_name || doc.name || 'document';
+                            a.click();
+                          } else {
+                            toast.error('No file available to download');
+                          }
+                        }}
+                      >
                         <Download className="h-4 w-4 text-gray-400" />
                       </Button>
                     </div>
@@ -168,6 +243,96 @@ export default function Documents() {
           )}
         </CardContent>
       </Card>
+
+      {/* Upload Dialog */}
+      <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upload Document</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label>Document Name</Label>
+              <Input
+                placeholder="e.g., Bank Statement - January 2024"
+                value={uploadData.name}
+                onChange={(e) => setUploadData({ ...uploadData, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Document Type</Label>
+              <Select
+                value={uploadData.document_type}
+                onValueChange={(v) => setUploadData({ ...uploadData, document_type: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bank_statement">Bank Statement</SelectItem>
+                  <SelectItem value="tax_return">Tax Return</SelectItem>
+                  <SelectItem value="pay_stub">Pay Stub</SelectItem>
+                  <SelectItem value="id_document">ID Document</SelectItem>
+                  <SelectItem value="insurance">Insurance</SelectItem>
+                  <SelectItem value="appraisal">Appraisal</SelectItem>
+                  <SelectItem value="lease_agreement">Lease Agreement</SelectItem>
+                  <SelectItem value="entity_docs">Entity Documents</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>File</Label>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={(e) => setSelectedFile(e.target.files[0])}
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                className="hidden"
+              />
+              <div 
+                className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {selectedFile ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <FileText className="h-5 w-5 text-blue-600" />
+                    <span className="text-sm font-medium">{selectedFile.name}</span>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                    <p className="text-sm text-gray-600">Click to select a file</p>
+                    <p className="text-xs text-gray-400 mt-1">PDF, JPG, PNG, DOC up to 15MB</p>
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" onClick={() => setIsUploadOpen(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button 
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                onClick={() => uploadMutation.mutate()}
+                disabled={!selectedFile || uploadMutation.isPending}
+              >
+                {uploadMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

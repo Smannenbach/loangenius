@@ -81,7 +81,13 @@ export default function Conversations() {
           </h1>
           <p className="text-gray-500 mt-1">All communications with borrowers and team members</p>
         </div>
-        <Button className="gap-2 bg-blue-600 hover:bg-blue-700">
+        <Button 
+          className="gap-2 bg-blue-600 hover:bg-blue-700"
+          onClick={() => {
+            // Navigate to Communications page for composing messages
+            window.location.href = createPageUrl('Communications');
+          }}
+        >
           <Plus className="h-4 w-4" />
           New Message
         </Button>
