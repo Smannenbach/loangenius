@@ -61,7 +61,13 @@ export default function AdminIntegrations() {
 
   const { data: integrations = [] } = useQuery({
     queryKey: ['integrations'],
-    queryFn: () => base44.entities.IntegrationConfig.filter({})
+    queryFn: async () => {
+      try {
+        return await base44.entities.IntegrationConfig.filter({});
+      } catch (e) {
+        return [];
+      }
+    }
   });
 
   const connectMutation = useMutation({
