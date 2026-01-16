@@ -31,8 +31,12 @@ import {
   MapPin,
   DollarSign,
   Sparkles,
-  Loader,
+  Loader2,
+  CheckCircle,
+  Star,
+  ExternalLink,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function Lenders() {
   const queryClient = useQueryClient();
@@ -105,7 +109,7 @@ export default function Lenders() {
   const addLenderMutation = useMutation({
     mutationFn: async (data) => {
       return base44.entities.Contact.create({
-        org_id: orgId,
+        org_id: orgId || 'default',
         contact_type: 'entity',
         entity_name: data.company_name,
         ...data,
@@ -115,17 +119,46 @@ export default function Lenders() {
       queryClient.invalidateQueries({ queryKey: ['lenders'] });
       setIsAddOpen(false);
       resetForm();
+      toast.success('Lender added successfully');
+    },
+    onError: (error) => {
+      console.error('Add lender error:', error);
+      toast.error('Failed to add lender');
     },
   });
 
   const aiSearchMutation = useMutation({
     mutationFn: async (query) => {
       setIsSearching(true);
-      const prompt = query.includes('DSCR') || query.includes('dscr') 
-        ? `Find 10 DSCR lenders matching: "${query}". Return ONLY a JSON array with no markdown, no code blocks:
-[{"name":"Company Name","type":"DSCR","company_name":"Company Name","lender_type":"DSCR","description":"Brief description"}]`
-        : `Research this lending company. Return ONLY a JSON array with no markdown, no code blocks:
-[{"name":"${query}","company_name":"${query}","type":"Lender","lender_type":"Lender","description":"Lending company"}]`;
+      const isDSCRSearch = query.toLowerCase().includes('dscr') || query.toLowerCase().includes('investor') || query.toLowerCase().includes('rental');
+      
+      const prompt = isDSCRSearch 
+        ? `You are a mortgage industry expert. Find real DSCR (Debt Service Coverage Ratio) lenders that specialize in investment property loans. Search query: "${query}".
+
+Return 15 REAL lenders with accurate information. Include major national DSCR lenders like Kiavi, Lima One, Visio Lending, RCN Capital, CoreVest, Velocity Mortgage, New Silver, Easy Street Capital, Civic Financial, Angel Oak, Carrington, A&D Mortgage, Deephaven, and others you find.
+
+For each lender provide:
+- company_name: Official company name
+- lender_type: Primary type (DSCR, Non-QM, Hard Money, etc.)
+- description: 2-3 sentences about their DSCR programs, rates, and specialties
+- website: Their official website URL
+- min_loan: Typical minimum loan amount
+- max_loan: Typical maximum loan amount  
+- min_dscr: Minimum DSCR ratio they accept
+- max_ltv: Maximum LTV they offer
+- states: States they lend in (or "Nationwide")
+- loan_programs: Types of programs offered`
+        : `You are a mortgage industry expert. Research this specific lending company: "${query}".
+
+Provide detailed, accurate information about this lender including:
+- company_name: Official company name
+- lender_type: Primary type (Bank, Credit Union, DSCR, Non-QM, Hard Money, etc.)
+- description: 2-3 sentences about their lending programs and specialties
+- website: Their official website URL
+- min_loan: Typical minimum loan amount
+- max_loan: Typical maximum loan amount
+- states: States they lend in
+- loan_programs: Types of programs offered`;
       
       const response = await base44.integrations.Core.InvokeLLM({
         prompt: prompt,
@@ -138,11 +171,16 @@ export default function Lenders() {
               items: {
                 type: 'object',
                 properties: {
-                  name: { type: 'string' },
                   company_name: { type: 'string' },
-                  type: { type: 'string' },
                   lender_type: { type: 'string' },
                   description: { type: 'string' },
+                  website: { type: 'string' },
+                  min_loan: { type: 'string' },
+                  max_loan: { type: 'string' },
+                  min_dscr: { type: 'string' },
+                  max_ltv: { type: 'string' },
+                  states: { type: 'string' },
+                  loan_programs: { type: 'string' },
                 }
               }
             },
@@ -150,29 +188,36 @@ export default function Lenders() {
         },
       });
       const results = Array.isArray(response) ? response : (response.results || [response]);
-      return results.filter(r => r && (r.name || r.company_name));
+      return results.filter(r => r && r.company_name);
     },
     onSuccess: (data) => {
       setSearchResults(data && data.length > 0 ? data : []);
       setIsSearching(false);
+      if (data && data.length > 0) {
+        toast.success(`Found ${data.length} lenders`);
+      } else {
+        toast.info('No lenders found. Try a different search.');
+      }
     },
     onError: (error) => {
       console.error('AI Search error:', error);
-      alert('Error searching for lender. Try manual entry.');
+      toast.error('Search failed. Try manual entry.');
       setIsSearching(false);
     },
   });
 
   const handleAISearch = () => {
     if (!lenderSearchQuery.trim()) {
-      alert('Enter a lender name or "DSCR lenders"');
+      toast.error('Enter a lender name or "DSCR lenders"');
       return;
     }
+    setSearchResults([]);
+    setSelectedLenders(new Set());
     aiSearchMutation.mutate(lenderSearchQuery);
   };
 
   const handleSelectLender = (result) => {
-    const id = result.name || result.company_name;
+    const id = result.company_name;
     setSelectedLenders(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -181,17 +226,38 @@ export default function Lenders() {
     });
   };
 
+  const handleSelectAll = () => {
+    if (selectedLenders.size === searchResults.length) {
+      setSelectedLenders(new Set());
+    } else {
+      setSelectedLenders(new Set(searchResults.map(r => r.company_name)));
+    }
+  };
+
   const handleAddSelectedLenders = async () => {
+    let addedCount = 0;
     for (const id of selectedLenders) {
-      const result = searchResults.find(r => (r.name || r.company_name) === id);
+      const result = searchResults.find(r => r.company_name === id);
       if (result) {
-        await addLenderMutation.mutateAsync({
-          company_name: result.company_name || result.name,
-          lender_type: result.type || result.lender_type || 'DSCR',
-          loan_programs: result.description || '',
-        });
+        try {
+          await addLenderMutation.mutateAsync({
+            company_name: result.company_name,
+            lender_type: result.lender_type || 'DSCR',
+            loan_programs: result.loan_programs || result.description || '',
+            website: result.website || '',
+            min_loan: result.min_loan || '',
+            max_loan: result.max_loan || '',
+            dscr_min_ratio: result.min_dscr || '',
+            ltv_max: result.max_ltv || '',
+            notes: `${result.description || ''}\nStates: ${result.states || 'Unknown'}`,
+          });
+          addedCount++;
+        } catch (e) {
+          console.error('Failed to add lender:', result.company_name, e);
+        }
       }
     }
+    toast.success(`Added ${addedCount} lender${addedCount !== 1 ? 's' : ''} to your database`);
     setIsSearchOpen(false);
     setSelectedLenders(new Set());
     setSearchResults([]);
@@ -268,32 +334,85 @@ export default function Lenders() {
                 </div>
 
                 {searchResults.length > 0 && (
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {searchResults.map((result, idx) => (
-                      <div key={idx} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-blue-50">
-                        <input
-                          type="checkbox"
-                          checked={selectedLenders.has(result.name || result.company_name)}
-                          onChange={() => handleSelectLender(result)}
-                          className="h-4 w-4 rounded"
-                        />
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-900">{result.company_name || result.name}</p>
-                          <p className="text-sm text-gray-600">{result.type || result.lender_type || 'Lender'}</p>
-                          {result.description && <p className="text-xs text-gray-500 mt-1">{result.description}</p>}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between border-b pb-2">
+                      <Button variant="outline" size="sm" onClick={handleSelectAll}>
+                        {selectedLenders.size === searchResults.length ? 'Deselect All' : 'Select All'}
+                      </Button>
+                      <span className="text-sm text-gray-500">{searchResults.length} lenders found</span>
+                    </div>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {searchResults.map((result, idx) => (
+                        <div 
+                          key={idx} 
+                          className={`flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
+                            selectedLenders.has(result.company_name) 
+                              ? 'border-blue-500 bg-blue-50' 
+                              : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                          }`}
+                          onClick={() => handleSelectLender(result)}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedLenders.has(result.company_name)}
+                            onChange={() => handleSelectLender(result)}
+                            className="h-5 w-5 rounded mt-1"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-semibold text-gray-900">{result.company_name}</p>
+                              <Badge className="bg-blue-100 text-blue-700 text-xs">{result.lender_type || 'Lender'}</Badge>
+                            </div>
+                            {result.description && (
+                              <p className="text-sm text-gray-600 mb-2 line-clamp-2">{result.description}</p>
+                            )}
+                            <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+                              {result.min_dscr && <span className="bg-gray-100 px-2 py-0.5 rounded">Min DSCR: {result.min_dscr}</span>}
+                              {result.max_ltv && <span className="bg-gray-100 px-2 py-0.5 rounded">Max LTV: {result.max_ltv}</span>}
+                              {result.states && <span className="bg-gray-100 px-2 py-0.5 rounded">{result.states}</span>}
+                            </div>
+                            {result.website && (
+                              <a 
+                                href={result.website} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 hover:underline mt-2 flex items-center gap-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                {result.website}
+                              </a>
+                            )}
+                          </div>
+                          {selectedLenders.has(result.company_name) && (
+                            <CheckCircle className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
 
                 {selectedLenders.size > 0 && (
-                  <Button
-                    className="w-full bg-green-600 hover:bg-green-700"
-                    onClick={handleAddSelectedLenders}
-                  >
-                    Add {selectedLenders.size} Lender{selectedLenders.size !== 1 ? 's' : ''}
-                  </Button>
+                  <div className="sticky bottom-0 bg-white pt-3 border-t">
+                    <Button
+                      className="w-full bg-green-600 hover:bg-green-700 h-11 gap-2"
+                      onClick={handleAddSelectedLenders}
+                      disabled={addLenderMutation.isPending}
+                    >
+                      {addLenderMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Adding...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="h-4 w-4" />
+                          Add {selectedLenders.size} Lender{selectedLenders.size !== 1 ? 's' : ''} to Database
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 )}
               </div>
             </DialogContent>
@@ -497,7 +616,7 @@ export default function Lenders() {
                   className="flex-1 bg-blue-600 hover:bg-blue-700"
                   onClick={() => {
                     if (!newLender.company_name) {
-                      alert('Please enter company name');
+                      toast.error('Please enter company name');
                       return;
                     }
                     addLenderMutation.mutate(newLender);

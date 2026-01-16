@@ -20,6 +20,114 @@ import {
 } from 'lucide-react';
 import debounce from 'lodash/debounce';
 
+function OrgLogoUpload() {
+  const [logoUrl, setLogoUrl] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const logoInputRef = useRef(null);
+
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: memberships = [] } = useQuery({
+    queryKey: ['userMembership', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return await base44.entities.OrgMembership.filter({ user_id: user.email });
+    },
+    enabled: !!user?.email,
+  });
+
+  const orgId = memberships[0]?.org_id || user?.org_id;
+
+  const { data: orgSettings, refetch: refetchOrgSettings } = useQuery({
+    queryKey: ['orgSettings', orgId],
+    queryFn: async () => {
+      if (!orgId) return null;
+      try {
+        const settings = await base44.entities.OrgSettings.filter({ org_id: orgId });
+        return settings[0] || null;
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!orgId,
+  });
+
+  useEffect(() => {
+    if (orgSettings?.logo_url) {
+      setLogoUrl(orgSettings.logo_url);
+    }
+  }, [orgSettings]);
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      // Upload using Core.UploadFile integration directly
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setLogoUrl(file_url);
+
+      // Save to OrgSettings
+      if (orgSettings?.id) {
+        await base44.entities.OrgSettings.update(orgSettings.id, { logo_url: file_url });
+      } else if (orgId) {
+        await base44.entities.OrgSettings.create({ org_id: orgId, logo_url: file_url });
+      }
+      
+      toast.success('Logo uploaded successfully');
+      refetchOrgSettings();
+    } catch (err) {
+      console.error('Logo upload failed:', err);
+      toast.error('Logo upload failed: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label>Company Logo</Label>
+      <div className="flex items-center gap-4">
+        <div className="relative h-24 w-24 border border-gray-200 rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden">
+          {logoUrl ? (
+            <img src={logoUrl} alt="Company Logo" className="h-full w-full object-contain" />
+          ) : (
+            <Building2 className="h-8 w-8 text-gray-400" />
+          )}
+          {uploading && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <Loader2 className="h-6 w-6 text-white animate-spin" />
+            </div>
+          )}
+        </div>
+        <div>
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleLogoUpload}
+            className="hidden"
+          />
+          <Button 
+            variant="outline" 
+            onClick={() => logoInputRef.current?.click()}
+            disabled={uploading}
+            className="gap-2"
+          >
+            <Upload className="h-4 w-4" />
+            {uploading ? 'Uploading...' : 'Upload Logo'}
+          </Button>
+          <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 2MB recommended</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { data: user, refetch: refetchUser } = useQuery({
     queryKey: ['currentUser'],
@@ -271,35 +379,7 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Logo Upload */}
-              <div className="space-y-2">
-                <Label>Company Logo</Label>
-                <div className="flex items-center gap-4">
-                  <div className="h-24 w-24 border border-gray-200 rounded-lg bg-gray-50 flex items-center justify-center">
-                    {/* Logo preview would go here */}
-                    <p className="text-xs text-gray-500">Logo</p>
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        try {
-                          const formData = new FormData();
-                          formData.append('file', file);
-                          const { data } = await base44.functions.invoke('uploadOrgLogo', formData);
-                          console.log('Logo uploaded:', data.url);
-                          alert('Logo uploaded successfully!');
-                        } catch (err) {
-                          console.error('Upload failed:', err);
-                          alert('Upload failed: ' + err.message);
-                        }
-                      }
-                    }}
-                    className="block"
-                  />
-                </div>
-              </div>
+              <OrgLogoUpload />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">

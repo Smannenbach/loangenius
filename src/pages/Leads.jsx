@@ -209,7 +209,6 @@ export default function Leads() {
     },
     onError: (error) => {
       console.error('Lead creation error:', error);
-      alert('Error adding lead: ' + error.message);
     },
   });
 
