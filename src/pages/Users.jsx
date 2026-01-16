@@ -263,8 +263,17 @@ export default function UsersPage() {
                     <Badge variant={member.status === 'active' ? 'default' : 'secondary'}>
                       {member.status || 'active'}
                     </Badge>
-                    <Button variant="ghost" size="icon">
-                      <MoreVertical className="h-4 w-4 text-gray-400" />
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => {
+                        if (member.user_id && member.user_id.includes('@')) {
+                          window.location.href = `mailto:${member.user_id}`;
+                        }
+                      }}
+                      title="Send email"
+                    >
+                      <Mail className="h-4 w-4 text-gray-400" />
                     </Button>
                   </div>
                 </div>
