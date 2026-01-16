@@ -124,7 +124,7 @@ export default function NewDeal() {
 
       // Create deal directly (simpler approach that works without backend function)
       const deal = await base44.entities.Deal.create({
-        org_id: orgId,
+        org_id: effectiveOrgId,
         loan_product: dealData.loan_product,
         loan_purpose: dealData.loan_purpose,
         is_blanket: dealData.is_blanket,
