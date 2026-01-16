@@ -42,7 +42,8 @@ export default function Step5Borrower({ data, onChange, onNext, onPrev }) {
     onChange({ borrowers });
   };
 
-  const canProceed = data.borrowers?.length > 0;
+  // Allow proceeding even without borrowers - they can be added later
+  const canProceed = true;
 
   return (
     <div className="space-y-8">
