@@ -43,13 +43,25 @@ export default function UsersPage() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: memberships = [] } = useQuery({
-    queryKey: ['orgMemberships', user?.org_id],
+  // Get user's org membership first
+  const { data: userMemberships = [] } = useQuery({
+    queryKey: ['userMembership', user?.email],
     queryFn: async () => {
-      if (!user?.org_id) return [];
-      return await base44.entities.OrgMembership.filter({ org_id: user.org_id });
+      if (!user?.email) return [];
+      return await base44.entities.OrgMembership.filter({ user_id: user.email });
     },
-    enabled: !!user?.org_id,
+    enabled: !!user?.email,
+  });
+
+  const orgId = userMemberships[0]?.org_id || user?.org_id;
+
+  const { data: memberships = [] } = useQuery({
+    queryKey: ['orgMemberships', orgId],
+    queryFn: async () => {
+      if (!orgId) return [];
+      return await base44.entities.OrgMembership.filter({ org_id: orgId });
+    },
+    enabled: !!orgId,
   });
 
   const queryClient = useQueryClient();
@@ -61,9 +73,9 @@ export default function UsersPage() {
       await base44.users.inviteUser(data.email, base44Role);
       
       // Create org membership with custom role
-      if (user?.org_id) {
+      if (orgId) {
         await base44.entities.OrgMembership.create({
-          org_id: user.org_id,
+          org_id: orgId,
           user_id: data.email,
           role_id: data.role,
           status: 'invited'
