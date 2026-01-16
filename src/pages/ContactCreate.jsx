@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
 import { createPageUrl } from '@/utils';
+import { toast } from 'sonner';
 
 export default function ContactCreate() {
   const navigate = useNavigate();
@@ -51,10 +52,11 @@ export default function ContactCreate() {
       });
     },
     onSuccess: () => {
+      toast.success('Contact created successfully!');
       navigate(createPageUrl('Contacts'));
     },
     onError: (error) => {
-      alert('Error creating contact: ' + error.message);
+      toast.error('Error creating contact: ' + error.message);
     }
   });
 
