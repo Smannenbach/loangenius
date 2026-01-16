@@ -84,32 +84,27 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Dashboard', href: '/Dashboard', icon: LayoutDashboard },
     { name: 'Pipeline', href: '/Pipeline', icon: TrendingUp },
     { name: 'Leads', href: '/Leads', icon: Users },
-    { name: 'Deals', href: '/Deals', icon: FolderOpen },
-    { name: 'Loans', href: '/Loans', icon: Briefcase },
     { name: 'Contacts', href: '/Contacts', icon: Users },
-    { name: 'Business Purpose App', href: '/BusinessPurposeApplication', icon: ClipboardList },
-    { name: 'Borrower Portal', href: '/BorrowerPortalDashboard', icon: User },
+    { name: 'Borrowers', href: '/Borrowers', icon: User },
+    { name: 'Documents', href: '/Documents', icon: FileText },
   ];
 
   const toolsNav = [
       { name: 'Quote Generator', href: '/QuoteGenerator', icon: FileOutput },
       { name: 'AI Hub', href: '/AIAssistant', icon: Bot },
-      { name: 'Conversations', href: '/Conversations', icon: MessageSquare },
-      { name: 'Email Sequences', href: '/EmailSequences', icon: Mail },
+      { name: 'Communications', href: '/Communications', icon: Mail },
+      { name: 'Email Sequences', href: '/EmailSequences', icon: Zap },
+      { name: 'Reports', href: '/Reports', icon: FileText },
     ];
 
   const adminNav = [
-    { name: 'Users', href: '/Users', icon: Users },
-    { name: 'Lenders', href: '/Lenders', icon: Building },
-    { name: 'Lender Integrations', href: '/LenderIntegrations', icon: Zap },
-    { name: 'Reports', href: '/Reports', icon: FileText },
-    { name: 'Documents', href: '/Documents', icon: FileText },
-    { name: 'Borrowers', href: '/Borrowers', icon: Users },
+    { name: 'Users & Permissions', href: '/Users', icon: Users },
+    { name: 'Lender Partners', href: '/LenderIntegrations', icon: Building },
+    { name: 'Testing Hub', href: '/TestingHub', icon: Sparkles },
     { name: 'Underwriting', href: '/Underwriting', icon: Scale },
-    { name: 'MISMO Profiles', href: '/MISMOExportProfiles', icon: FileOutput },
     { name: 'Compliance', href: '/ComplianceDashboard', icon: CheckCircle },
-    { name: 'Testing Hub', href: '/TestingHub', icon: CheckCircle },
-    { name: 'Integrations', href: '/AdminIntegrations', icon: Settings },
+    { name: 'MISMO Profiles', href: '/MISMOExportProfiles', icon: FileOutput },
+    { name: 'Integrations', href: '/AdminIntegrations', icon: Zap },
     { name: 'Settings', href: '/Settings', icon: Settings },
   ];
 
