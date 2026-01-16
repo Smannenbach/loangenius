@@ -17,22 +17,34 @@ export default function Dashboard() {
     queryFn: () => base44.auth.me(),
   });
 
+  // Get user's org membership
+  const { data: memberships = [] } = useQuery({
+    queryKey: ['userMembership', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return await base44.entities.OrgMembership.filter({ user_id: user.email });
+    },
+    enabled: !!user?.email,
+  });
+
+  const orgId = memberships[0]?.org_id || user?.org_id;
+
   const { data: kpiData, isLoading: kpisLoading } = useQuery({
-    queryKey: ['dashboardKPIs', user?.org_id],
-    queryFn: () => base44.functions.invoke('getDashboardKPIs', { org_id: user?.org_id, period: 'month' }),
-    enabled: !!user?.org_id,
+    queryKey: ['dashboardKPIs', orgId],
+    queryFn: () => base44.functions.invoke('getDashboardKPIs', { org_id: orgId, period: 'month' }),
+    enabled: !!orgId,
   });
 
   const { data: activityData } = useQuery({
-    queryKey: ['dashboardActivity', user?.org_id],
-    queryFn: () => base44.functions.invoke('getDashboardActivity', { org_id: user?.org_id, limit: 10 }),
-    enabled: !!user?.org_id,
+    queryKey: ['dashboardActivity', orgId],
+    queryFn: () => base44.functions.invoke('getDashboardActivity', { org_id: orgId, limit: 10 }),
+    enabled: !!orgId,
   });
 
   const { data: attentionData } = useQuery({
-    queryKey: ['dealsNeedingAttention', user?.org_id],
-    queryFn: () => base44.functions.invoke('getDealsNeedingAttention', { org_id: user?.org_id, limit: 5 }),
-    enabled: !!user?.org_id,
+    queryKey: ['dealsNeedingAttention', orgId],
+    queryFn: () => base44.functions.invoke('getDealsNeedingAttention', { org_id: orgId, limit: 5 }),
+    enabled: !!orgId,
   });
 
   const kpis = kpiData?.data?.kpis || {};
