@@ -4,7 +4,6 @@
  */
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { logActivity } from './auditLogHelper.js';
 
 Deno.serve(async (req) => {
   try {
@@ -44,27 +43,23 @@ Deno.serve(async (req) => {
       });
 
       // Log activity
-      await logActivity(base44, {
+      await base44.asServiceRole.entities.ActivityLog.create({
+        org_id: doc.org_id,
         deal_id: doc.deal_id,
-        activity_type: 'System_Event',
-        title: 'Document Expired',
+        activity_type: 'DOCUMENT_REJECTED',
         description: `${doc.document_type} document has expired`,
-        icon: '⚠️',
-        color: 'red',
-        is_internal: true
+        source: 'system'
       });
     }
 
     // Log reminders for expiring documents
     for (const doc of expiringDocs) {
-      await logActivity(base44, {
+      await base44.asServiceRole.entities.ActivityLog.create({
+        org_id: doc.org_id,
         deal_id: doc.deal_id,
-        activity_type: 'System_Event',
-        title: 'Document Expiring Soon',
+        activity_type: 'REMINDER_SENT',
         description: `${doc.document_type} expires in ${Math.ceil(doc.daysUntilExpiration)} days`,
-        icon: '⏰',
-        color: 'yellow',
-        is_internal: true
+        source: 'system'
       });
     }
 
