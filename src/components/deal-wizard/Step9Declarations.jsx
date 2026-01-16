@@ -3,21 +3,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Check } from 'lucide-react';
 
 export default function Step9Declarations({ data, onChange, onNext, onPrev, loading }) {
   const declarations = [
-    { id: 'outstanding_judgments', label: 'Are there any outstanding judgments against you?' },
-    { id: 'declared_bankruptcy', label: 'Have you been declared bankrupt within the past 7 years?' },
-    { id: 'property_foreclosed', label: 'Have you had property foreclosed upon or given title in lieu thereof in the last 7 years?' },
+    { id: 'family_relationship_seller', label: 'If this is a purchase transaction, do you have any family relationship with the seller?' },
+    { id: 'borrowing_closing_money', label: 'Are you borrowing any money for this real estate transaction (e.g., money for your closing costs or down payment) or obtaining any money from another party?' },
+    { id: 'priority_lien', label: 'Will this property be subject to a lien that could take priority over the first mortgage lien, such as a clean energy lien?' },
+    { id: 'outstanding_judgments', label: 'Are there any outstanding judgments against Borrower or Guarantor?' },
     { id: 'party_to_lawsuit', label: 'Are you a party to a lawsuit?' },
-    { id: 'loan_foreclosure', label: 'Have you directly or indirectly been obligated on any loan which resulted in foreclosure, transfer of title in lieu of foreclosure, or judgment?' },
-    { id: 'delinquent_federal_debt', label: 'Are you presently delinquent or in default on any Federal debt or any other loan, mortgage, financial obligation, bond, or loan guarantee?' },
-    { id: 'alimony_obligations', label: 'Are you obligated to pay alimony, child support, or separate maintenance?' },
-    { id: 'down_payment_borrowed', label: 'Is any part of the down payment borrowed?' },
-    { id: 'co_maker_endorser', label: 'Are you a co-maker or endorser on a note?' },
-    { id: 'us_citizen', label: 'Are you a U.S. citizen?' },
-    { id: 'permanent_resident', label: 'Are you a permanent resident alien?' },
-    { id: 'criminal_offense', label: 'Have you ever been charged with a criminal offense?' },
+    { id: 'conveyed_title_foreclosure', label: 'Have you conveyed title to any property in lieu of foreclosure in the past 4 years?' },
+    { id: 'short_sale', label: 'Within the past 4 years have you completed a pre-foreclosure sale or short sale?' },
+    { id: 'property_foreclosed', label: 'Have you had property charged off or foreclosed upon in the last 4 years?' },
+    { id: 'declared_bankruptcy', label: 'Have you declared bankruptcy within the last 4 years?' },
+    { id: 'ownership_interest', label: 'Have you had any ownership interest in real property in the last 3 years?' },
+    { id: 'occupy_property', label: 'Does any applicant, co-applicant, family member or any non-business affiliate plan to occupy the subject property for more than 14 days per year?' },
   ];
 
   const handleDeclarationChange = (field, value) => {
@@ -38,7 +38,7 @@ export default function Step9Declarations({ data, onChange, onNext, onPrev, load
       {/* Header */}
       <div className="flex items-start gap-4">
         <div className="h-12 w-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-xl font-bold flex-shrink-0">
-          9
+          8
         </div>
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Declarations</h2>
