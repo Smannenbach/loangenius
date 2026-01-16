@@ -30,6 +30,38 @@ export default function Dashboard() {
 
   const orgId = memberships[0]?.org_id || user?.org_id;
 
+  // Fetch deals directly for reliable KPIs
+  const { data: deals = [] } = useQuery({
+    queryKey: ['dashboardDeals', orgId],
+    queryFn: async () => {
+      try {
+        if (orgId) {
+          return await base44.entities.Deal.filter({ org_id: orgId });
+        }
+        return await base44.entities.Deal.list();
+      } catch {
+        return [];
+      }
+    },
+    enabled: true,
+  });
+
+  // Fetch leads directly
+  const { data: leads = [] } = useQuery({
+    queryKey: ['dashboardLeads', orgId],
+    queryFn: async () => {
+      try {
+        if (orgId) {
+          return await base44.entities.Lead.filter({ org_id: orgId });
+        }
+        return await base44.entities.Lead.list();
+      } catch {
+        return [];
+      }
+    },
+    enabled: true,
+  });
+
   const { data: kpiData, isLoading: kpisLoading, error: kpiError } = useQuery({
     queryKey: ['dashboardKPIs', orgId],
     queryFn: async () => {
@@ -70,8 +102,20 @@ export default function Dashboard() {
   const kpis = kpiData?.data?.kpis || {};
   const activities = kpiData?.data?.recentActivities || activityData?.data?.activities || [];
   const attentionDeals = attentionData?.data?.deals || [];
-  const pipelineStages = kpis?.stageDistribution ? 
-    Object.entries(kpis.stageDistribution).map(([stage, count]) => ({ stage, count })) : [];
+  
+  // Calculate KPIs from actual data
+  const activeDeals = deals.filter(d => !d.is_deleted && d.status !== 'closed');
+  const fundedDeals = deals.filter(d => d.stage === 'funded');
+  const totalPipelineValue = activeDeals.reduce((sum, d) => sum + (d.loan_amount || 0), 0);
+  
+  // Build pipeline stages from actual deals
+  const stageGroups = activeDeals.reduce((acc, d) => {
+    const stage = d.stage || 'inquiry';
+    if (!acc[stage]) acc[stage] = 0;
+    acc[stage]++;
+    return acc;
+  }, {});
+  const pipelineStages = Object.entries(stageGroups).map(([stage, count]) => ({ stage, count }));
 
   // Show loading state for KPIs
   if (kpisLoading) {
@@ -106,30 +150,26 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <KPICard
           title="Active Deals"
-          value={kpis.deals?.active || kpis.active_deals?.current || 0}
-          changePercent={kpis.active_deals?.change_pct}
-          trend={kpis.active_deals?.trend}
+          value={activeDeals.length}
+          trend={activeDeals.length > 0 ? 'up' : undefined}
           isLoading={kpisLoading}
         />
         <KPICard
           title="Pipeline Value"
-          value={kpis.deals?.totalAmount || kpis.pipeline_value?.current || 0}
-          changePercent={kpis.pipeline_value?.change_pct}
-          trend={kpis.pipeline_value?.trend}
+          value={totalPipelineValue}
+          trend={totalPipelineValue > 0 ? 'up' : undefined}
           isCurrency={true}
           isLoading={kpisLoading}
         />
         <KPICard
           title="Total Leads"
-          value={kpis.leads?.total || kpis.closing_this_month?.count || 0}
-          target={kpis.closing_this_month?.target}
+          value={leads.filter(l => !l.is_deleted).length}
           isLoading={kpisLoading}
         />
         <KPICard
           title="Funded Deals"
-          value={kpis.deals?.funded || kpis.funded_this_month?.volume || 0}
-          changePercent={kpis.funded_this_month?.change_pct}
-          trend={kpis.funded_this_month?.trend}
+          value={fundedDeals.length}
+          trend={fundedDeals.length > 0 ? 'up' : undefined}
           isLoading={kpisLoading}
         />
       </div>
