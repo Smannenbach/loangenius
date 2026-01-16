@@ -464,7 +464,7 @@ export default function BorrowerPortalDashboard() {
             />
           </TabsContent>
 
-          {/* Resources Tab - Keep original */}
+          {/* Resources Tab */}
           <TabsContent value="resources">
             <PortalResources />
           </TabsContent>
