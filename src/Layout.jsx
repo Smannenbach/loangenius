@@ -102,10 +102,10 @@ export default function Layout({ children, currentPageName }) {
   const adminNav = [
     { name: 'Users', href: '/Users', icon: Users },
     { name: 'Lenders', href: '/Lenders', icon: Building },
+    { name: 'Reports', href: '/Reports', icon: FileText },
+    { name: 'Analytics', href: '/Analytics', icon: TrendingUp },
     { name: 'Agents', href: '/AdminAgents', icon: Sparkles },
     { name: 'Audit & Compliance', href: '/AuditComplianceViewer', icon: FileText },
-    { name: 'Knowledge Base', href: '/AgentKnowledgeBase', icon: FileText },
-    { name: 'Testing', href: '/TestingValidationHub', icon: CheckCircle },
     { name: 'Integrations', href: '/AdminIntegrations', icon: Settings },
     { name: 'Settings', href: '/Settings', icon: Settings },
   ];

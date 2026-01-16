@@ -9,7 +9,7 @@ export default function MobileBottomNav() {
     { icon: TrendingUp, label: 'Pipeline', path: 'Pipeline' },
     { icon: Users, label: 'Leads', path: 'Leads' },
     { icon: Briefcase, label: 'Loans', path: 'Loans' },
-    { icon: Settings, label: 'Settings', path: 'Settings' }
+    { icon: Settings, label: 'More', path: 'Settings' }
   ];
 
   return (
