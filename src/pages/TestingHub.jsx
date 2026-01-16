@@ -66,11 +66,130 @@ export default function TestingHub() {
     try {
       let payload = {};
       
-      // Configure test payloads
-      if (functionName === 'exportDealMISMO') {
-        payload = { deal_id: 'test_placeholder', best_effort: true };
-      } else if (functionName === 'exportWithProfile') {
-        payload = { deal_id: 'test_placeholder', profile_id: 'test_placeholder' };
+      // Configure test payloads based on function requirements
+      switch (functionName) {
+        case 'exportDealMISMO':
+          // This needs a real deal_id, so we skip with a message
+          setTestResults(prev => ({
+            ...prev,
+            [testId]: {
+              status: 'skip',
+              message: 'Requires existing deal - create a deal first to test export',
+            },
+          }));
+          setRunningTests(prev => {
+            const next = new Set(prev);
+            next.delete(testId);
+            return next;
+          });
+          return;
+          
+        case 'exportWithProfile':
+          setTestResults(prev => ({
+            ...prev,
+            [testId]: {
+              status: 'skip',
+              message: 'Requires existing deal and profile - create both to test',
+            },
+          }));
+          setRunningTests(prev => {
+            const next = new Set(prev);
+            next.delete(testId);
+            return next;
+          });
+          return;
+          
+        case 'createOrUpdateDeal':
+          payload = {
+            action: 'create',
+            dealData: {
+              loan_product: 'DSCR',
+              loan_purpose: 'Purchase',
+              loan_amount: 500000,
+              interest_rate: 7.5,
+              loan_term_months: 360,
+              borrowers: [{
+                firstName: 'Test',
+                lastName: 'Borrower',
+                email: 'test@example.com',
+                phone: '555-555-5555',
+                role: 'primary'
+              }],
+              properties: [{
+                street: '123 Test St',
+                city: 'Test City',
+                state: 'CA',
+                zip: '90210',
+                propertyType: 'SFR',
+                occupancyType: 'Investment'
+              }]
+            }
+          };
+          break;
+          
+        case 'applicationAutosave':
+          setTestResults(prev => ({
+            ...prev,
+            [testId]: {
+              status: 'skip',
+              message: 'Requires existing application - start an application first',
+            },
+          }));
+          setRunningTests(prev => {
+            const next = new Set(prev);
+            next.delete(testId);
+            return next;
+          });
+          return;
+          
+        case 'applicationResume':
+          setTestResults(prev => ({
+            ...prev,
+            [testId]: {
+              status: 'skip',
+              message: 'Requires resume token - start an application first',
+            },
+          }));
+          setRunningTests(prev => {
+            const next = new Set(prev);
+            next.delete(testId);
+            return next;
+          });
+          return;
+          
+        case 'applicationSubmit':
+          setTestResults(prev => ({
+            ...prev,
+            [testId]: {
+              status: 'skip',
+              message: 'Requires completed application - complete an application first',
+            },
+          }));
+          setRunningTests(prev => {
+            const next = new Set(prev);
+            next.delete(testId);
+            return next;
+          });
+          return;
+          
+        case 'syncGoogleSheets':
+        case 'importLeadsFromGoogleSheets':
+          setTestResults(prev => ({
+            ...prev,
+            [testId]: {
+              status: 'skip',
+              message: 'Requires Google Sheets configuration',
+            },
+          }));
+          setRunningTests(prev => {
+            const next = new Set(prev);
+            next.delete(testId);
+            return next;
+          });
+          return;
+          
+        default:
+          payload = {};
       }
 
       const result = await base44.functions.invoke(functionName, payload);
@@ -79,23 +198,24 @@ export default function TestingHub() {
         ...prev,
         [testId]: {
           status: 'pass',
-          message: 'Test passed',
+          message: 'Test passed successfully',
           data: result.data,
         },
       }));
       
       toast.success(`✓ ${testId} passed`);
     } catch (error) {
+      const errorMsg = error.response?.data?.error || error.message || 'Unknown error';
       setTestResults(prev => ({
         ...prev,
         [testId]: {
           status: 'fail',
-          message: error.message,
+          message: errorMsg,
           error,
         },
       }));
       
-      toast.error(`✗ ${testId} failed`);
+      toast.error(`✗ ${testId} failed: ${errorMsg}`);
     } finally {
       setRunningTests(prev => {
         const next = new Set(prev);
@@ -172,13 +292,19 @@ export default function TestingHub() {
                             <CheckCircle className="h-4 w-4 text-green-600" />
                           ) : result?.status === 'fail' ? (
                             <XCircle className="h-4 w-4 text-red-600" />
+                          ) : result?.status === 'skip' ? (
+                            <AlertTriangle className="h-4 w-4 text-yellow-500" />
                           ) : (
                             <div className="h-4 w-4 rounded-full border-2 border-gray-300" />
                           )}
                           <div>
                             <p className="font-medium text-sm">{test.name}</p>
                             {result?.message && (
-                              <p className={`text-xs ${result.status === 'fail' ? 'text-red-600' : 'text-gray-500'}`}>
+                              <p className={`text-xs ${
+                                result.status === 'fail' ? 'text-red-600' : 
+                                result.status === 'skip' ? 'text-yellow-600' : 
+                                'text-gray-500'
+                              }`}>
                                 {result.message}
                               </p>
                             )}

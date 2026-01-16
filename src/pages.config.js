@@ -16,6 +16,7 @@ import AgentPerformanceDashboard from './pages/AgentPerformanceDashboard';
 import AlertsNotifications from './pages/AlertsNotifications';
 import Assumptions from './pages/Assumptions';
 import AuditComplianceViewer from './pages/AuditComplianceViewer';
+import BorrowerOnboarding from './pages/BorrowerOnboarding';
 import BorrowerPortal from './pages/BorrowerPortal';
 import BorrowerPortalHome from './pages/BorrowerPortalHome';
 import BorrowerPortalLogin from './pages/BorrowerPortalLogin';
@@ -46,6 +47,7 @@ import Lenders from './pages/Lenders';
 import LoanApplication from './pages/LoanApplication';
 import LoanApplicationWizard from './pages/LoanApplicationWizard';
 import Loans from './pages/Loans';
+import MISMOExportProfiles from './pages/MISMOExportProfiles';
 import NewDeal from './pages/NewDeal';
 import Pipeline from './pages/Pipeline';
 import PortalSettings from './pages/PortalSettings';
@@ -57,14 +59,12 @@ import Roadmap from './pages/Roadmap';
 import Settings from './pages/Settings';
 import SubmissionPrep from './pages/SubmissionPrep';
 import SuperAdmin from './pages/SuperAdmin';
+import TestingHub from './pages/TestingHub';
 import TestingValidationHub from './pages/TestingValidationHub';
 import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
-import MISMOExportProfiles from './pages/MISMOExportProfiles';
-import TestingHub from './pages/TestingHub';
-import BorrowerOnboarding from './pages/BorrowerOnboarding';
 import __Layout from './Layout.jsx';
 
 
@@ -87,6 +87,7 @@ export const PAGES = {
     "AlertsNotifications": AlertsNotifications,
     "Assumptions": Assumptions,
     "AuditComplianceViewer": AuditComplianceViewer,
+    "BorrowerOnboarding": BorrowerOnboarding,
     "BorrowerPortal": BorrowerPortal,
     "BorrowerPortalHome": BorrowerPortalHome,
     "BorrowerPortalLogin": BorrowerPortalLogin,
@@ -117,6 +118,7 @@ export const PAGES = {
     "LoanApplication": LoanApplication,
     "LoanApplicationWizard": LoanApplicationWizard,
     "Loans": Loans,
+    "MISMOExportProfiles": MISMOExportProfiles,
     "NewDeal": NewDeal,
     "Pipeline": Pipeline,
     "PortalSettings": PortalSettings,
@@ -128,14 +130,12 @@ export const PAGES = {
     "Settings": Settings,
     "SubmissionPrep": SubmissionPrep,
     "SuperAdmin": SuperAdmin,
+    "TestingHub": TestingHub,
     "TestingValidationHub": TestingValidationHub,
     "Underwriting": Underwriting,
     "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
-    "MISMOExportProfiles": MISMOExportProfiles,
-    "TestingHub": TestingHub,
-    "BorrowerOnboarding": BorrowerOnboarding,
 }
 
 export const pagesConfig = {
