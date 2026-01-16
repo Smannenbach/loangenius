@@ -174,17 +174,8 @@ export default function PortalDocumentCenter({ dealId, borrowerEmail }) {
     }
   };
 
-  if (!dealId) {
-    return (
-      <Card className="border-dashed">
-        <CardContent className="py-12 text-center">
-          <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-          <p className="text-gray-500">No active loan application</p>
-          <p className="text-sm text-gray-400 mt-1">Start an application to upload documents</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Show default requirements even without a deal
+  const showDefaults = !dealId;
 
   return (
     <div className="space-y-6">
