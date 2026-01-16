@@ -36,15 +36,21 @@ export default function Contacts() {
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: ['contacts', orgId],
     queryFn: async () => {
-      if (!orgId) return [];
       try {
-        return await base44.entities.Contact.filter({ org_id: orgId });
+        if (orgId) {
+          return await base44.entities.Contact.filter({ org_id: orgId });
+        }
+        return await base44.entities.Contact.list();
       } catch (e) {
         // Fallback: get all contacts if org_id filter fails
-        return await base44.entities.Contact.list();
+        try {
+          return await base44.entities.Contact.list();
+        } catch {
+          return [];
+        }
       }
     },
-    enabled: !!orgId,
+    enabled: true,
   });
 
   // Filter contacts
