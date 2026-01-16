@@ -1254,12 +1254,70 @@ function ConsentStep({ data, onChange }) {
 
 // Step 9: Review
 function ReviewStep({ data, ltv, dscr, monthlyPI, totalPITIA, onExportMISMO }) {
+  const [pdfExporting, setPdfExporting] = useState(false);
+  const [mismoExporting, setMismoExporting] = useState(false);
+  
+  const urlParams = new URLSearchParams(window.location.search);
+  const dealId = urlParams.get('dealId') || urlParams.get('id');
+  
+  const handleExportPDF = async () => {
+    try {
+      setPdfExporting(true);
+      toast.info('PDF export feature coming soon');
+    } catch (error) {
+      toast.error('Failed to export PDF: ' + error.message);
+    } finally {
+      setPdfExporting(false);
+    }
+  };
+  
+  const handleEditApplication = () => {
+    toast.info('Edit functionality: Navigate back through the steps to make changes');
+  };
+  
+  const handleExportMISMO = async () => {
+    if (!dealId) {
+      toast.error('Save application first before exporting MISMO');
+      return;
+    }
+    try {
+      setMismoExporting(true);
+      await onExportMISMO(dealId);
+    } catch (error) {
+      toast.error('MISMO export failed');
+    } finally {
+      setMismoExporting(false);
+    }
+  };
+  
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Review & Submit</h2>
           <p className="text-gray-600 mt-1">Review your application before submitting</p>
+        </div>
+        <div className="flex gap-2">
+          {dealId && (
+            <Button
+              variant="outline"
+              onClick={handleExportMISMO}
+              disabled={mismoExporting}
+              className="gap-2"
+            >
+              {mismoExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Export MISMO
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            onClick={handleExportPDF}
+            disabled={pdfExporting}
+            className="gap-2"
+          >
+            {pdfExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Export PDF
+          </Button>
         </div>
       </div>
 

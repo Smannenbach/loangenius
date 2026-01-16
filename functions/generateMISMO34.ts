@@ -292,10 +292,12 @@ function buildMISMOXml(deal, borrowers, properties, fees, originator, organizati
       <DEALS>
         <DEAL>
           <ASSETS>
-            <ASSET SequenceNumber="1">
-              <ASSET_DETAIL>
-                <AssetType>Collateral</AssetType>
-              </ASSET_DETAIL>
+            <ASSET SequenceNumber="1" xlink:label="Asset_1">
+              <OWNED_PROPERTY>
+                <OWNED_PROPERTY_DETAIL>
+                  <OwnedPropertyDispositionStatusType>RetainForRental</OwnedPropertyDispositionStatusType>
+                </OWNED_PROPERTY_DETAIL>
+              </OWNED_PROPERTY>
             </ASSET>
           </ASSETS>
           <LOANS>
