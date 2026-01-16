@@ -520,7 +520,7 @@ export default function BusinessPurposeApplication() {
     onSuccess: (deal) => {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
       toast.success('Application submitted successfully!');
-      window.location.href = createPageUrl('DealDetail') + `?id=${deal.id}`;
+      window.location.href = createPageUrl(`DealDetail?id=${deal.id}`);
     },
     onError: (error) => {
       toast.error('Failed to submit application: ' + error.message);

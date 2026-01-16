@@ -248,6 +248,10 @@ export default function LoanApplicationWizard() {
 
   // Export MISMO function
   const exportMISMO = async (dealId) => {
+    if (!dealId) {
+      toast.error('Please save the application first');
+      return;
+    }
     try {
       const response = await base44.functions.invoke('generateMISMO34', { deal_id: dealId });
       if (response.data?.xml_content) {
@@ -264,6 +268,28 @@ export default function LoanApplicationWizard() {
       }
     } catch (error) {
       toast.error('Failed to export MISMO: ' + error.message);
+    }
+  };
+  
+  const exportPDF = async (dealId) => {
+    if (!dealId) {
+      toast.error('Please save the application first');
+      return;
+    }
+    try {
+      const response = await base44.functions.invoke('exportApplicationPDF', { deal_id: dealId });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `LoanApp_${dealId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('PDF exported successfully');
+    } catch (error) {
+      toast.error('Failed to export PDF: ' + error.message);
     }
   };
 
@@ -338,7 +364,7 @@ export default function LoanApplicationWizard() {
         {step === 6 && <AssetsStep data={formData} onChange={handleChange} />}
         {step === 7 && <DeclarationsStep data={formData} onChange={handleChange} />}
         {step === 8 && <ConsentStep data={formData} onChange={handleChange} />}
-        {step === 9 && <ReviewStep data={formData} ltv={ltv} dscr={dscr} monthlyPI={monthlyPI} totalPITIA={totalPITIA} onExportMISMO={exportMISMO} />}
+        {step === 9 && <ReviewStep data={formData} ltv={ltv} dscr={dscr} monthlyPI={monthlyPI} totalPITIA={totalPITIA} onExportMISMO={exportMISMO} onExportPDF={exportPDF} />}
 
         {/* Navigation */}
         <div className="flex justify-between pt-8 border-t mt-8">
@@ -1253,7 +1279,7 @@ function ConsentStep({ data, onChange }) {
 }
 
 // Step 9: Review
-function ReviewStep({ data, ltv, dscr, monthlyPI, totalPITIA, onExportMISMO }) {
+function ReviewStep({ data, ltv, dscr, monthlyPI, totalPITIA, onExportMISMO, onExportPDF }) {
   const [pdfExporting, setPdfExporting] = useState(false);
   const [mismoExporting, setMismoExporting] = useState(false);
   
@@ -1261,18 +1287,18 @@ function ReviewStep({ data, ltv, dscr, monthlyPI, totalPITIA, onExportMISMO }) {
   const dealId = urlParams.get('dealId') || urlParams.get('id');
   
   const handleExportPDF = async () => {
+    if (!dealId) {
+      toast.error('Save application first before exporting PDF');
+      return;
+    }
     try {
       setPdfExporting(true);
-      toast.info('PDF export feature coming soon');
+      await onExportPDF(dealId);
     } catch (error) {
       toast.error('Failed to export PDF: ' + error.message);
     } finally {
       setPdfExporting(false);
     }
-  };
-  
-  const handleEditApplication = () => {
-    toast.info('Edit functionality: Navigate back through the steps to make changes');
   };
   
   const handleExportMISMO = async () => {
