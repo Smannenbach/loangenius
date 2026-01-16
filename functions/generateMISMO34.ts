@@ -451,8 +451,12 @@ function buildMISMOXml(deal, borrowers, properties, fees, originator, organizati
 
   borrowers.forEach((b, idx) => {
     const isPrimary = idx === 0 || b.role === 'primary' || b.role === 'Primary';
+    const borrowerType = isPrimary ? 'Borrower' : 'CoBorrower';
+    const decl = b.declarations || {};
+    const demo = b.demographics || {};
+    
     xml += `
-            <PARTY SequenceNumber="${idx + 1}">
+            <PARTY SequenceNumber="${idx + 1}" xlink:label="Party_${idx + 1}">
               <INDIVIDUAL>
                 <CONTACT_POINTS>
                   <CONTACT_POINT>
@@ -472,39 +476,92 @@ function buildMISMOXml(deal, borrowers, properties, fees, originator, organizati
                       <ContactPointRoleType>Mobile</ContactPointRoleType>
                     </CONTACT_POINT_DETAIL>
                   </CONTACT_POINT>` : ''}
+                  ${b.work_phone ? `
+                  <CONTACT_POINT>
+                    <CONTACT_POINT_TELEPHONE>
+                      <ContactPointTelephoneValue>${escapeXml(b.work_phone)}</ContactPointTelephoneValue>
+                    </CONTACT_POINT_TELEPHONE>
+                    <CONTACT_POINT_DETAIL>
+                      <ContactPointRoleType>Work</ContactPointRoleType>
+                    </CONTACT_POINT_DETAIL>
+                  </CONTACT_POINT>` : ''}
+                  ${b.home_phone ? `
+                  <CONTACT_POINT>
+                    <CONTACT_POINT_TELEPHONE>
+                      <ContactPointTelephoneValue>${escapeXml(b.home_phone)}</ContactPointTelephoneValue>
+                    </CONTACT_POINT_TELEPHONE>
+                    <CONTACT_POINT_DETAIL>
+                      <ContactPointRoleType>Home</ContactPointRoleType>
+                    </CONTACT_POINT_DETAIL>
+                  </CONTACT_POINT>` : ''}
                 </CONTACT_POINTS>
                 <NAME>
                   <FirstName>${escapeXml(b.first_name)}</FirstName>
                   ${b.middle_name ? `<MiddleName>${escapeXml(b.middle_name)}</MiddleName>` : ''}
                   <LastName>${escapeXml(b.last_name)}</LastName>
                   ${b.suffix ? `<SuffixName>${escapeXml(b.suffix)}</SuffixName>` : ''}
-                  <FullName>${escapeXml(b.first_name)} ${escapeXml(b.middle_name || '')} ${escapeXml(b.last_name)}</FullName>
+                  <FullName>${escapeXml(b.first_name)} ${b.middle_name ? escapeXml(b.middle_name) + ' ' : ''}${escapeXml(b.last_name)}</FullName>
                 </NAME>
               </INDIVIDUAL>
               <ROLES>
-                <ROLE>
+                <ROLE SequenceNumber="1" xlink:label="Borrower_${idx + 1}">
                   <BORROWER>
                     <BORROWER_DETAIL>
-                      <BorrowerBirthDate>${b.dob_encrypted || b.dob || ''}</BorrowerBirthDate>
-                      ${b.marital_status ? `<MaritalStatusType>${b.marital_status}</MaritalStatusType>` : ''}
+                      ${b.dob_encrypted || b.dob ? `<BorrowerBirthDate>${escapeXml(b.dob_encrypted || b.dob)}</BorrowerBirthDate>` : ''}
+                      ${b.marital_status ? `<MaritalStatusType>${mapMaritalStatus(b.marital_status)}</MaritalStatusType>` : ''}
                       ${b.dependents_count !== undefined ? `<DependentCount>${b.dependents_count}</DependentCount>` : ''}
+                      ${b.dependents_ages ? `<DependentAgesDescription>${escapeXml(b.dependents_ages)}</DependentAgesDescription>` : ''}
+                      <SelfDeclaredMilitaryServiceIndicator>false</SelfDeclaredMilitaryServiceIndicator>
                     </BORROWER_DETAIL>
                     ${b.credit_score_est ? `
                     <CREDIT_SCORES>
                       <CREDIT_SCORE>
-                        <CreditScoreValue>${b.credit_score_est}</CreditScoreValue>
-                        <CreditScoreModelType>EquifaxBeacon5.0</CreditScoreModelType>
+                        <CREDIT_SCORE_DETAIL>
+                          <CreditScoreValue>${b.credit_score_est}</CreditScoreValue>
+                          <CreditScoreModelType>EquifaxBeacon5.0</CreditScoreModelType>
+                          <CreditScoreCategoryType>${getCreditScoreCategory(b.credit_score_est)}</CreditScoreCategoryType>
+                        </CREDIT_SCORE_DETAIL>
                       </CREDIT_SCORE>
                     </CREDIT_SCORES>` : ''}
-                    ${b.citizenship_status ? `
                     <DECLARATION>
                       <DECLARATION_DETAIL>
-                        <CitizenshipResidencyType>${b.citizenship_status}</CitizenshipResidencyType>
+                        ${b.citizenship_status ? `<CitizenshipResidencyType>${mapCitizenshipStatus(b.citizenship_status)}</CitizenshipResidencyType>` : '<CitizenshipResidencyType>USCitizen</CitizenshipResidencyType>'}
+                        <HomeownerPastThreeYearsType>${b.housing_status === 'Own' ? 'Yes' : 'No'}</HomeownerPastThreeYearsType>
+                        <IntentToOccupyType>${deal.occupancy_type === 'Primary' ? 'Yes' : 'No'}</IntentToOccupyType>
+                        <OutstandingJudgmentsIndicator>${decl.outstanding_judgments ? 'true' : 'false'}</OutstandingJudgmentsIndicator>
+                        <PresentlyDelinquentIndicator>false</PresentlyDelinquentIndicator>
+                        <PartyToLawsuitIndicator>${decl.party_to_lawsuit ? 'true' : 'false'}</PartyToLawsuitIndicator>
+                        <PriorPropertyDeedInLieuConveyedIndicator>${decl.conveyed_title_in_lieu_4yr ? 'true' : 'false'}</PriorPropertyDeedInLieuConveyedIndicator>
+                        <PriorPropertyShortSaleCompletedIndicator>${decl.short_sale_4yr ? 'true' : 'false'}</PriorPropertyShortSaleCompletedIndicator>
+                        <PriorPropertyForeclosureCompletedIndicator>${decl.foreclosed_4yr ? 'true' : 'false'}</PriorPropertyForeclosureCompletedIndicator>
+                        <BankruptcyIndicator>${decl.bankruptcy_4yr ? 'true' : 'false'}</BankruptcyIndicator>
+                        ${decl.bankruptcy_4yr && decl.bankruptcy_type ? `<BankruptcyChapterType>${decl.bankruptcy_type}</BankruptcyChapterType>` : ''}
+                        <UndisclosedBorrowedFundsIndicator>${decl.borrowing_undisclosed_money ? 'true' : 'false'}</UndisclosedBorrowedFundsIndicator>
+                        <UndisclosedCreditApplicationIndicator>false</UndisclosedCreditApplicationIndicator>
+                        <PropertyProposedCleanEnergyLienIndicator>false</PropertyProposedCleanEnergyLienIndicator>
+                        <UndisclosedMortgageApplicationIndicator>false</UndisclosedMortgageApplicationIndicator>
+                        <UndisclosedComakerOfNoteIndicator>false</UndisclosedComakerOfNoteIndicator>
                       </DECLARATION_DETAIL>
-                    </DECLARATION>` : ''}
+                    </DECLARATION>
+                    ${(demo.ethnicity || demo.race || demo.sex) ? `
+                    <GOVERNMENT_MONITORING>
+                      <GOVERNMENT_MONITORING_DETAIL>
+                        <HMDAEthnicityCollectedBasedOnVisualObservationOrSurnameIndicator>${demo.ethnicity_collected_visual ? 'true' : 'false'}</HMDAEthnicityCollectedBasedOnVisualObservationOrSurnameIndicator>
+                        <HMDARaceCollectedBasedOnVisualObservationOrSurnameIndicator>${demo.race_collected_visual ? 'true' : 'false'}</HMDARaceCollectedBasedOnVisualObservationOrSurnameIndicator>
+                        <HMDASexCollectedBasedOnVisualObservationOrNameIndicator>${demo.sex_collected_visual ? 'true' : 'false'}</HMDASexCollectedBasedOnVisualObservationOrNameIndicator>
+                        ${demo.demographics_collection_method ? `<ApplicationTakenMethodType>${mapCollectionMethod(demo.demographics_collection_method)}</ApplicationTakenMethodType>` : ''}
+                      </GOVERNMENT_MONITORING_DETAIL>
+                      <HMDA_ETHNICITIES>
+                        ${(demo.ethnicity || []).map(e => `<HMDA_ETHNICITY><HMDAEthnicityType>${mapEthnicity(e)}</HMDAEthnicityType></HMDA_ETHNICITY>`).join('')}
+                      </HMDA_ETHNICITIES>
+                      <HMDA_RACES>
+                        ${(demo.race || []).map(r => `<HMDA_RACE><HMDARaceType>${mapRace(r)}</HMDARaceType></HMDA_RACE>`).join('')}
+                      </HMDA_RACES>
+                      ${demo.sex ? `<EXTENSION><OTHER><ULAD:HMDAGenderType>${mapSex(demo.sex)}</ULAD:HMDAGenderType></OTHER></EXTENSION>` : ''}
+                    </GOVERNMENT_MONITORING>` : ''}
                     <RESIDENCES>
                       ${b.current_address_street ? `
-                      <RESIDENCE>
+                      <RESIDENCE SequenceNumber="1">
                         <ADDRESS>
                           <AddressLineText>${escapeXml(b.current_address_street)}</AddressLineText>
                           ${b.current_address_unit ? `<AddressUnitIdentifier>${escapeXml(b.current_address_unit)}</AddressUnitIdentifier>` : ''}
@@ -514,26 +571,122 @@ function buildMISMOXml(deal, borrowers, properties, fees, originator, organizati
                           <CountryCode>US</CountryCode>
                         </ADDRESS>
                         <RESIDENCE_DETAIL>
-                          <BorrowerResidencyBasisType>${b.housing_status || 'Own'}</BorrowerResidencyBasisType>
+                          <BorrowerResidencyBasisType>${mapHousingStatus(b.housing_status)}</BorrowerResidencyBasisType>
                           <BorrowerResidencyDurationMonthsCount>${(b.time_at_address_years || 0) * 12 + (b.time_at_address_months || 0)}</BorrowerResidencyDurationMonthsCount>
                           <BorrowerResidencyType>Current</BorrowerResidencyType>
                         </RESIDENCE_DETAIL>
                       </RESIDENCE>` : ''}
+                      ${b.former_address_street && !b.former_address_na ? `
+                      <RESIDENCE SequenceNumber="2">
+                        <ADDRESS>
+                          <AddressLineText>${escapeXml(b.former_address_street)}</AddressLineText>
+                          <CityName>${escapeXml(b.former_address_city || '')}</CityName>
+                          <StateCode>${escapeXml(b.former_address_state || '')}</StateCode>
+                          <PostalCode>${escapeXml(b.former_address_zip || '')}</PostalCode>
+                          <CountryCode>US</CountryCode>
+                        </ADDRESS>
+                        <RESIDENCE_DETAIL>
+                          <BorrowerResidencyType>Prior</BorrowerResidencyType>
+                        </RESIDENCE_DETAIL>
+                      </RESIDENCE>` : ''}
                     </RESIDENCES>
+                    ${b.assets && b.assets.length > 0 ? `
+                    <CURRENT_INCOME>
+                      <CURRENT_INCOME_ITEMS>
+                        ${b.assets.filter(a => a.account_balance).map((asset, aidx) => `
+                        <CURRENT_INCOME_ITEM SequenceNumber="${aidx + 1}">
+                          <CURRENT_INCOME_ITEM_DETAIL>
+                            <IncomeType>Asset</IncomeType>
+                            <CurrentIncomeMonthlyTotalAmount>${formatMoney((asset.account_balance || 0) / 12)}</CurrentIncomeMonthlyTotalAmount>
+                          </CURRENT_INCOME_ITEM_DETAIL>
+                        </CURRENT_INCOME_ITEM>`).join('')}
+                      </CURRENT_INCOME_ITEMS>
+                    </CURRENT_INCOME>` : ''}
                   </BORROWER>
                   <ROLE_DETAIL>
-                    <PartyRoleType>Borrower</PartyRoleType>
+                    <PartyRoleType>${borrowerType}</PartyRoleType>
                   </ROLE_DETAIL>
                 </ROLE>
               </ROLES>
               <TAXPAYER_IDENTIFIERS>
                 <TAXPAYER_IDENTIFIER>
-                  <TaxpayerIdentifierType>${b.taxpayer_id_type || 'SocialSecurityNumber'}</TaxpayerIdentifierType>
+                  <TaxpayerIdentifierType>${mapTaxpayerIdType(b.taxpayer_id_type)}</TaxpayerIdentifierType>
                   ${b.ssn_last4 ? `<TaxpayerIdentifierValue>XXX-XX-${b.ssn_last4}</TaxpayerIdentifierValue>` : ''}
                 </TAXPAYER_IDENTIFIER>
               </TAXPAYER_IDENTIFIERS>
             </PARTY>`;
   });
+  
+  // Helper functions for MISMO enum mappings
+  function mapMaritalStatus(status) {
+    const map = { 'Married': 'Married', 'Unmarried': 'Unmarried', 'Separated': 'Separated' };
+    return map[status] || 'Unmarried';
+  }
+  
+  function mapCitizenshipStatus(status) {
+    const map = {
+      'US_Citizen': 'USCitizen',
+      'Permanent_Resident': 'PermanentResidentAlien',
+      'NPRA_Work_Visa': 'NonPermanentResidentAlien',
+      'NPRA_ITIN': 'NonPermanentResidentAlien',
+      'Foreign_National': 'NonPermanentResidentAlien',
+    };
+    return map[status] || 'USCitizen';
+  }
+  
+  function mapHousingStatus(status) {
+    const map = { 'Own': 'Own', 'Rent': 'Rent', 'Rent Free': 'LivingRentFree' };
+    return map[status] || 'Own';
+  }
+  
+  function mapTaxpayerIdType(type) {
+    const map = { 'SSN': 'SocialSecurityNumber', 'ITIN': 'IndividualTaxpayerIdentificationNumber', 'Foreign': 'NotApplicable' };
+    return map[type] || 'SocialSecurityNumber';
+  }
+  
+  function getCreditScoreCategory(score) {
+    if (score >= 800) return 'Exceptional';
+    if (score >= 740) return 'VeryGood';
+    if (score >= 670) return 'Good';
+    if (score >= 580) return 'Fair';
+    return 'Poor';
+  }
+  
+  function mapEthnicity(eth) {
+    const map = {
+      'Hispanic or Latino': 'HispanicOrLatino',
+      'Not Hispanic or Latino': 'NotHispanicOrLatino',
+      'I do not wish to provide': 'InformationNotProvidedByApplicantInMailInternetOrTelephoneApplication',
+    };
+    return map[eth] || 'InformationNotProvidedByApplicantInMailInternetOrTelephoneApplication';
+  }
+  
+  function mapRace(race) {
+    const map = {
+      'American Indian or Alaska Native': 'AmericanIndianOrAlaskaNative',
+      'Asian': 'Asian',
+      'Black or African American': 'BlackOrAfricanAmerican',
+      'Native Hawaiian or Other Pacific Islander': 'NativeHawaiianOrOtherPacificIslander',
+      'White': 'White',
+      'I do not wish to provide': 'InformationNotProvidedByApplicantInMailInternetOrTelephoneApplication',
+    };
+    return map[race] || 'InformationNotProvidedByApplicantInMailInternetOrTelephoneApplication';
+  }
+  
+  function mapSex(sex) {
+    const map = { 'Male': 'Male', 'Female': 'Female', 'I do not wish to provide': 'InformationNotProvidedByApplicantInMailInternetOrTelephoneApplication' };
+    return map[sex] || 'InformationNotProvidedByApplicantInMailInternetOrTelephoneApplication';
+  }
+  
+  function mapCollectionMethod(method) {
+    const map = {
+      'Face to Face': 'FaceToFace',
+      'Telephone': 'Telephone',
+      'Fax or Mail': 'FaxOrMail',
+      'Email or Internet': 'Internet',
+    };
+    return map[method] || 'Internet';
+  }
 
   xml += `
           </PARTIES>
