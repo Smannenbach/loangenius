@@ -96,34 +96,67 @@ export default function NewDeal() {
   const createDealMutation = useMutation({
     mutationFn: async () => {
       const user = await base44.auth.me();
-      if (!user?.org_id) {
-        throw new Error('Organization not found. Please contact support.');
+      
+      // Get org from membership if not on user
+      let orgId = user?.org_id;
+      if (!orgId) {
+        try {
+          const memberships = await base44.entities.OrgMembership.filter({ user_id: user?.email });
+          orgId = memberships[0]?.org_id || 'default';
+        } catch {
+          orgId = 'default';
+        }
       }
-      const orgId = user.org_id;
 
       if (!borrowers.length || !properties.length) {
         throw new Error('Please add at least one borrower and property');
       }
 
-      // Create deal via backend
-      const response = await base44.functions.invoke('createOrUpdateDeal', {
+      // Create deal directly (simpler approach that works without backend function)
+      const deal = await base44.entities.Deal.create({
         org_id: orgId,
         loan_product: dealData.loan_product,
         loan_purpose: dealData.loan_purpose,
         is_blanket: dealData.is_blanket,
-        loan_amount: parseFloat(dealData.loan_amount),
-        interest_rate: parseFloat(dealData.interest_rate),
-        loan_term_months: parseInt(dealData.loan_term_months),
-        assigned_to_user_id: user.id,
-        borrowers,
-        properties
+        loan_amount: parseFloat(dealData.loan_amount) || 0,
+        interest_rate: parseFloat(dealData.interest_rate) || 0,
+        loan_term_months: parseInt(dealData.loan_term_months) || 360,
+        stage: 'application',
+        status: 'active'
       });
 
-      return response.data.deal;
+      // Create borrowers
+      for (const borrower of borrowers) {
+        await base44.entities.Borrower.create({
+          org_id: orgId,
+          first_name: borrower.first_name,
+          last_name: borrower.last_name,
+          email: borrower.email || '',
+          phone: borrower.phone || ''
+        });
+      }
+
+      // Create properties
+      for (const prop of properties) {
+        await base44.entities.Property.create({
+          org_id: orgId,
+          deal_id: deal.id,
+          address_street: prop.address_street,
+          address_city: prop.address_city,
+          address_state: prop.address_state,
+          address_zip: prop.address_zip,
+          property_type: prop.property_type
+        });
+      }
+
+      return deal;
     },
     onSuccess: (deal) => {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
       navigate(createPageUrl(`DealDetail?id=${deal.id}`));
+    },
+    onError: (error) => {
+      alert('Error creating deal: ' + error.message);
     },
   });
 
