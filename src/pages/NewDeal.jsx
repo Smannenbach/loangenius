@@ -184,8 +184,18 @@ export default function NewDeal() {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
-        <h1 className="text-2xl font-semibold text-gray-900">Create New Deal</h1>
-        <p className="text-gray-500 mt-1">Enter loan, property, and borrower information</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">Create New Deal</h1>
+            <p className="text-gray-500 mt-1">Enter loan, property, and borrower information</p>
+          </div>
+          <Link to={createPageUrl('LoanApplicationWizard')}>
+            <Button variant="outline" className="gap-2">
+              <Sparkles className="h-4 w-4 text-purple-600" />
+              Use Guided Wizard
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Calculator Preview */}
