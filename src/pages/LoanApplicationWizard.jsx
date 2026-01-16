@@ -96,6 +96,13 @@ export default function LoanApplicationWizard() {
 
   const orgId = memberships[0]?.org_id || user?.org_id;
 
+  // Determine if user is internal staff (LO, processor, etc.) vs borrower in portal
+  // Staff can navigate freely; borrowers must complete steps sequentially
+  const urlParams = new URLSearchParams(window.location.search);
+  const isPortalMode = urlParams.get('portal') === 'true';
+  const userRole = memberships[0]?.role_id;
+  const isInternalStaff = !isPortalMode && (user?.role === 'admin' || userRole);
+
   const createDealMutation = useMutation({
     mutationFn: async () => {
       // Validate consent
@@ -292,11 +299,17 @@ export default function LoanApplicationWizard() {
               <div key={s.id} className="flex items-center">
                 <div className={`flex flex-col items-center ${idx > 0 ? 'ml-2' : ''}`}>
                   <button
-                    onClick={() => s.id < step && setStep(s.id)}
-                    disabled={s.id > step}
+                    onClick={() => {
+                      // Internal staff can click any step; borrowers only completed steps
+                      if (isInternalStaff || s.id <= step) {
+                        setStep(s.id);
+                      }
+                    }}
+                    disabled={!isInternalStaff && s.id > step}
                     className={`h-10 w-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all ${
                       step === s.id ? 'bg-blue-600 text-white' :
                       step > s.id ? 'bg-green-500 text-white cursor-pointer hover:bg-green-600' :
+                      isInternalStaff ? 'bg-gray-200 text-gray-700 cursor-pointer hover:bg-gray-300' :
                       'bg-gray-200 text-gray-500'
                     }`}
                   >
@@ -335,7 +348,7 @@ export default function LoanApplicationWizard() {
           </Button>
           <Button 
             onClick={handleNext}
-            disabled={createDealMutation.isPending || !canProceed()}
+            disabled={createDealMutation.isPending || (!isInternalStaff && !canProceed())}
             className={`gap-2 ${step === 9 ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
           >
             {createDealMutation.isPending ? (
