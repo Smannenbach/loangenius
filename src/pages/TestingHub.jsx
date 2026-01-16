@@ -17,6 +17,148 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
+
+function MISMOTestPanel() {
+  const [selectedDeal, setSelectedDeal] = useState(null);
+  const [mismoResult, setMismoResult] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const { data: deals = [] } = useQuery({
+    queryKey: ['mismoTestDeals'],
+    queryFn: () => base44.entities.Deal.list(),
+  });
+  
+  const runMISMOTest = async () => {
+    if (!selectedDeal) {
+      toast.error('Please select a deal first');
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const result = await base44.functions.invoke('generateMISMO34', { deal_id: selectedDeal });
+      setMismoResult(result.data);
+      toast.success('MISMO 3.4 XML generated successfully!');
+    } catch (err) {
+      toast.error('MISMO generation failed: ' + err.message);
+      setMismoResult({ error: err.message });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const downloadXML = () => {
+    if (!mismoResult?.xml_content) return;
+    const blob = new Blob([mismoResult.xml_content], { type: 'application/xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = mismoResult.filename || 'mismo_34_export.xml';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-4 items-end">
+        <div className="flex-1">
+          <label className="text-sm font-medium text-gray-700 mb-1 block">Select Deal</label>
+          <select 
+            className="w-full border border-gray-300 rounded-md px-3 py-2"
+            value={selectedDeal || ''}
+            onChange={(e) => setSelectedDeal(e.target.value)}
+          >
+            <option value="">Select a deal...</option>
+            {deals.map(d => (
+              <option key={d.id} value={d.id}>
+                {d.deal_number || d.id} - ${(d.loan_amount || 0).toLocaleString()} {d.loan_product}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Button 
+          onClick={runMISMOTest} 
+          disabled={!selectedDeal || isLoading}
+          className="gap-2"
+        >
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+          Generate MISMO 3.4
+        </Button>
+      </div>
+      
+      {deals.length === 0 && (
+        <div className="text-center py-8 bg-gray-50 rounded-lg">
+          <p className="text-gray-500 mb-2">No deals found</p>
+          <Link to={createPageUrl('LoanApplicationWizard')} className="text-blue-600 hover:underline text-sm">
+            Create a deal first →
+          </Link>
+        </div>
+      )}
+      
+      {mismoResult && !mismoResult.error && (
+        <div className="border rounded-lg p-4 bg-green-50 border-green-200">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <span className="font-medium text-green-800">MISMO 3.4 Generated</span>
+            </div>
+            <Button variant="outline" size="sm" onClick={downloadXML} className="gap-1">
+              <FileCode className="h-3 w-3" />
+              Download XML
+            </Button>
+          </div>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-gray-600">Filename:</span> {mismoResult.filename}
+            </div>
+            <div>
+              <span className="text-gray-600">Size:</span> {(mismoResult.byte_size / 1024).toFixed(1)} KB
+            </div>
+            <div>
+              <span className="text-gray-600">Validation:</span>{' '}
+              <Badge className={mismoResult.validation_passed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                {mismoResult.validation_passed ? 'Passed' : 'Failed'}
+              </Badge>
+            </div>
+            {mismoResult.deal_summary && (
+              <div>
+                <span className="text-gray-600">Borrowers:</span> {mismoResult.deal_summary.borrower_count || 0}
+              </div>
+            )}
+          </div>
+          {mismoResult.validation_errors?.length > 0 && (
+            <div className="mt-3 p-2 bg-red-50 rounded text-sm">
+              <p className="font-medium text-red-800">Validation Errors:</p>
+              <ul className="list-disc list-inside text-red-700">
+                {mismoResult.validation_errors.map((e, i) => <li key={i}>{e.field}: {e.message}</li>)}
+              </ul>
+            </div>
+          )}
+          {mismoResult.validation_warnings?.length > 0 && (
+            <div className="mt-3 p-2 bg-yellow-50 rounded text-sm">
+              <p className="font-medium text-yellow-800">Warnings:</p>
+              <ul className="list-disc list-inside text-yellow-700">
+                {mismoResult.validation_warnings.map((w, i) => <li key={i}>{w.field}: {w.message}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+      
+      {mismoResult?.error && (
+        <div className="border rounded-lg p-4 bg-red-50 border-red-200">
+          <div className="flex items-center gap-2">
+            <XCircle className="h-5 w-5 text-red-600" />
+            <span className="font-medium text-red-800">Generation Failed</span>
+          </div>
+          <p className="text-sm text-red-700 mt-1">{mismoResult.error}</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function TestingHub() {
   const [testResults, setTestResults] = useState({});
@@ -426,11 +568,9 @@ export default function TestingHub() {
             <CardHeader>
               <CardTitle>MISMO 3.4 Validation</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-center py-12 text-gray-500">
-                <FileCode className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>MISMO validation tests coming soon</p>
-              </div>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-gray-600">Test MISMO 3.4 XML export with real deal data</p>
+              <MISMOTestPanel />
             </CardContent>
           </Card>
         </TabsContent>
