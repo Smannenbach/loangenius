@@ -186,23 +186,37 @@ export default function Pipeline() {
                 {/* Cards */}
                 <div className="space-y-3">
                   {stageDeals.map((deal) => (
-                    <Link 
-                      key={deal.id} 
-                      to={createPageUrl(`DealDetail?id=${deal.id}`)}
-                    >
-                      <Card className="border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between mb-2">
-                            <span className="font-medium text-gray-900 text-sm">
-                              {deal.deal_number || 'Draft'}
-                            </span>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 -mt-1">
-                              <MoreVertical className="h-4 w-4 text-gray-400" />
-                            </Button>
-                          </div>
-                          
+                    <Card key={deal.id} className="border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <span className="font-medium text-gray-900 text-sm">
+                            {deal.deal_number || 'Draft'}
+                          </span>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 -mt-1">
+                                <MoreVertical className="h-4 w-4 text-gray-400" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => window.location.href = createPageUrl(`DealDetail?id=${deal.id}`)}>
+                                View Details
+                              </DropdownMenuItem>
+                              {stages.filter(s => s.id !== stage.id).map(s => (
+                                <DropdownMenuItem 
+                                  key={s.id}
+                                  onClick={() => updateStage.mutate({ dealId: deal.id, newStage: s.id })}
+                                >
+                                  Move to {s.name}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                        
+                        <Link to={createPageUrl(`DealDetail?id=${deal.id}`)}>
                           <Badge className="mb-3 text-xs bg-blue-100 text-blue-700">
-                            {deal.loan_type?.replace(/_/g, ' ')}
+                            {deal.loan_product?.replace(/_/g, ' ') || 'DSCR'}
                           </Badge>
 
                           <div className="space-y-2 text-sm">
@@ -217,9 +231,9 @@ export default function Pipeline() {
                               </div>
                             )}
                           </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
+                        </Link>
+                      </CardContent>
+                    </Card>
                   ))}
 
                   {stageDeals.length === 0 && (
