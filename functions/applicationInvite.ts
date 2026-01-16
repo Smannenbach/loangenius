@@ -7,10 +7,10 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const url = new URL(req.url);
-    const token = url.pathname.split('/').slice(-3)[0]; // Extract from /resume/:token/invite
-
-    const { email, role } = await req.json();
+    const base44 = createClientFromRequest(req);
+    
+    const body = await req.json().catch(() => ({}));
+    const { email, role, deal_id, application_id, token: bodyToken } = body;
 
     if (!email || !role || !['co_borrower', 'guarantor'].includes(role)) {
       return Response.json({
@@ -18,16 +18,45 @@ Deno.serve(async (req) => {
       }, { status: 400 });
     }
 
-    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-    const drafts = await base44.asServiceRole.entities.ApplicationDraft.filter({
-      resume_token_hash: tokenHash
-    });
-
-    if (drafts.length === 0) {
-      return Response.json({ error: 'Application not found' }, { status: 404 });
+    let draft;
+    
+    // Support either token-based or direct application_id/deal_id lookup
+    if (bodyToken) {
+      const tokenHash = crypto.createHash('sha256').update(bodyToken).digest('hex');
+      const drafts = await base44.asServiceRole.entities.ApplicationDraft.filter({
+        resume_token_hash: tokenHash
+      });
+      if (drafts.length > 0) draft = drafts[0];
+    } else if (application_id) {
+      const drafts = await base44.asServiceRole.entities.ApplicationDraft.filter({
+        id: application_id
+      });
+      if (drafts.length > 0) draft = drafts[0];
+    } else if (deal_id) {
+      // Get deal's org and create participant directly
+      const deal = await base44.asServiceRole.entities.Deal.get(deal_id);
+      if (deal) {
+        draft = { org_id: deal.org_id, id: deal_id };
+      }
     }
 
-    const draft = drafts[0];
+    if (!draft) {
+      // Try URL-based token as fallback
+      const url = new URL(req.url);
+      const token = url.pathname.split('/').slice(-3)[0];
+      if (token && token !== 'applicationInvite') {
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+        const drafts = await base44.asServiceRole.entities.ApplicationDraft.filter({
+          resume_token_hash: tokenHash
+        });
+        if (drafts.length > 0) draft = drafts[0];
+      }
+    }
+    
+    if (!draft) {
+
+      return Response.json({ error: 'Application not found' }, { status: 404 });
+    }
 
     // Generate invite token
     const inviteToken = crypto.randomBytes(32).toString('hex');
