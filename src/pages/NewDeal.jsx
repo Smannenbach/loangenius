@@ -131,31 +131,50 @@ export default function NewDeal() {
         loan_amount: parseFloat(dealData.loan_amount) || 0,
         interest_rate: parseFloat(dealData.interest_rate) || 0,
         loan_term_months: parseInt(dealData.loan_term_months) || 360,
+        purchase_price: parseFloat(dealData.purchase_price) || null,
         stage: 'application',
         status: 'active'
       });
 
-      // Create borrowers
+      // Create borrowers and link them
       for (const borrower of borrowers) {
-        await base44.entities.Borrower.create({
+        const createdBorrower = await base44.entities.Borrower.create({
           org_id: effectiveOrgId,
           first_name: borrower.first_name,
           last_name: borrower.last_name,
           email: borrower.email || '',
-          phone: borrower.phone || ''
+          cell_phone: borrower.phone || ''
+        });
+        
+        // Link borrower to deal
+        await base44.entities.DealBorrower.create({
+          org_id: effectiveOrgId,
+          deal_id: deal.id,
+          borrower_id: createdBorrower.id,
+          role: borrower.role || 'primary'
         });
       }
 
-      // Create properties
+      // Create properties and link them
       for (const prop of properties) {
-        await base44.entities.Property.create({
+        const createdProperty = await base44.entities.Property.create({
           org_id: effectiveOrgId,
-          deal_id: deal.id,
           address_street: prop.address_street,
           address_city: prop.address_city,
           address_state: prop.address_state,
           address_zip: prop.address_zip,
-          property_type: prop.property_type
+          property_type: prop.property_type,
+          gross_rent_monthly: prop.gross_rent_monthly || null,
+          taxes_monthly: prop.taxes_monthly || null,
+          insurance_monthly: prop.insurance_monthly || null,
+          hoa_monthly: parseFloat(prop.hoa_monthly) || null,
+        });
+        
+        // Link property to deal
+        await base44.entities.DealProperty.create({
+          org_id: effectiveOrgId,
+          deal_id: deal.id,
+          property_id: createdProperty.id,
         });
       }
 
