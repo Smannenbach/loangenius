@@ -15,7 +15,7 @@ const ONBOARDING_STEPS = [
   { id: 3, title: 'Application', icon: CheckCircle2 }
 ];
 
-export default function BorrowerOnboarding() {
+function BorrowerOnboarding() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [preQualResult, setPreQualResult] = useState(null);
@@ -169,3 +169,5 @@ export default function BorrowerOnboarding() {
     </div>
   );
 }
+
+export default BorrowerOnboarding;
