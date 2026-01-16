@@ -42,6 +42,10 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
     onSuccess: () => {
       refetchTasks();
       setNewTaskTitle('');
+      toast.success('Task created!');
+    },
+    onError: (error) => {
+      toast.error('Failed to create task: ' + error.message);
     },
   });
 
@@ -49,7 +53,13 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
     mutationFn: async ({ id, status }) => {
       return base44.entities.Task.update(id, { status });
     },
-    onSuccess: () => refetchTasks(),
+    onSuccess: () => {
+      refetchTasks();
+      toast.success('Task updated!');
+    },
+    onError: (error) => {
+      toast.error('Failed to update task: ' + error.message);
+    },
   });
 
   const verifyMutation = useMutation({
@@ -62,6 +72,10 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast.success('Contact verified successfully!');
+    },
+    onError: (error) => {
+      toast.error('Verification failed: ' + error.message);
     },
   });
 
