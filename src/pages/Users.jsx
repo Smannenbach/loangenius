@@ -55,11 +55,16 @@ export default function UsersPage() {
 
   const orgId = userMemberships[0]?.org_id || user?.org_id;
 
-  const { data: memberships = [] } = useQuery({
+  const { data: memberships = [], isLoading } = useQuery({
     queryKey: ['orgMemberships', orgId],
     queryFn: async () => {
       if (!orgId) return [];
-      return await base44.entities.OrgMembership.filter({ org_id: orgId });
+      try {
+        return await base44.entities.OrgMembership.filter({ org_id: orgId });
+      } catch (e) {
+        // Fallback: get all memberships
+        return await base44.entities.OrgMembership.list();
+      }
     },
     enabled: !!orgId,
   });
@@ -221,7 +226,9 @@ export default function UsersPage() {
           <CardTitle>Team Members ({filteredMembers.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {filteredMembers.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-12 text-gray-500">Loading team members...</div>
+          ) : filteredMembers.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               <Users2 className="h-8 w-8 mx-auto mb-3 text-gray-300" />
               <p>No team members found</p>
