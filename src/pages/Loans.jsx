@@ -58,18 +58,26 @@ export default function LoansPage() {
   const { data: deals = [], isLoading: dealsLoading, error: dealsError } = useQuery({
      queryKey: ['deals', orgId],
      queryFn: async () => {
-       if (!orgId) return [];
        try {
-         return await base44.entities.Deal.filter({ org_id: orgId });
-       } catch (e) {
-         // Fallback: get all deals if filter fails
+         if (orgId) {
+           return await base44.entities.Deal.filter({ org_id: orgId });
+         }
+         // Fallback: get all deals if no org
          const allDeals = await base44.entities.Deal.list();
          return allDeals.filter(d => !d.is_deleted);
+       } catch (e) {
+         // Fallback: get all deals if filter fails
+         try {
+           const allDeals = await base44.entities.Deal.list();
+           return allDeals.filter(d => !d.is_deleted);
+         } catch {
+           return [];
+         }
        }
      },
-     enabled: !!orgId,
+     enabled: true,
      retry: 2,
-     staleTime: 5 * 60 * 1000, // 5 minutes
+     staleTime: 5 * 60 * 1000,
    });
 
   const updateLoanMutation = useMutation({
