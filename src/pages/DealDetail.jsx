@@ -277,10 +277,12 @@ export default function DealDetail() {
               <Download className="h-4 w-4" />
               Export PDF
             </Button>
-            <Button variant="outline" className="gap-2">
-              <Edit className="h-4 w-4" />
-              Edit
-            </Button>
+            <Link to={createPageUrl(`DealWizard?id=${dealId}`)}>
+              <Button variant="outline" className="gap-2">
+                <Edit className="h-4 w-4" />
+                Edit
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
