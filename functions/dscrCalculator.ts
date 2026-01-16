@@ -80,13 +80,32 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const result = calculateDSCR(body);
+    
+    // Normalize input - support multiple parameter naming conventions
+    const normalizedInput = {
+      monthlyRent: body.monthlyRent || body.monthly_rent || 0,
+      otherIncome: body.otherIncome || body.other_income || 0,
+      vacancyRate: body.vacancyRate || body.vacancy_rate || 0.05,
+      propertyTaxes: body.propertyTaxes || body.property_taxes || body.monthly_taxes * 12 || 0,
+      insurance: body.insurance || body.monthly_insurance * 12 || 0,
+      hoa: body.hoa || body.monthly_hoa || 0,
+      managementFee: body.managementFee || body.management_fee,
+      repairs: body.repairs,
+      utilities: body.utilities || 0,
+      loanAmount: body.loanAmount || body.loan_amount || 0,
+      interestRate: body.interestRate || body.interest_rate || 0,
+      loanTermMonths: body.loanTermMonths || body.loan_term_months || 360,
+      interestOnly: body.interestOnly || body.interest_only || false,
+      dealId: body.dealId || body.deal_id
+    };
+    
+    const result = calculateDSCR(normalizedInput);
     
     // If dealId provided, save to deal
-    if (body.dealId) {
-      await base44.asServiceRole.entities.Deal.update(body.dealId, {
+    if (normalizedInput.dealId) {
+      await base44.asServiceRole.entities.Deal.update(normalizedInput.dealId, {
         dscr: result.dscr,
-        dscr_data: { ...body, calculated_result: result, calculated_at: new Date().toISOString() }
+        dscr_data: { ...normalizedInput, calculated_result: result, calculated_at: new Date().toISOString() }
       });
     }
 

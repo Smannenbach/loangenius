@@ -13,30 +13,40 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { org_id, report_id, filters, format } = await req.json();
+    const { org_id: provided_org_id, report_id, report_type, filters, format } = await req.json();
 
-    if (!report_id || !org_id) {
-      return Response.json({ error: 'Missing report_id or org_id' }, { status: 400 });
+    // Get org_id from membership if not provided
+    let org_id = provided_org_id;
+    if (!org_id) {
+      const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+        user_id: user.email
+      });
+      if (memberships.length > 0) {
+        org_id = memberships[0].org_id;
+      }
     }
 
-    // Verify user belongs to org
-    const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
-      user_id: user.email,
-      org_id
-    });
-    if (memberships.length === 0) {
-      return Response.json({ error: 'Unauthorized: not in this organization' }, { status: 403 });
+    if (!org_id) {
+      return Response.json({ error: 'Organization not found for user' }, { status: 400 });
     }
 
-    // Get report definition with org isolation
-    const reports = await base44.asServiceRole.entities.ReportDefinition.filter({ 
-      id: report_id,
-      org_id 
-    });
-    if (!reports.length) {
-      return Response.json({ error: 'Report not found' }, { status: 404 });
+    // Support direct report_type without report_id for quick reports
+    let report = null;
+    if (report_id) {
+      const reports = await base44.asServiceRole.entities.ReportDefinition.filter({ 
+        id: report_id,
+        org_id 
+      });
+      if (!reports.length) {
+        return Response.json({ error: 'Report not found' }, { status: 404 });
+      }
+      report = reports[0];
+    } else if (report_type) {
+      // Create ad-hoc report based on type
+      report = { report_type: report_type.toUpperCase() };
+    } else {
+      return Response.json({ error: 'Either report_id or report_type required' }, { status: 400 });
     }
-    const report = reports[0];
 
     // Generate report based on type
     let data = [];
