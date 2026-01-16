@@ -32,7 +32,10 @@ import {
   Send,
   Eye,
   RotateCcw,
+  FileCode,
+  Loader2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import FeesTab from '@/components/deal-detail/FeesTab';
 import DealCalculator from '@/components/deal-wizard/DealCalculator';
 import DealStatusUpdate from '@/components/deal-detail/DealStatusUpdate';
@@ -144,6 +147,33 @@ export default function DealDetail() {
     },
   });
 
+  const exportMISMOMutation = useMutation({
+    mutationFn: async () => {
+      const response = await base44.functions.invoke('generateMISMO34', { deal_id: dealId });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      if (data?.xml_content) {
+        const blob = new Blob([data.xml_content], { type: 'application/xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = data.filename || `MISMO_${dealId}.xml`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success('MISMO 3.4 XML exported successfully');
+        if (data.validation_warnings?.length > 0) {
+          toast.warning(`${data.validation_warnings.length} warnings found`);
+        }
+      }
+    },
+    onError: (error) => {
+      toast.error('MISMO export failed: ' + error.message);
+    },
+  });
+
   const getStatusColor = (status) => {
     const colors = {
       lead: 'bg-gray-100 text-gray-700',
@@ -229,10 +259,23 @@ export default function DealDetail() {
               {deal.loan_product?.replace(/_/g, ' ')} • ${(deal.loan_amount || 0).toLocaleString()}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Button 
+              variant="outline" 
+              className="gap-2"
+              onClick={() => exportMISMOMutation.mutate()}
+              disabled={exportMISMOMutation.isPending}
+            >
+              {exportMISMOMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileCode className="h-4 w-4" />
+              )}
+              MISMO 3.4
+            </Button>
             <Button variant="outline" className="gap-2">
               <Download className="h-4 w-4" />
-              Export
+              Export PDF
             </Button>
             <Button variant="outline" className="gap-2">
               <Edit className="h-4 w-4" />
