@@ -55,6 +55,7 @@ import AddressAutocomplete from '@/components/AddressAutocomplete';
 import QuoteGeneratorModal from '@/components/QuoteGeneratorModal';
 import LeadDetailModal from '@/components/LeadDetailModal';
 import LeadsImportModal from '@/components/LeadsImportModal';
+import { toast } from 'sonner';
 
 export default function Leads() {
   const queryClient = useQueryClient();
@@ -173,6 +174,7 @@ export default function Leads() {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       setIsAddOpen(false);
       setIsQuickAddOpen(false);
+      toast.success(editingLead ? 'Lead updated successfully!' : 'Lead created successfully!');
       setEditingLead(null);
       setNewLead({
         first_name: '',
@@ -209,12 +211,19 @@ export default function Leads() {
     },
     onError: (error) => {
       console.error('Lead creation error:', error);
+      toast.error('Failed to save lead: ' + error.message);
     },
   });
 
   const deleteLeadMutation = useMutation({
     mutationFn: (id) => base44.entities.Lead.update(id, { is_deleted: true }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leads'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast.success('Lead deleted');
+    },
+    onError: (error) => {
+      toast.error('Failed to delete lead: ' + error.message);
+    },
   });
 
   const getStatusColor = (status) => {

@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search, Plus, DollarSign, TrendingUp, Calendar, ChevronRight, Edit2, MoreVertical, MessageSquare } from 'lucide-react';
+import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import {
@@ -85,6 +86,10 @@ export default function LoansPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
       setIsEditOpen(false);
+      toast.success('Loan updated successfully!');
+    },
+    onError: (error) => {
+      toast.error('Failed to update loan: ' + error.message);
     },
   });
 

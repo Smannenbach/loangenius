@@ -29,6 +29,7 @@ import {
   Calendar,
   Filter,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function Tasks() {
   const queryClient = useQueryClient();
@@ -97,6 +98,10 @@ export default function Tasks() {
         priority: 'medium',
         due_date: '',
       });
+      toast.success('Task created successfully!');
+    },
+    onError: (error) => {
+      toast.error('Failed to create task: ' + error.message);
     },
   });
 
@@ -108,8 +113,10 @@ export default function Tasks() {
         completed_at: newStatus === 'completed' ? new Date().toISOString() : null,
       });
     },
-    onSuccess: () => {
+    onSuccess: (data, task) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+      toast.success(newStatus === 'completed' ? 'Task completed!' : 'Task reopened');
     },
   });
 
