@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
         await base44.asServiceRole.entities.ExportJob.update(exportJob.id, {
           status: 'failed',
           conformance_status: conformanceStatus,
-          validation_errors: validationErrors,
+          validation_errors: validationErrors.map(e => ({ message: e })),
         });
         return Response.json({
           success: false,
@@ -92,17 +92,18 @@ Deno.serve(async (req) => {
       // Generate MISMO XML
       const misomoXml = buildMISMOXml(deal, dealBorrowers, borrowerData, propertyData, dealFees);
 
-      // Upload XML file
-      const { file_url } = await base44.integrations.Core.UploadFile({
-        file: misomoXml,
-      });
+      // Store XML content as base64 encoded data URL instead of uploading
+      const encoder = new TextEncoder();
+      const xmlBytes = encoder.encode(misomoXml);
+      const base64Xml = btoa(String.fromCharCode(...xmlBytes));
+      const file_url = `data:application/xml;base64,${base64Xml}`;
 
       // Update export job
       await base44.asServiceRole.entities.ExportJob.update(exportJob.id, {
         status: 'completed',
         file_url,
         conformance_status: conformanceStatus,
-        validation_errors: validationErrors,
+        validation_errors: validationErrors.length > 0 ? validationErrors.map(e => ({ message: e })) : [],
         completed_at: new Date().toISOString(),
       });
 
@@ -126,7 +127,7 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.ExportJob.update(exportJob.id, {
         status: 'failed',
         conformance_status: 'fail',
-        validation_errors: [err.message],
+        validation_errors: [{ message: err.message }],
       });
       throw err;
     }
