@@ -109,7 +109,7 @@ export default function LeadsImportModal({ trigger, onImportComplete }) {
                         <SelectValue placeholder="Skip field" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={null}>Skip</SelectItem>
+                        <SelectItem value="skip">Skip</SelectItem>
                         <SelectItem value="first_name">First Name</SelectItem>
                         <SelectItem value="last_name">Last Name</SelectItem>
                         <SelectItem value="email">Email</SelectItem>
