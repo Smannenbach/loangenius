@@ -340,7 +340,8 @@ export default function QuoteGenerator() {
     }
   };
 
-  const isFormValid = quoteData.borrowerName && quoteData.loanAmount && quoteData.interestRate;
+  const isFormValid = quoteData.borrowerName && quoteData.loanAmount && quoteData.interestRate && 
+    parseFloat(quoteData.loanAmount) > 0 && parseFloat(quoteData.interestRate) > 0;
 
   return (
     <div className="p-6 lg:p-8 max-w-6xl mx-auto">
@@ -355,7 +356,9 @@ export default function QuoteGenerator() {
       <Tabs value={tab} onValueChange={setTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="generate">Generate Quote</TabsTrigger>
-          <TabsTrigger value="preview" disabled={!generatedQuote}>Preview & Send</TabsTrigger>
+          <TabsTrigger value="preview" disabled={!generatedQuote} className={!generatedQuote ? 'opacity-50 cursor-not-allowed' : ''}>
+            Preview & Send {!generatedQuote && '(Generate first)'}
+          </TabsTrigger>
         </TabsList>
 
         {/* Generate Tab */}
@@ -619,14 +622,24 @@ export default function QuoteGenerator() {
             </Card>
           </div>
 
-          <Button 
-            onClick={handleGenerate}
-            className="w-full bg-blue-600 hover:bg-blue-500 h-12 text-base"
-            disabled={!isFormValid}
-          >
-            <FileOutput className="h-5 w-5 mr-2" />
-            Generate Quote
-          </Button>
+          <div className="space-y-2">
+            {!isFormValid && (
+              <Alert variant="destructive" className="bg-orange-50 border-orange-200">
+                <AlertCircle className="h-4 w-4 text-orange-600" />
+                <AlertDescription className="text-orange-800">
+                  Please fill in: {!quoteData.borrowerName && 'Borrower Name, '}{!quoteData.loanAmount && 'Loan Amount, '}{!quoteData.interestRate && 'Interest Rate'}
+                </AlertDescription>
+              </Alert>
+            )}
+            <Button 
+              onClick={handleGenerate}
+              className="w-full bg-blue-600 hover:bg-blue-500 h-12 text-base"
+              disabled={!isFormValid}
+            >
+              <FileOutput className="h-5 w-5 mr-2" />
+              Generate Quote
+            </Button>
+          </div>
         </TabsContent>
 
         {/* Preview Tab */}
