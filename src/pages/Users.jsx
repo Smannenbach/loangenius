@@ -33,14 +33,8 @@ import {
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isInviteOpen, setIsInviteOpen] = useState(false);
-  const [isAddOpen, setIsAddOpen] = useState(false);
   const [inviteData, setInviteData] = useState({
     email: '',
-    role: 'loan_officer',
-  });
-  const [addData, setAddData] = useState({
-    email: '',
-    full_name: '',
     role: 'loan_officer',
   });
 
@@ -62,7 +56,19 @@ export default function UsersPage() {
   
   const inviteMutation = useMutation({
     mutationFn: async (data) => {
-      await base44.users.inviteUser(data.email, data.role);
+      // Invite user with base44 role (only 'admin' or 'user')
+      const base44Role = data.role === 'admin' ? 'admin' : 'user';
+      await base44.users.inviteUser(data.email, base44Role);
+      
+      // Create org membership with custom role
+      if (user?.org_id) {
+        await base44.entities.OrgMembership.create({
+          org_id: user.org_id,
+          user_id: data.email,
+          role_id: data.role,
+          status: 'invited'
+        });
+      }
     },
     onSuccess: () => {
       setIsInviteOpen(false);
@@ -72,26 +78,6 @@ export default function UsersPage() {
     },
     onError: (error) => {
       alert('Error sending invitation: ' + error.message);
-    },
-  });
-
-  const addMutation = useMutation({
-    mutationFn: async (data) => {
-      const org = await base44.auth.me();
-      return base44.asServiceRole.entities.User.create({
-        email: data.email,
-        full_name: data.full_name,
-        role: data.role,
-      });
-    },
-    onSuccess: () => {
-      setIsAddOpen(false);
-      setAddData({ email: '', full_name: '', role: 'loan_officer' });
-      queryClient.invalidateQueries({ queryKey: ['orgMemberships'] });
-      alert('User added successfully!');
-    },
-    onError: (error) => {
-      alert('Error adding user: ' + error.message);
     },
   });
 
@@ -139,74 +125,6 @@ export default function UsersPage() {
           <p className="text-gray-500 mt-1">Manage team members and permissions</p>
         </div>
         <div className="flex gap-2">
-          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-green-600 hover:bg-green-500 gap-2">
-                <Plus className="h-4 w-4" />
-                Add User
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Manually Add User</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label>Email Address</Label>
-                  <Input
-                    type="email"
-                    placeholder="user@company.com"
-                    value={addData.email}
-                    onChange={(e) => setAddData({ ...addData, email: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Full Name</Label>
-                  <Input
-                    placeholder="John Smith"
-                    value={addData.full_name}
-                    onChange={(e) => setAddData({ ...addData, full_name: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Role & Permissions</Label>
-                  <div className="space-y-2">
-                    {[
-                      { value: 'admin', label: '👨‍💼 Admin', desc: 'Full system access' },
-                      { value: 'manager', label: '📊 Manager', desc: 'Team oversight & reporting' },
-                      { value: 'loan_officer', label: '💼 Loan Officer', desc: 'Manage deals & borrowers' },
-                      { value: 'processor', label: '📋 Processor', desc: 'Process documents' },
-                      { value: 'underwriter', label: '✅ Underwriter', desc: 'Underwriting decisions' },
-                      { value: 'realtor', label: '🏠 Realtor', desc: 'View deals & referrals' },
-                      { value: 'viewer', label: '👁️ Viewer', desc: 'Read-only access' },
-                    ].map(role => (
-                      <label key={role.value} className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-green-50">
-                        <input
-                          type="radio"
-                          name="add-role"
-                          value={role.value}
-                          checked={addData.role === role.value}
-                          onChange={(e) => setAddData({ ...addData, role: e.target.value })}
-                          className="h-4 w-4"
-                        />
-                        <div>
-                          <p className="font-medium text-gray-900">{role.label}</p>
-                          <p className="text-xs text-gray-500">{role.desc}</p>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <Button 
-                  className="w-full bg-green-600 hover:bg-green-500"
-                  onClick={() => addMutation.mutate(addData)}
-                  disabled={!addData.email || !addData.full_name || addMutation.isPending}
-                >
-                  {addMutation.isPending ? 'Adding...' : 'Add User'}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
           <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
             <DialogTrigger asChild>
               <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
@@ -265,10 +183,10 @@ export default function UsersPage() {
                 {inviteMutation.isPending ? 'Sending...' : 'Send Invitation'}
               </Button>
             </div>
-          </DialogContent>
-          </Dialog>
-          </div>
-          </div>
+            </DialogContent>
+            </Dialog>
+            </div>
+            </div>
 
           {/* Search */}
       <Card className="border-gray-200 mb-6">

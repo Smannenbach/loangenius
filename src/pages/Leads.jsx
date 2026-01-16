@@ -361,7 +361,7 @@ export default function Leads() {
                 Full Details
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>{editingLead ? 'Edit Lead' : 'Add New Lead'}</DialogTitle>
             </DialogHeader>
