@@ -40,7 +40,10 @@ export default function ContactDetail() {
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="mb-6">
-        <button className="text-blue-600 hover:text-blue-700 text-sm font-medium mb-4">
+        <button 
+          className="text-blue-600 hover:text-blue-700 text-sm font-medium mb-4"
+          onClick={() => window.history.back()}
+        >
           ← Back to Contacts
         </button>
 
@@ -80,11 +83,31 @@ export default function ContactDetail() {
 
             {/* Quick Actions */}
             <div className="flex gap-2 mt-6">
-              <Button className="bg-blue-600 hover:bg-blue-700" size="sm">
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700" 
+                size="sm"
+                onClick={() => {
+                  if (contact.email) {
+                    window.location.href = `mailto:${contact.email}`;
+                  } else {
+                    alert('No email address available');
+                  }
+                }}
+              >
                 <Mail className="h-4 w-4 mr-2" />
                 Send Email
               </Button>
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  if (contact.phone) {
+                    window.location.href = `tel:${contact.phone}`;
+                  } else {
+                    alert('No phone number available');
+                  }
+                }}
+              >
                 <Phone className="h-4 w-4 mr-2" />
                 Call
               </Button>
