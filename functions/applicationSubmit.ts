@@ -7,9 +7,23 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const url = new URL(req.url);
-    const token = url.pathname.split('/').slice(-3)[0];
-    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const base44 = createClientFromRequest(req);
+    
+    const { application_id, token } = await req.json().catch(() => ({}));
+    
+    let tokenHash;
+    if (token) {
+      tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    } else if (application_id) {
+      // Find by application_id directly
+      const draft = await base44.asServiceRole.entities.ApplicationDraft.get(application_id);
+      if (!draft) {
+        return Response.json({ error: 'Application not found' }, { status: 404 });
+      }
+      tokenHash = draft.resume_token_hash;
+    } else {
+      return Response.json({ error: 'Missing application_id or token' }, { status: 400 });
+    }
 
     const drafts = await base44.asServiceRole.entities.ApplicationDraft.filter({
       resume_token_hash: tokenHash
@@ -64,7 +78,7 @@ Deno.serve(async (req) => {
     });
 
     // Generate document requirements
-    await generateDocumentRequirements(draft.org_id, deal.id, draft.loan_purpose);
+    await generateDocumentRequirements(base44, draft.org_id, deal.id, draft.loan_purpose);
 
     // Update draft status
     await base44.asServiceRole.entities.ApplicationDraft.update(draft.id, {
@@ -109,7 +123,7 @@ function validateApplicationData(data, purpose) {
   };
 }
 
-async function generateDocumentRequirements(orgId, dealId, loanPurpose) {
+async function generateDocumentRequirements(base44, orgId, dealId, loanPurpose) {
   // Fetch templates matching product + purpose
   const templates = await base44.asServiceRole.entities.DocumentRequirementTemplate.filter({
     org_id: orgId,
