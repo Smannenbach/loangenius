@@ -1,172 +1,228 @@
 import React, { useState } from 'react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card } from '@/components/ui/card';
-import { X, Home } from 'lucide-react';
-import WizardStep from './WizardStep';
-
-const US_STATES = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'];
-
-const PROPERTY_TYPES = ['SFR', 'Condo', 'Townhouse', 'PUD', '2-Unit', '3-Unit', '4-Unit', '5+ Unit', 'Mixed Use', 'Commercial'];
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import AddressAutocomplete from '../AddressAutocomplete';
+import { MapPin, X } from 'lucide-react';
 
 export default function Step2Property({ data, onChange, onNext, onPrev, isBlanket }) {
-  const [currentProperty, setCurrentProperty] = useState({});
+  const [currentProperty, setCurrentProperty] = useState({
+    address_street: '',
+    address_unit: '',
+    address_city: '',
+    address_state: '',
+    address_zip: '',
+    county: '',
+    property_type: '',
+    year_built: '',
+    sqft: '',
+    beds: '',
+    baths: '',
+  });
 
-  const addProperty = () => {
-    const errors = [];
-    if (!currentProperty.street) errors.push('Street address');
-    if (!currentProperty.city) errors.push('City');
-    if (!currentProperty.state) errors.push('State');
-    if (!currentProperty.zip) errors.push('ZIP code');
+  const propertyTypes = [
+    'SFR', 'PUD Detached', 'PUD Attached', 'Condo', 'Condo (Non-Warrantable)', 
+    '2-4 Units', 'Log Home', '5+ Units', 'Mixed Use (51% Residential)'
+  ];
+
+  const handleAddProperty = () => {
+    if (!currentProperty.address_street || !currentProperty.property_type) return;
     
-    if (errors.length > 0) {
-      alert(`Missing required fields: ${errors.join(', ')}`);
-      return;
-    }
-    const properties = [...(data.properties || []), { ...currentProperty, id: Date.now() }];
+    const properties = [...(data.properties || []), { 
+      ...currentProperty,
+      id: `prop_${Date.now()}`
+    }];
     onChange({ properties });
-    setCurrentProperty({});
+    
+    setCurrentProperty({
+      address_street: '',
+      address_unit: '',
+      address_city: '',
+      address_state: '',
+      address_zip: '',
+      county: '',
+      property_type: '',
+      year_built: '',
+      sqft: '',
+      beds: '',
+      baths: '',
+    });
   };
 
-  const removeProperty = (id) => {
-    onChange({ properties: data.properties.filter(p => p.id !== id) });
+  const handleRemoveProperty = (index) => {
+    const properties = data.properties.filter((_, i) => i !== index);
+    onChange({ properties });
   };
 
-  const isValidSingle = currentProperty.street && currentProperty.city && currentProperty.state && currentProperty.zip;
-  const isValidBlanket = (data.properties?.length || 0) >= 2;
-
-  const handlePropertyChange = (field, value) => {
-    const updated = { ...currentProperty, [field]: value };
-    if (field === 'propertyType') {
-      const unitMap = { 'SFR': 1, 'Condo': 1, 'Townhouse': 1, 'PUD': 1, '2-Unit': 2, '3-Unit': 3, '4-Unit': 4, '5+ Unit': 5 };
-      updated.unitCount = unitMap[value] || 1;
-    }
-    setCurrentProperty(updated);
-  };
+  const canProceed = data.properties?.length > 0;
 
   return (
-    <WizardStep
-      stepNumber={2}
-      title={isBlanket ? 'Add Properties' : 'Property Information'}
-      description={isBlanket ? 'Add at least 2 properties for blanket loan' : 'Enter property details'}
-      onNext={onNext}
-      onPrev={onPrev}
-      isValid={isBlanket ? isValidBlanket : isValidSingle}
-    >
-      <div className="space-y-6">
-        {/* Property Form */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label>Street Address *</Label>
-            <Input
-              placeholder="Enter street address"
-              value={currentProperty.street || ''}
-              onChange={(e) => handlePropertyChange('street', e.target.value)}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label>Unit/Apt</Label>
-            <Input
-              placeholder="Enter unit or apartment number"
-              value={currentProperty.unit || ''}
-              onChange={(e) => handlePropertyChange('unit', e.target.value)}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label>City *</Label>
-            <Input
-              placeholder="Enter city"
-              value={currentProperty.city || ''}
-              onChange={(e) => handlePropertyChange('city', e.target.value)}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label>State *</Label>
-            <Select value={currentProperty.state || ''} onValueChange={(v) => handlePropertyChange('state', v)}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {US_STATES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>ZIP Code *</Label>
-            <Input
-              placeholder="Enter 5-digit ZIP code"
-              value={currentProperty.zip || ''}
-              onChange={(e) => handlePropertyChange('zip', e.target.value)}
-              className="mt-1"
-              maxLength={5}
-            />
-          </div>
-          <div>
-            <Label>Property Type *</Label>
-            <Select value={currentProperty.propertyType || 'SFR'} onValueChange={(v) => handlePropertyChange('propertyType', v)}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {PROPERTY_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Year Built</Label>
-            <Input
-              type="number"
-              placeholder="Enter year built (optional)"
-              value={currentProperty.yearBuilt || ''}
-              onChange={(e) => handlePropertyChange('yearBuilt', e.target.value)}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label>Square Feet</Label>
-            <Input
-              type="number"
-              placeholder="Enter square footage (optional)"
-              value={currentProperty.squareFeet || ''}
-              onChange={(e) => handlePropertyChange('squareFeet', e.target.value)}
-              className="mt-1"
-            />
-          </div>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-start gap-4">
+        <div className="h-12 w-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-xl font-bold flex-shrink-0">
+          2
         </div>
-
-        {isBlanket && (
-          <Button onClick={addProperty} variant="outline" className="w-full" disabled={!isValidSingle}>
-            + Add Property
-          </Button>
-        )}
-
-        {/* Property List */}
-         {isBlanket && data.properties && data.properties.length > 0 && (
-           <div className="space-y-3">
-             <Label className="font-semibold">Added Properties ({data.properties.length})</Label>
-             {data.properties.map(prop => (
-               <Card key={prop.id} className="p-4">
-                 <div className="flex items-start gap-4">
-                   <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                     <Home className="h-5 w-5 text-blue-600" />
-                   </div>
-                   <div className="flex-1">
-                     <p className="font-medium text-gray-900">{prop.street}</p>
-                     <p className="text-sm text-gray-600">{prop.city}, {prop.state} {prop.zip}</p>
-                     {prop.propertyType && (
-                       <p className="text-xs text-gray-500 mt-1">{prop.propertyType}</p>
-                     )}
-                   </div>
-                   <button onClick={() => removeProperty(prop.id)} className="text-red-500 hover:text-red-700 flex-shrink-0 mt-1">
-                     <X className="h-5 w-5" />
-                   </button>
-                 </div>
-               </Card>
-             ))}
-           </div>
-         )}
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Property Information</h2>
+          <p className="text-gray-600 mt-1">Enter property details</p>
+        </div>
       </div>
-    </WizardStep>
+
+      {/* Content */}
+      <Card className="border-gray-200 shadow-sm">
+        <CardContent className="pt-6 space-y-6">
+          {/* Address */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="md:col-span-3 space-y-2">
+              <Label className="text-gray-700">Street Address *</Label>
+              <AddressAutocomplete 
+                value={currentProperty.address_street}
+                onChange={(val) => setCurrentProperty({ ...currentProperty, address_street: val })}
+                onAddressParsed={(parsed) => {
+                  setCurrentProperty({ 
+                    ...currentProperty, 
+                    address_street: parsed.street,
+                    address_city: parsed.city,
+                    address_state: parsed.state,
+                    address_zip: parsed.zip,
+                    county: parsed.county || '',
+                  });
+                }}
+                placeholder="Enter street address"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-700">Unit/Apt</Label>
+              <Input
+                placeholder="Enter unit or apartment number"
+                value={currentProperty.address_unit}
+                onChange={(e) => setCurrentProperty({ ...currentProperty, address_unit: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label className="text-gray-700">City *</Label>
+              <Input
+                placeholder="Enter city"
+                value={currentProperty.address_city}
+                onChange={(e) => setCurrentProperty({ ...currentProperty, address_city: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-700">State *</Label>
+              <Input
+                placeholder="Enter state"
+                value={currentProperty.address_state}
+                onChange={(e) => setCurrentProperty({ ...currentProperty, address_state: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-700">ZIP Code *</Label>
+              <Input
+                placeholder="Enter 5-digit ZIP code"
+                value={currentProperty.address_zip}
+                onChange={(e) => setCurrentProperty({ ...currentProperty, address_zip: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-gray-700">Property Type *</Label>
+              <Select
+                value={currentProperty.property_type}
+                onValueChange={(v) => setCurrentProperty({ ...currentProperty, property_type: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {propertyTypes.map((type) => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-700">Year Built</Label>
+              <Input
+                type="number"
+                placeholder="Enter year built (optional)"
+                value={currentProperty.year_built}
+                onChange={(e) => setCurrentProperty({ ...currentProperty, year_built: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-gray-700">Square Feet</Label>
+              <Input
+                type="number"
+                placeholder="Enter square footage (optional)"
+                value={currentProperty.sqft}
+                onChange={(e) => setCurrentProperty({ ...currentProperty, sqft: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <Button
+            onClick={handleAddProperty}
+            disabled={!currentProperty.address_street || !currentProperty.property_type}
+            className="w-full md:w-auto bg-blue-600 hover:bg-blue-700"
+          >
+            {data.properties?.length > 0 ? '+ Add Another Property' : '+ Add Property'}
+          </Button>
+
+          {/* Added Properties */}
+          {data.properties?.length > 0 && (
+            <div className="space-y-3 pt-4 border-t">
+              <h3 className="font-medium text-gray-900">Added Properties ({data.properties.length})</h3>
+              {data.properties.map((prop, idx) => (
+                <div key={idx} className="flex items-start justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex gap-3">
+                    <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-gray-900">{prop.address_street}</p>
+                      <p className="text-sm text-gray-600">
+                        {prop.address_city}, {prop.address_state} {prop.address_zip}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">{prop.property_type}</p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleRemoveProperty(idx)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Navigation */}
+      <div className="flex justify-between pt-4">
+        <Button variant="outline" onClick={onPrev}>
+          ← Previous
+        </Button>
+        <Button 
+          onClick={onNext} 
+          disabled={!canProceed}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          Next →
+        </Button>
+      </div>
+    </div>
   );
 }
