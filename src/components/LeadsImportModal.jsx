@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function LeadsImportModal({ trigger, onImportComplete }) {
   const [step, setStep] = useState(1);
@@ -37,7 +38,7 @@ export default function LeadsImportModal({ trigger, onImportComplete }) {
       setStep(2);
     },
     onError: (error) => {
-      alert('Preview failed: ' + error.message);
+      toast.error('Preview failed: ' + error.message);
     }
   });
 
@@ -53,13 +54,14 @@ export default function LeadsImportModal({ trigger, onImportComplete }) {
     },
     onSuccess: (data) => {
       setStep(3);
+      toast.success(`Successfully imported ${data?.imported_count || 0} leads`);
       setTimeout(() => {
         setIsOpen(false);
         onImportComplete?.();
       }, 2000);
     },
     onError: (error) => {
-      alert('Import failed: ' + error.message);
+      toast.error('Import failed: ' + error.message);
     }
   });
 
