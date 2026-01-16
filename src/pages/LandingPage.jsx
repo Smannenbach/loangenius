@@ -2,6 +2,11 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { base44 } from '@/api/base44Client';
+import { toast } from 'sonner';
 import {
   Zap,
   Brain,
@@ -17,10 +22,74 @@ import {
   MessageSquare,
   Star,
   ChevronRight,
+  Loader2,
 } from 'lucide-react';
 
 export default function LandingPage() {
   const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showContactDialog, setShowContactDialog] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState('');
+  const [contactForm, setContactForm] = useState({
+    name: '',
+    email: '',
+    company: '',
+    phone: '',
+    message: ''
+  });
+
+  const handleTrialSignup = async (planName = 'Trial') => {
+    if (!email) {
+      toast.error('Please enter your email address');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      // Create lead for trial signup
+      await base44.integrations.Core.SendEmail({
+        to: 'sales@loangenius.ai',
+        subject: `New Trial Signup: ${planName}`,
+        body: `New trial signup request:\n\nEmail: ${email}\nPlan: ${planName}\nDate: ${new Date().toLocaleString()}`
+      });
+      setSelectedPlan(planName);
+      setShowSuccessDialog(true);
+      setEmail('');
+    } catch (error) {
+      toast.error('Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleGetStarted = (planName) => {
+    if (planName === 'Enterprise') {
+      setSelectedPlan(planName);
+      setShowContactDialog(true);
+    } else {
+      setSelectedPlan(planName);
+      setShowSuccessDialog(true);
+    }
+  };
+
+  const handleContactSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await base44.integrations.Core.SendEmail({
+        to: 'sales@loangenius.ai',
+        subject: `Enterprise Inquiry from ${contactForm.name}`,
+        body: `New enterprise inquiry:\n\nName: ${contactForm.name}\nEmail: ${contactForm.email}\nCompany: ${contactForm.company}\nPhone: ${contactForm.phone}\n\nMessage:\n${contactForm.message}`
+      });
+      setShowContactDialog(false);
+      toast.success('Thank you! Our team will contact you within 24 hours.');
+      setContactForm({ name: '', email: '', company: '', phone: '', message: '' });
+    } catch (error) {
+      toast.error('Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const features = [
     {
@@ -148,7 +217,10 @@ export default function LandingPage() {
               <a href="#testimonials" className="text-slate-300 hover:text-white transition">Testimonials</a>
               <a href="#pricing" className="text-slate-300 hover:text-white transition">Pricing</a>
               <a href="https://app.loangenius.ai" className="text-slate-300 hover:text-white transition">Sign In</a>
-              <Button className="bg-blue-600 hover:bg-blue-500">
+              <Button 
+                className="bg-blue-600 hover:bg-blue-500"
+                onClick={() => window.location.href = 'https://app.loangenius.ai'}
+              >
                 Start Free Trial
               </Button>
             </div>
@@ -179,8 +251,12 @@ export default function LandingPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="bg-slate-800 border-slate-700 text-white placeholder-slate-500 w-64"
               />
-              <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
-                Start Free Trial <ArrowRight className="h-4 w-4" />
+              <Button 
+                className="bg-blue-600 hover:bg-blue-500 gap-2"
+                onClick={() => handleTrialSignup('Free Trial')}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Start Free Trial <ArrowRight className="h-4 w-4" /></>}
               </Button>
             </div>
           </div>
@@ -272,8 +348,11 @@ export default function LandingPage() {
                     <span className="text-5xl font-bold text-white">{plan.price}</span>
                     <span className="text-slate-400">{plan.period}</span>
                   </div>
-                  <Button className={`w-full mb-6 ${plan.popular ? 'bg-blue-600 hover:bg-blue-500' : 'bg-slate-700 hover:bg-slate-600'}`}>
-                    Get Started
+                  <Button 
+                    className={`w-full mb-6 ${plan.popular ? 'bg-blue-600 hover:bg-blue-500' : 'bg-slate-700 hover:bg-slate-600'}`}
+                    onClick={() => handleGetStarted(plan.name)}
+                  >
+                    {plan.name === 'Enterprise' ? 'Contact Sales' : 'Get Started'}
                   </Button>
                   <ul className="space-y-3">
                     {plan.features.map((feature, i) => (
@@ -297,7 +376,11 @@ export default function LandingPage() {
             <CardContent className="p-12">
               <h2 className="text-4xl font-bold text-white mb-4">Ready to Transform Your Business?</h2>
               <p className="text-blue-100 text-lg mb-8">Join thousands of loan professionals already using LoanGenius</p>
-              <Button size="lg" className="bg-white text-blue-600 hover:bg-slate-100 gap-2">
+              <Button 
+                size="lg" 
+                className="bg-white text-blue-600 hover:bg-slate-100 gap-2"
+                onClick={() => window.location.href = 'https://app.loangenius.ai'}
+              >
                 Start Your Free Trial <ChevronRight className="h-5 w-5" />
               </Button>
             </CardContent>
@@ -348,6 +431,97 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* Contact Dialog */}
+      <Dialog open={showContactDialog} onOpenChange={setShowContactDialog}>
+        <DialogContent className="bg-slate-800 border-slate-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Contact Our Enterprise Team</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Tell us about your needs and we'll create a custom solution for you.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleContactSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-slate-300">Name</Label>
+                <Input
+                  required
+                  value={contactForm.name}
+                  onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+              <div>
+                <Label className="text-slate-300">Email</Label>
+                <Input
+                  type="email"
+                  required
+                  value={contactForm.email}
+                  onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-slate-300">Company</Label>
+                <Input
+                  required
+                  value={contactForm.company}
+                  onChange={(e) => setContactForm({ ...contactForm, company: e.target.value })}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+              <div>
+                <Label className="text-slate-300">Phone</Label>
+                <Input
+                  value={contactForm.phone}
+                  onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-slate-300">Message</Label>
+              <Textarea
+                required
+                placeholder="Tell us about your loan volume, team size, and specific needs..."
+                value={contactForm.message}
+                onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                className="bg-slate-700 border-slate-600 text-white min-h-24"
+              />
+            </div>
+            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-500" disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Submit Inquiry
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Dialog */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="bg-slate-800 border-slate-700 text-white text-center">
+          <div className="py-6">
+            <div className="h-16 w-16 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="h-8 w-8 text-green-400" />
+            </div>
+            <DialogTitle className="text-2xl mb-2">You're Almost There!</DialogTitle>
+            <DialogDescription className="text-slate-400 mb-6">
+              {selectedPlan === 'Free Trial' 
+                ? "We've received your signup request. Click below to create your account and start your 14-day free trial."
+                : `Great choice! Click below to start your ${selectedPlan} plan with a 14-day free trial.`}
+            </DialogDescription>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-500 w-full"
+              onClick={() => window.location.href = 'https://app.loangenius.ai'}
+            >
+              Create Your Account <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
