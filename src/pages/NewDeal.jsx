@@ -113,18 +113,7 @@ export default function NewDeal() {
 
   const createDealMutation = useMutation({
     mutationFn: async () => {
-      const user = await base44.auth.me();
-      
-      // Get org from membership if not on user
-      let orgId = user?.org_id;
-      if (!orgId) {
-        try {
-          const memberships = await base44.entities.OrgMembership.filter({ user_id: user?.email });
-          orgId = memberships[0]?.org_id || 'default';
-        } catch {
-          orgId = 'default';
-        }
-      }
+      const effectiveOrgId = orgId || 'default';
 
       if (!borrowers.length) {
         throw new Error('Please add at least one borrower');
