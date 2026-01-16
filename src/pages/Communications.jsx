@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -31,7 +32,9 @@ import {
   Clock,
   CheckCircle2,
   User,
+  Loader2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function Communications() {
   const queryClient = useQueryClient();
@@ -51,23 +54,50 @@ export default function Communications() {
 
   const sendMutation = useMutation({
     mutationFn: async (data) => {
-      return await base44.functions.invoke('sendCommunication', {
-        channel: data.channel,
-        to: data.to,
-        subject: data.subject,
-        body: data.body,
-      });
+      // Try backend function first, fallback to direct integration
+      try {
+        return await base44.functions.invoke('sendCommunication', {
+          channel: data.channel,
+          to: data.to,
+          subject: data.subject,
+          body: data.body,
+        });
+      } catch (e) {
+        // Fallback: use Core.SendEmail for emails
+        if (data.channel === 'email') {
+          await base44.integrations.Core.SendEmail({
+            to: data.to,
+            subject: data.subject || 'Message from LoanGenius',
+            body: data.body
+          });
+          // Log it manually
+          await base44.entities.CommunicationsLog.create({
+            channel: 'email',
+            to: data.to,
+            subject: data.subject,
+            body: data.body,
+            status: 'sent',
+            direction: 'outbound'
+          });
+          return { success: true };
+        }
+        throw e;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['communications'] });
       setMessage({ to: '', subject: '', body: '' });
       setIsOpen(false);
+      toast.success('Message sent successfully!');
     },
+    onError: (error) => {
+      toast.error('Failed to send: ' + error.message);
+    }
   });
 
   const handleSend = () => {
     if (!message.to || !message.body) {
-      alert('Please fill in recipient and message');
+      toast.error('Please fill in recipient and message');
       return;
     }
     sendMutation.mutate({
@@ -152,21 +182,31 @@ export default function Communications() {
               )}
               <div>
                 <Label>Message</Label>
-                <textarea
+                <Textarea
                   value={message.body}
                   onChange={(e) => setMessage({...message, body: e.target.value})}
                   placeholder="Type your message..."
-                  className="w-full h-32 p-2 border rounded-lg text-sm"
+                  rows={5}
                 />
               </div>
               <div className="flex gap-3">
                 <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
                 <Button 
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 gap-2"
                   onClick={handleSend}
-                  disabled={sendMutation.isPending}
+                  disabled={sendMutation.isPending || !message.to || !message.body}
                 >
-                  {sendMutation.isPending ? 'Sending...' : 'Send'}
+                  {sendMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      Send
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
