@@ -800,9 +800,43 @@ export default function Leads() {
         </Card>
       </div>
 
-      {/* Import */}
-      <div className="mb-6">
-        <LeadsImportModal onImportComplete={() => queryClient.invalidateQueries({ queryKey: ['leads'] })} />
+      {/* Quick Actions */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        <LeadsImportModal 
+          trigger={<Button variant="outline" className="gap-2"><Upload className="h-4 w-4" />Import from Google Sheets</Button>}
+          onImportComplete={() => queryClient.invalidateQueries({ queryKey: ['leads'] })} 
+        />
+        <Button 
+          variant="outline" 
+          className="gap-2"
+          onClick={() => {
+            const csvContent = [
+              ['First Name', 'Last Name', 'Email', 'Phone', 'Status', 'Loan Type', 'Loan Amount', 'Property City', 'Property State'].join(','),
+              ...leads.map(l => [
+                l.first_name || '',
+                l.last_name || '',
+                l.home_email || '',
+                l.mobile_phone || '',
+                l.status || '',
+                l.loan_type || '',
+                l.loan_amount || '',
+                l.property_city || '',
+                l.property_state || ''
+              ].join(','))
+            ].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'leads-export.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+            toast.success('Leads exported to CSV');
+          }}
+        >
+          <Download className="h-4 w-4" />
+          Export CSV
+        </Button>
       </div>
 
       {/* Filters & Controls */}
