@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Plus, TrendingUp, Users, FileText, DollarSign, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
@@ -173,6 +174,74 @@ export default function Dashboard() {
           trend={fundedDeals.length > 0 ? 'up' : undefined}
           isLoading={kpisLoading}
         />
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <Link to={createPageUrl('Leads')} className="block">
+          <Card className="hover:border-blue-300 hover:shadow-md transition-all cursor-pointer h-full">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">Leads</p>
+                  <p className="text-xs text-gray-500">View pipeline</p>
+                </div>
+                <ArrowRight className="h-4 w-4 text-gray-400 ml-auto" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to={createPageUrl('Pipeline')} className="block">
+          <Card className="hover:border-green-300 hover:shadow-md transition-all cursor-pointer h-full">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">Pipeline</p>
+                  <p className="text-xs text-gray-500">Track deals</p>
+                </div>
+                <ArrowRight className="h-4 w-4 text-gray-400 ml-auto" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to={createPageUrl('QuoteGenerator')} className="block">
+          <Card className="hover:border-purple-300 hover:shadow-md transition-all cursor-pointer h-full">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">Quotes</p>
+                  <p className="text-xs text-gray-500">Generate quote</p>
+                </div>
+                <ArrowRight className="h-4 w-4 text-gray-400 ml-auto" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to={createPageUrl('BusinessPurposeApplication')} className="block">
+          <Card className="hover:border-orange-300 hover:shadow-md transition-all cursor-pointer h-full">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                  <DollarSign className="h-5 w-5 text-orange-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">New App</p>
+                  <p className="text-xs text-gray-500">Business purpose</p>
+                </div>
+                <ArrowRight className="h-4 w-4 text-gray-400 ml-auto" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Main Content Grid */}
