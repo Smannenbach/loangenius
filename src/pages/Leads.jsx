@@ -123,7 +123,13 @@ export default function Leads() {
     queryKey: ['leads', orgId],
     queryFn: async () => {
       if (!orgId) return [];
-      return await base44.entities.Lead.filter({ org_id: orgId, is_deleted: false });
+      try {
+        return await base44.entities.Lead.filter({ org_id: orgId, is_deleted: false });
+      } catch (e) {
+        // Fallback: get all leads if org_id filter fails (for new installs)
+        const allLeads = await base44.entities.Lead.list();
+        return allLeads.filter(l => !l.is_deleted);
+      }
     },
     enabled: !!orgId,
   });

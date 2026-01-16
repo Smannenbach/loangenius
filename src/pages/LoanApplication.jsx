@@ -135,8 +135,19 @@ export default function LoanApplication() {
   };
 
   const canProceed = () => {
-    const requiredFields = step.fields;
-    return requiredFields.every(field => formData[field]);
+    // Allow proceeding without all fields filled (optional fields)
+    // Only truly required fields should be checked per step
+    if (step.id === 'loan-type') {
+      return formData.loan_product && formData.loan_purpose;
+    }
+    if (step.id === 'borrower') {
+      return formData.first_name && formData.last_name;
+    }
+    if (step.id === 'consents') {
+      return formData.credit_check && formData.disclosures && formData.privacy;
+    }
+    // For other steps, allow proceeding
+    return true;
   };
 
   const renderStepContent = () => {
@@ -664,7 +675,42 @@ export default function LoanApplication() {
           {currentStep === steps.length - 1 ? (
             <Button
               className="ml-auto gap-2 bg-green-600 hover:bg-green-700 h-11 px-8"
-              onClick={() => alert('Application submitted!')}
+              onClick={async () => {
+                try {
+                  const user = await base44.auth.me();
+                  // Get org membership
+                  const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
+                  const orgId = memberships[0]?.org_id || user?.org_id || 'default';
+                  
+                  // Create a deal from the application
+                  const deal = await base44.entities.Deal.create({
+                    org_id: orgId,
+                    loan_product: formData.loan_product || 'DSCR',
+                    loan_purpose: formData.loan_purpose || 'Purchase',
+                    loan_amount: parseFloat(formData.loan_amount) || 0,
+                    interest_rate: parseFloat(formData.interest_rate) || 0,
+                    loan_term_months: parseInt(formData.loan_term_months) || 360,
+                    stage: 'application',
+                    status: 'active'
+                  });
+                  
+                  // Create borrower
+                  if (formData.first_name && formData.last_name) {
+                    await base44.entities.Borrower.create({
+                      org_id: orgId,
+                      first_name: formData.first_name,
+                      last_name: formData.last_name,
+                      email: formData.email || '',
+                      phone: formData.phone || ''
+                    });
+                  }
+                  
+                  alert('Application submitted successfully! Deal created.');
+                  window.location.href = `/Pipeline`;
+                } catch (error) {
+                  alert('Error submitting application: ' + error.message);
+                }
+              }}
             >
               <Check className="h-4 w-4" />
               Submit Application

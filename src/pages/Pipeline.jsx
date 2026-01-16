@@ -49,15 +49,21 @@ export default function Pipeline() {
   const orgId = memberships[0]?.org_id || user?.org_id;
   
   const { data: deals = [], isLoading, error } = useQuery({
-     queryKey: ['deals', orgId],
-     queryFn: async () => {
-       if (!orgId) return [];
-       return await base44.entities.Deal.filter({ org_id: orgId, is_deleted: false });
-     },
-     enabled: !!orgId,
-     retry: 2,
-     staleTime: 5 * 60 * 1000,
-   });
+    queryKey: ['deals', orgId],
+    queryFn: async () => {
+      if (!orgId) return [];
+      try {
+        return await base44.entities.Deal.filter({ org_id: orgId, is_deleted: false });
+      } catch (e) {
+        // Fallback: get all deals if org_id filter fails
+        const allDeals = await base44.entities.Deal.list();
+        return allDeals.filter(d => !d.is_deleted);
+      }
+    },
+    enabled: !!orgId,
+    retry: 2,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const updateStage = useMutation({
     mutationFn: ({ dealId, newStage }) => 

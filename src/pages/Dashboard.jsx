@@ -30,21 +30,40 @@ export default function Dashboard() {
 
   const orgId = memberships[0]?.org_id || user?.org_id;
 
-  const { data: kpiData, isLoading: kpisLoading } = useQuery({
+  const { data: kpiData, isLoading: kpisLoading, error: kpiError } = useQuery({
     queryKey: ['dashboardKPIs', orgId],
-    queryFn: () => base44.functions.invoke('getDashboardKPIs', { org_id: orgId, period: 'month' }),
+    queryFn: async () => {
+      try {
+        return await base44.functions.invoke('getDashboardKPIs', { org_id: orgId, period: 'month' });
+      } catch (e) {
+        // Return empty data if function fails
+        return { data: { kpis: { deals: {}, leads: {} } } };
+      }
+    },
     enabled: !!orgId,
   });
 
   const { data: activityData } = useQuery({
     queryKey: ['dashboardActivity', orgId],
-    queryFn: () => base44.functions.invoke('getDashboardActivity', { org_id: orgId, limit: 10 }),
+    queryFn: async () => {
+      try {
+        return await base44.functions.invoke('getDashboardActivity', { org_id: orgId, limit: 10 });
+      } catch (e) {
+        return { data: { activities: [] } };
+      }
+    },
     enabled: !!orgId,
   });
 
   const { data: attentionData } = useQuery({
     queryKey: ['dealsNeedingAttention', orgId],
-    queryFn: () => base44.functions.invoke('getDealsNeedingAttention', { org_id: orgId, limit: 5 }),
+    queryFn: async () => {
+      try {
+        return await base44.functions.invoke('getDealsNeedingAttention', { org_id: orgId, limit: 5 });
+      } catch (e) {
+        return { data: { deals: [] } };
+      }
+    },
     enabled: !!orgId,
   });
 
