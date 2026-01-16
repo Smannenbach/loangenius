@@ -51,16 +51,24 @@ export default function Pipeline() {
   const { data: deals = [], isLoading, error } = useQuery({
     queryKey: ['deals', orgId],
     queryFn: async () => {
-      if (!orgId) return [];
       try {
-        return await base44.entities.Deal.filter({ org_id: orgId, is_deleted: false });
-      } catch (e) {
-        // Fallback: get all deals if org_id filter fails
+        if (orgId) {
+          return await base44.entities.Deal.filter({ org_id: orgId, is_deleted: false });
+        }
+        // Fallback: get all deals if no org_id
         const allDeals = await base44.entities.Deal.list();
         return allDeals.filter(d => !d.is_deleted);
+      } catch (e) {
+        // Fallback: get all deals if org_id filter fails
+        try {
+          const allDeals = await base44.entities.Deal.list();
+          return allDeals.filter(d => !d.is_deleted);
+        } catch {
+          return [];
+        }
       }
     },
-    enabled: !!orgId,
+    enabled: true,
     retry: 2,
     staleTime: 5 * 60 * 1000,
   });
