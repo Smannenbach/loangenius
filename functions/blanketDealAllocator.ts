@@ -3,10 +3,12 @@
  * Distributes loan amount across properties and recalculates metrics
  */
 
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+
 /**
  * Allocate loan amount across properties (even split by default, or custom)
  */
-export function allocateLoanAmount(loanAmount, properties, allocations = null) {
+function allocateLoanAmount(loanAmount, properties, allocations = null) {
   if (!properties || properties.length === 0) return [];
 
   // If allocations provided, validate and use them
@@ -31,7 +33,7 @@ export function allocateLoanAmount(loanAmount, properties, allocations = null) {
 /**
  * Calculate metrics for each property in blanket deal
  */
-export function calculatePropertyMetrics(property, allocatedAmount, loanTermMonths, interestRate) {
+function calculatePropertyMetrics(property, allocatedAmount, loanTermMonths, interestRate) {
   if (!property || !allocatedAmount) {
     return {
       ltv_ratio: 0,
@@ -72,7 +74,7 @@ export function calculatePropertyMetrics(property, allocatedAmount, loanTermMont
 /**
  * Calculate aggregate blanket deal metrics
  */
-export function calculateBlanketMetrics(properties, allocations, loanTermMonths, interestRate) {
+function calculateBlanketMetrics(properties, allocations, loanTermMonths, interestRate) {
   if (!properties || !allocations || properties.length !== allocations.length) {
     return {
       dscr: 0,
@@ -117,3 +119,86 @@ export function calculateBlanketMetrics(properties, allocations, loanTermMonths,
     property_breakdowns: breakdowns
   };
 }
+
+// HTTP handler
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const { deal_id, allocations: customAllocations } = body;
+
+    if (!deal_id) {
+      return Response.json({ error: 'Missing deal_id' }, { status: 400 });
+    }
+
+    // Get deal
+    const deal = await base44.entities.Deal.get(deal_id);
+    if (!deal) {
+      return Response.json({ error: 'Deal not found' }, { status: 404 });
+    }
+
+    // Get properties for deal
+    const dealProperties = await base44.asServiceRole.entities.DealProperty.filter({ deal_id });
+    const propertyIds = dealProperties.map(dp => dp.property_id);
+    
+    const properties = [];
+    for (const pid of propertyIds) {
+      const prop = await base44.asServiceRole.entities.Property.get(pid);
+      if (prop) properties.push(prop);
+    }
+
+    if (properties.length === 0) {
+      return Response.json({ error: 'No properties found for deal' }, { status: 400 });
+    }
+
+    // Allocate
+    const allocatedProperties = allocateLoanAmount(
+      deal.loan_amount || 0,
+      properties,
+      customAllocations
+    );
+
+    const allocationAmounts = allocatedProperties.map(p => p.loan_amount_allocated);
+
+    // Calculate blanket metrics
+    const blanketMetrics = calculateBlanketMetrics(
+      allocatedProperties,
+      allocationAmounts,
+      deal.loan_term_months || 360,
+      deal.interest_rate || 7.5
+    );
+
+    // Update deal with aggregate metrics
+    await base44.entities.Deal.update(deal_id, {
+      dscr: blanketMetrics.dscr,
+      ltv: blanketMetrics.ltv,
+      monthly_pitia: blanketMetrics.monthly_pitia,
+      meta_json: {
+        ...deal.meta_json,
+        blanket_breakdown: blanketMetrics.property_breakdowns
+      }
+    });
+
+    return Response.json({
+      success: true,
+      deal_id,
+      property_count: properties.length,
+      aggregate_metrics: {
+        dscr: blanketMetrics.dscr,
+        ltv: blanketMetrics.ltv,
+        monthly_pitia: blanketMetrics.monthly_pitia,
+        monthly_pi: blanketMetrics.monthly_pi
+      },
+      property_breakdowns: blanketMetrics.property_breakdowns
+    });
+  } catch (error) {
+    console.error('Error in blanketDealAllocator:', error);
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+});
