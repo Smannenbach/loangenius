@@ -178,9 +178,16 @@ Deno.serve(async (req) => {
       items: [],
     };
 
-    if (dealBorrowers.length > 0 && borrower?.email) {
+    // Get borrower email if we found a borrower
+    let borrowerEmail = null;
+    if (dealBorrowers.length > 0) {
+      const borrowerRecord = await base44.asServiceRole.entities.Borrower.get(dealBorrowers[0].borrower_id);
+      borrowerEmail = borrowerRecord?.email;
+    }
+
+    if (borrowerEmail) {
       const consentRecords = await base44.asServiceRole.entities.ConsentRecord.filter({
-        contact_email: borrower.email,
+        contact_email: borrowerEmail,
       });
 
       const hasEmailConsent = consentRecords.some(c => c.consent_type === 'email' && c.status === 'opt_in');

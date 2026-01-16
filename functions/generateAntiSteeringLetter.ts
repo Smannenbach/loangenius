@@ -15,10 +15,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { deal_id, org_id, lender_name = 'LoanGenius' } = await req.json();
+    const { deal_id, org_id: provided_org_id, lender_name = 'LoanGenius' } = await req.json();
 
-    if (!deal_id || !org_id) {
-      return Response.json({ error: 'Missing deal_id or org_id' }, { status: 400 });
+    if (!deal_id) {
+      return Response.json({ error: 'Missing deal_id' }, { status: 400 });
     }
 
     // Fetch deal + borrower
