@@ -29,6 +29,7 @@ import {
   MoreVertical,
   UserPlus,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -91,9 +92,11 @@ export default function UsersPage() {
       setIsInviteOpen(false);
       setInviteData({ email: '', role: 'loan_officer' });
       queryClient.invalidateQueries({ queryKey: ['orgMemberships'] });
+      toast.success('Invitation sent successfully!');
     },
     onError: (error) => {
       console.error('Error sending invitation:', error.message);
+      toast.error('Failed to send invitation: ' + error.message);
     },
   });
 
