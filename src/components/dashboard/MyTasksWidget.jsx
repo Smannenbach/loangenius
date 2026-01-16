@@ -1,9 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { createPageUrl } from '@/utils';
-import { CheckCircle2, Circle, Calendar, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { CheckCircle2, Circle, Calendar } from 'lucide-react';
 
 export default function MyTasksWidget({ orgId }) {
   const { data: tasks = [], isLoading } = useQuery({
@@ -12,12 +10,10 @@ export default function MyTasksWidget({ orgId }) {
       if (!orgId) return [];
       try {
         const allTasks = await base44.entities.Task.filter({ org_id: orgId });
-        // Return only pending/in_progress tasks, limit to 5
         return allTasks
           .filter(t => t.status === 'pending' || t.status === 'in_progress')
           .slice(0, 5);
       } catch (e) {
-        // Fallback: get all tasks if filter fails
         const allTasks = await base44.entities.Task.list();
         return allTasks
           .filter(t => t.status === 'pending' || t.status === 'in_progress')
@@ -53,9 +49,6 @@ export default function MyTasksWidget({ orgId }) {
     <div className="bg-white rounded-lg border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold">My Tasks</h3>
-        <Button variant="ghost" size="sm" className="text-blue-600" onClick={() => window.location.href = createPageUrl('Tasks')}>
-          View All
-        </Button>
       </div>
       
       {tasks.length === 0 ? (
