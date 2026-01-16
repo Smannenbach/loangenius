@@ -100,6 +100,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Users', href: '/Users', icon: Users },
     { name: 'Lenders', href: '/Lenders', icon: Building },
     { name: 'Reports', href: '/Reports', icon: FileText },
+    { name: 'MISMO Profiles', href: '/MISMOExportProfiles', icon: FileOutput },
     { name: 'Integrations', href: '/AdminIntegrations', icon: Settings },
     { name: 'Settings', href: '/Settings', icon: Settings },
   ];
