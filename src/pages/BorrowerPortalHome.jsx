@@ -231,11 +231,35 @@ export default function BorrowerPortalHome() {
                 
                 <div className="mt-6 pt-6 border-t">
                   <textarea
+                    id="message-input"
                     placeholder="Type a message..."
                     className="w-full p-3 border rounded-lg text-sm"
                     rows="3"
                   />
-                  <Button className="mt-3 bg-blue-600">Send Message</Button>
+                  <Button 
+                    className="mt-3 bg-blue-600"
+                    onClick={async () => {
+                      const messageInput = document.getElementById('message-input');
+                      const message = messageInput.value.trim();
+                      if (!message) {
+                        alert('Please enter a message');
+                        return;
+                      }
+                      try {
+                        await base44.functions.invoke('portalSecureMessagingHelper', {
+                          action: 'send',
+                          deal_id: dealId,
+                          message: message
+                        });
+                        messageInput.value = '';
+                        alert('Message sent successfully!');
+                      } catch (error) {
+                        alert('Error sending message: ' + error.message);
+                      }
+                    }}
+                  >
+                    Send Message
+                  </Button>
                 </div>
               </CardContent>
             </Card>
