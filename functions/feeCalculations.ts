@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-export async function calculateFeeAmount(req, feeCatalogId, dealId) {
+async function calculateFeeAmount(base44, feeCatalogId, dealId) {
   const base44 = createClientFromRequest(req);
   
   try {
@@ -64,15 +64,8 @@ export async function calculateFeeAmount(req, feeCatalogId, dealId) {
   }
 }
 
-export async function generateFeesForLoan(req, dealId) {
-  const base44 = createClientFromRequest(req);
-
+async function generateFeesForLoan(base44, dealId) {
   try {
-    const user = await base44.auth.me();
-    if (!user) {
-      return { error: 'Unauthorized', status: 401 };
-    }
-
     // Get deal
     const deals = await base44.entities.Deal.filter({ id: dealId });
     if (!deals[0]) {
@@ -97,7 +90,7 @@ export async function generateFeesForLoan(req, dealId) {
     // Create fees for each applicable catalog entry
     const createdFees = [];
     for (const feeCatalog of applicableFees) {
-      const { amount, fee_name, fee_category, paid_by, is_financed, is_poc, hud_line } = await calculateFeeAmount(req, feeCatalog.id, dealId);
+      const { amount, fee_name, fee_category, paid_by, is_financed, is_poc, hud_line } = await calculateFeeAmount(base44, feeCatalog.id, dealId);
 
       const feeData = {
         deal_id: dealId,
@@ -125,3 +118,40 @@ export async function generateFeesForLoan(req, dealId) {
     return { error: error.message, status: 500 };
   }
 }
+
+// HTTP handler
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const { action, deal_id, fee_catalog_id } = body;
+
+    if (!deal_id) {
+      return Response.json({ error: 'Missing deal_id' }, { status: 400 });
+    }
+
+    let result;
+
+    if (action === 'calculate' && fee_catalog_id) {
+      result = await calculateFeeAmount(base44, fee_catalog_id, deal_id);
+    } else if (action === 'generate' || !action) {
+      result = await generateFeesForLoan(base44, deal_id);
+    } else {
+      return Response.json({ error: 'Invalid action. Use: calculate or generate' }, { status: 400 });
+    }
+
+    if (result.error) {
+      return Response.json({ error: result.error }, { status: result.status || 500 });
+    }
+
+    return Response.json(result);
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+});

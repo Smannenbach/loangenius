@@ -3,7 +3,25 @@
  */
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { logAudit } from './auditLogHelper.js';
+
+// Inline audit logger
+async function logAudit(base44, data) {
+  try {
+    await base44.asServiceRole.entities.AuditLog.create({
+      org_id: data.metadata?.org_id || 'default',
+      user_id: data.metadata?.user_id,
+      action_type: data.action_type || 'Update',
+      entity_type: data.entity_type,
+      entity_id: data.entity_id,
+      parent_entity_type: 'Deal',
+      parent_entity_id: data.metadata?.deal_id,
+      description: data.description,
+      severity: data.severity || 'Info'
+    });
+  } catch (e) {
+    console.log('Audit log failed:', e.message);
+  }
+}
 
 Deno.serve(async (req) => {
   try {
@@ -16,21 +34,28 @@ Deno.serve(async (req) => {
 
     const { action, deal_id, org_id, fee_data } = await req.json();
 
-    if (!action || !deal_id || !org_id) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!action || !deal_id) {
+      return Response.json({ error: 'Missing required fields (action, deal_id)' }, { status: 400 });
+    }
+
+    // Get org_id from deal if not provided
+    let orgId = org_id;
+    if (!orgId) {
+      const deal = await base44.entities.Deal.get(deal_id);
+      orgId = deal?.org_id || 'default';
     }
 
     let result;
 
     switch (action) {
       case 'create':
-        result = await createDealFee(base44, org_id, deal_id, fee_data, user);
+        result = await createDealFee(base44, orgId, deal_id, fee_data || {}, user);
         break;
       case 'update':
-        result = await updateDealFee(base44, org_id, deal_id, fee_data, user);
+        result = await updateDealFee(base44, orgId, deal_id, fee_data || {}, user);
         break;
       case 'delete':
-        result = await deleteDealFee(base44, org_id, fee_data.fee_id, user);
+        result = await deleteDealFee(base44, orgId, fee_data?.fee_id, user);
         break;
       case 'list':
         result = await listDealFees(base44, deal_id);
