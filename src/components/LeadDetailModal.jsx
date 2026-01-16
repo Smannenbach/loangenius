@@ -82,14 +82,76 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
 
   const convertMutation = useMutation({
     mutationFn: async () => {
-      return await base44.functions.invoke('convertLeadToLoanApp', {
-        lead_id: lead.id,
-      });
+      try {
+        // Try the function first
+        return await base44.functions.invoke('convertLeadToLoanApp', {
+          lead_id: lead.id,
+        });
+      } catch (e) {
+        // Fallback: Create deal directly
+        console.log('Function failed, creating deal directly');
+        const deal = await base44.entities.Deal.create({
+          org_id: lead.org_id || 'default',
+          loan_product: lead.loan_type || 'DSCR',
+          loan_purpose: lead.loan_purpose || 'Purchase',
+          loan_amount: lead.loan_amount || 0,
+          stage: 'application',
+          status: 'active',
+        });
+        
+        // Create borrower
+        const borrower = await base44.entities.Borrower.create({
+          org_id: lead.org_id || 'default',
+          first_name: lead.first_name || '',
+          last_name: lead.last_name || '',
+          email: lead.home_email || lead.work_email || '',
+          cell_phone: lead.mobile_phone || '',
+          credit_score_est: lead.fico_score || null,
+        });
+        
+        // Link borrower to deal
+        await base44.entities.DealBorrower.create({
+          org_id: lead.org_id || 'default',
+          deal_id: deal.id,
+          borrower_id: borrower.id,
+          role: 'primary',
+        });
+        
+        // Create property if we have address
+        if (lead.property_street) {
+          const property = await base44.entities.Property.create({
+            org_id: lead.org_id || 'default',
+            address_street: lead.property_street,
+            address_city: lead.property_city || '',
+            address_state: lead.property_state || '',
+            address_zip: lead.property_zip || '',
+            property_type: lead.property_type || 'SFR',
+            estimated_value: lead.estimated_value || null,
+          });
+          
+          // Link property to deal
+          await base44.entities.DealProperty.create({
+            org_id: lead.org_id || 'default',
+            deal_id: deal.id,
+            property_id: property.id,
+          });
+        }
+        
+        // Update lead status
+        await base44.entities.Lead.update(lead.id, { status: 'converted' });
+        
+        return { data: { deal_id: deal.id, borrower_id: borrower.id } };
+      }
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['deals'] });
       toast.success('Lead converted to Loan Application!');
       setIsOpen(false);
+      // Navigate to deal if we have the ID
+      if (data?.data?.deal_id) {
+        window.location.href = `/DealDetail?id=${data.data.deal_id}`;
+      }
     },
     onError: (error) => {
       console.error('Convert lead error:', error);
