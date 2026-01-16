@@ -3,6 +3,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function ActivityFeed({ activities = [] }) {
+  const getActivityIcon = (type) => {
+    const icons = {
+      deal_created: '🆕',
+      deal_updated: '📝',
+      document_uploaded: '📄',
+      status_changed: '🔄',
+      lead_converted: '✅',
+      task_completed: '☑️',
+    };
+    return icons[type] || '•';
+  };
+
   return (
     <Card className="bg-white">
       <CardHeader>
@@ -11,17 +23,21 @@ export default function ActivityFeed({ activities = [] }) {
       <CardContent>
         <div className="space-y-4">
           {activities.length === 0 ? (
-            <p className="text-sm text-gray-500">No recent activity</p>
+            <div className="text-center py-6">
+              <div className="text-2xl mb-2">📋</div>
+              <p className="text-sm text-gray-500">No recent activity</p>
+              <p className="text-xs text-gray-400 mt-1">Activity will appear here as you work</p>
+            </div>
           ) : (
             activities.map((activity, idx) => (
               <div key={activity.id || idx} className="flex gap-3 pb-3 border-b last:border-b-0">
-                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm">
-                  {activity.type?.charAt(0) || '•'}
+                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-lg">
+                  {getActivityIcon(activity.type)}
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">{activity.message || activity.description}</p>
+                  <p className="text-sm font-medium text-gray-900">{activity.message || activity.description || 'Activity'}</p>
                   <p className="text-xs text-gray-500">
-                    {activity.deal_number || activity.type?.replace(/_/g, ' ')} • {activity.timestamp ? formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true }) : 'Recently'}
+                    {activity.deal_number || activity.type?.replace(/_/g, ' ') || ''} • {activity.timestamp ? formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true }) : activity.created_date ? formatDistanceToNow(new Date(activity.created_date), { addSuffix: true }) : 'Recently'}
                   </p>
                 </div>
               </div>
