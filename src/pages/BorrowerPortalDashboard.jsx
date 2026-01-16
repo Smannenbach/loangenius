@@ -20,6 +20,10 @@ import PortalDocumentCenter from '@/components/portal/PortalDocumentCenter';
 import PortalMessageCenter from '@/components/portal/PortalMessageCenter';
 import PortalPreQualResults from '@/components/portal/PortalPreQualResults';
 import PortalResources from '@/components/portal/PortalResources';
+import PortalDashboardSummary from '@/components/portal/PortalDashboardSummary';
+import PortalDocumentStatusTracker from '@/components/portal/PortalDocumentStatusTracker';
+import PortalSecureMessaging from '@/components/portal/PortalSecureMessaging';
+import PortalEducationResources from '@/components/portal/PortalEducationResources';
 
 export default function BorrowerPortalDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -77,6 +81,22 @@ export default function BorrowerPortalDashboard() {
     enabled: !!user?.email
   });
 
+  // Get document requirements
+  const { data: documentRequirements = [] } = useQuery({
+    queryKey: ['borrowerDocRequirements', activeDeal?.id],
+    queryFn: async () => {
+      if (!activeDeal?.id) return [];
+      try {
+        return await base44.entities.DealDocumentRequirement.filter({ 
+          deal_id: activeDeal.id 
+        });
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!activeDeal?.id
+  });
+
   // Get unread notifications
   const { data: notifications = [] } = useQuery({
     queryKey: ['borrowerNotifications', user?.email],
@@ -92,6 +112,41 @@ export default function BorrowerPortalDashboard() {
   const activeDeal = deals[0];
   const pendingTasks = tasks.filter(t => t.status === 'pending');
   const latestPreQual = preQuals && preQuals.length > 0 ? preQuals[0] : null;
+
+  // Generate next steps from tasks and document requirements
+  const nextSteps = [
+    ...pendingTasks.map(t => ({
+      title: t.title,
+      description: t.description,
+      due_date: t.due_date
+    })),
+    ...(documentRequirements.filter(r => r.status === 'pending' && r.is_required).length > 0 ? [{
+      title: 'Upload Required Documents',
+      description: `${documentRequirements.filter(r => r.status === 'pending' && r.is_required).length} documents needed`,
+      due_date: null
+    }] : [])
+  ].slice(0, 5);
+
+  // Generate key dates
+  const keyDates = activeDeal ? [
+    {
+      label: 'Application Submitted',
+      date: activeDeal.application_date || activeDeal.created_date,
+      status: 'completed'
+    },
+    ...(activeDeal.stage === 'underwriting' || activeDeal.stage === 'approved' ? [{
+      label: 'Estimated Appraisal',
+      date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      description: 'Appraisal typically ordered within 7 days',
+      status: 'upcoming'
+    }] : []),
+    ...(activeDeal.stage === 'approved' || activeDeal.stage === 'closing' ? [{
+      label: 'Estimated Closing',
+      date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
+      description: 'Target closing date (subject to change)',
+      status: 'upcoming'
+    }] : [])
+  ] : [];
 
   const getStageProgress = (stage) => {
     const stages = ['inquiry', 'application', 'processing', 'underwriting', 'approved', 'closing', 'funded'];
@@ -138,17 +193,21 @@ export default function BorrowerPortalDashboard() {
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5 mb-6 bg-white shadow-sm">
+          <TabsList className="grid w-full grid-cols-6 mb-6 bg-white shadow-sm">
             <TabsTrigger value="overview" className="gap-2">
               <Home className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
             </TabsTrigger>
+            <TabsTrigger value="status" className="gap-2">
+              <TrendingUp className="h-4 w-4" />
+              <span className="hidden sm:inline">Status</span>
+            </TabsTrigger>
             <TabsTrigger value="documents" className="gap-2">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Documents</span>
-              {pendingTasks.filter(t => t.task_type === 'document_upload').length > 0 && (
+              {documentRequirements.filter(r => r.status === 'pending' && r.is_required).length > 0 && (
                 <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 justify-center">
-                  {pendingTasks.filter(t => t.task_type === 'document_upload').length}
+                  {documentRequirements.filter(r => r.status === 'pending' && r.is_required).length}
                 </Badge>
               )}
             </TabsTrigger>
@@ -156,9 +215,9 @@ export default function BorrowerPortalDashboard() {
               <MessageSquare className="h-4 w-4" />
               <span className="hidden sm:inline">Messages</span>
             </TabsTrigger>
-            <TabsTrigger value="prequal" className="gap-2">
-              <Sparkles className="h-4 w-4" />
-              <span className="hidden sm:inline">Pre-Qual</span>
+            <TabsTrigger value="education" className="gap-2">
+              <FileCheck className="h-4 w-4" />
+              <span className="hidden sm:inline">Learn</span>
             </TabsTrigger>
             <TabsTrigger value="resources" className="gap-2">
               <FileCheck className="h-4 w-4" />
@@ -168,6 +227,58 @@ export default function BorrowerPortalDashboard() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
+            <PortalDashboardSummary 
+              deal={activeDeal}
+              nextSteps={nextSteps}
+              keyDates={keyDates}
+            />
+          </TabsContent>
+
+          {/* Status Tab */}
+          <TabsContent value="status" className="space-y-6">
+            <PortalDocumentStatusTracker requirements={documentRequirements} />
+            
+            {activeDeal && (
+              <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-blue-600" />
+                      Loan Progress
+                    </CardTitle>
+                    <Badge className="bg-blue-600">{activeDeal.deal_number}</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <PortalApplicationStatus deal={activeDeal} />
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Documents Tab */}
+          <TabsContent value="documents">
+            <PortalDocumentCenter 
+              dealId={activeDeal?.id} 
+              borrowerEmail={user?.email}
+            />
+          </TabsContent>
+
+          {/* Messages Tab */}
+          <TabsContent value="messages">
+            <PortalSecureMessaging 
+              dealId={activeDeal?.id}
+              borrowerEmail={user?.email}
+            />
+          </TabsContent>
+
+          {/* Education Tab */}
+          <TabsContent value="education">
+            <PortalEducationResources />
+          </TabsContent>
+
+          {/* Legacy sections for compatibility */}
+          <TabsContent value="overview-legacy" className="space-y-6">
             {/* Application Status Card */}
             {activeDeal ? (
               <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
@@ -336,7 +447,7 @@ export default function BorrowerPortalDashboard() {
             )}
           </TabsContent>
 
-          {/* Documents Tab */}
+          {/* Documents Tab - New Enhanced Version */}
           <TabsContent value="documents">
             <PortalDocumentCenter 
               dealId={activeDeal?.id} 
@@ -344,20 +455,15 @@ export default function BorrowerPortalDashboard() {
             />
           </TabsContent>
 
-          {/* Messages Tab */}
+          {/* Messages Tab - New Secure Messaging */}
           <TabsContent value="messages">
-            <PortalMessageCenter 
+            <PortalSecureMessaging 
               dealId={activeDeal?.id}
               borrowerEmail={user?.email}
             />
           </TabsContent>
 
-          {/* Pre-Qual Tab */}
-          <TabsContent value="prequal">
-            <PortalPreQualResults preQuals={preQuals} />
-          </TabsContent>
-
-          {/* Resources Tab */}
+          {/* Resources Tab - Keep original */}
           <TabsContent value="resources">
             <PortalResources />
           </TabsContent>
