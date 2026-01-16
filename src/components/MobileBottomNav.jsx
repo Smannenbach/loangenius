@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from '../utils';
-import { Home, Briefcase, Users, Settings, TrendingUp } from 'lucide-react';
+import { Home, Briefcase, Users, Settings, TrendingUp, ClipboardList } from 'lucide-react';
 
 export default function MobileBottomNav() {
   const location = useLocation();
@@ -10,7 +10,7 @@ export default function MobileBottomNav() {
     { icon: Home, label: 'Home', path: 'Dashboard' },
     { icon: TrendingUp, label: 'Pipeline', path: 'Pipeline' },
     { icon: Users, label: 'Leads', path: 'Leads' },
-    { icon: Briefcase, label: 'Loans', path: 'Loans' },
+    { icon: ClipboardList, label: 'Tasks', path: 'Tasks' },
     { icon: Settings, label: 'More', path: 'Settings' }
   ];
 
