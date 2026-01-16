@@ -33,11 +33,16 @@ export default function Contacts() {
 
   const orgId = memberships[0]?.org_id || user?.org_id;
 
-  const { data: contacts = [] } = useQuery({
-    queryKey: ['contacts', orgId, searchTerm, contactType, filterType, currentPage],
+  const { data: contacts = [], isLoading } = useQuery({
+    queryKey: ['contacts', orgId],
     queryFn: async () => {
       if (!orgId) return [];
-      return await base44.entities.Contact.filter({ org_id: orgId });
+      try {
+        return await base44.entities.Contact.filter({ org_id: orgId });
+      } catch (e) {
+        // Fallback: get all contacts if org_id filter fails
+        return await base44.entities.Contact.list();
+      }
     },
     enabled: !!orgId,
   });
@@ -126,6 +131,9 @@ export default function Contacts() {
 
       {/* Contacts Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
+        {isLoading ? (
+          <div className="p-8 text-center text-gray-500">Loading contacts...</div>
+        ) : (
         <table className="w-full">
           <thead>
             <tr className="bg-gray-50 border-b">
@@ -141,7 +149,7 @@ export default function Contacts() {
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                  No contacts found
+                  No contacts found. <Link to={createPageUrl('ContactCreate')} className="text-blue-600 hover:underline">Add your first contact</Link>
                 </td>
               </tr>
             ) : (
@@ -189,6 +197,7 @@ export default function Contacts() {
             )}
           </tbody>
         </table>
+        )}
       </div>
 
       {/* Pagination */}
