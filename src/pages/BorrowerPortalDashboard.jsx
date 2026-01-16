@@ -341,7 +341,6 @@ export default function BorrowerPortalDashboard() {
             <PortalDocumentCenter 
               dealId={activeDeal?.id} 
               borrowerEmail={user?.email}
-              tasks={tasks}
             />
           </TabsContent>
 
