@@ -364,7 +364,7 @@ Deno.serve(async (req) => {
         });
 
         results.created.portal_sessions = 1;
-        results.test_portal_url = `${Deno.env.get('APP_URL') || 'https://loangenius.app'}/BorrowerPortalLogin?token=${testToken}`;
+        results.test_portal_url = `/BorrowerPortalLogin?token=${testToken}`;
       } catch (error) {
         results.errors.push(`Portal Session: ${error.message}`);
       }
