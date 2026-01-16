@@ -243,13 +243,16 @@ export default function UsersPage() {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{member.user_id}</p>
-                      <p className="text-sm text-gray-500">{roleDescriptions[member.role] || 'Team member'}</p>
+                      <p className="text-sm text-gray-500">{roleDescriptions[member.role_id] || 'Team member'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Badge className={`border ${getRoleColor(member.role)}`}>
+                    <Badge className={`border ${getRoleColor(member.role_id)}`}>
                       <Shield className="h-3 w-3 mr-1" />
-                      {member.role?.replace(/_/g, ' ')}
+                      {member.role_id?.replace(/_/g, ' ') || 'user'}
+                    </Badge>
+                    <Badge variant={member.status === 'active' ? 'default' : 'secondary'}>
+                      {member.status || 'active'}
                     </Badge>
                     <Button variant="ghost" size="icon">
                       <MoreVertical className="h-4 w-4 text-gray-400" />
