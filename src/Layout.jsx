@@ -87,12 +87,10 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Deals', href: '/Deals', icon: FolderOpen },
     { name: 'Loans', href: '/Loans', icon: Briefcase },
     { name: 'Contacts', href: '/Contacts', icon: Users },
-    { name: 'Tasks', href: '/Tasks', icon: ClipboardList },
   ];
 
   const toolsNav = [
       { name: 'Quote Generator', href: '/QuoteGenerator', icon: FileOutput },
-      { name: 'Calculator', href: '/Calculator', icon: Calculator },
       { name: 'AI Hub', href: '/AIAssistant', icon: Bot },
       { name: 'Conversations', href: '/Conversations', icon: MessageSquare },
     ];
