@@ -56,6 +56,8 @@ import QuoteGeneratorModal from '@/components/QuoteGeneratorModal';
 import LeadDetailModal from '@/components/LeadDetailModal';
 import LeadsImportModal from '@/components/LeadsImportModal';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '../utils';
 
 export default function Leads() {
   const queryClient = useQueryClient();
