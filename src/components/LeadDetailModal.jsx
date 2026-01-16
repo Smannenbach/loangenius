@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Phone, MessageSquare, Eye, Edit, FileOutput, MessageCircle, CheckCircle2, AlertCircle, Loader, ArrowRight, ClipboardList, Clock, Plus, Calculator, Trash2 } from 'lucide-react';
+import { Mail, Phone, MessageSquare, Eye, Edit, FileOutput, MessageCircle, CheckCircle2, AlertCircle, Loader2, ArrowRight, ClipboardList, Clock, Plus, Calculator, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import QuoteGeneratorModal from './QuoteGeneratorModal';
@@ -72,8 +73,12 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
-      alert(`Lead converted to Loan Application! ID: ${data.data.loan_application_id}`);
+      toast.success('Lead converted to Loan Application!');
       setIsOpen(false);
+    },
+    onError: (error) => {
+      console.error('Convert lead error:', error);
+      toast.error('Failed to convert lead: ' + error.message);
     },
   });
 
@@ -183,7 +188,7 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
                               disabled={isVerifying}
                             >
                               {isVerifying ? (
-                                <Loader className="h-3 w-3 animate-spin" />
+                                <Loader2 className="h-3 w-3 animate-spin" />
                               ) : (
                                 'Verify'
                               )}
@@ -369,7 +374,7 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
                 >
                   {convertMutation.isPending ? (
                     <>
-                      <Loader className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" />
                       Converting...
                     </>
                   ) : (
@@ -406,7 +411,7 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
                   if (email) {
                     window.location.href = `mailto:${email}?subject=Regarding your loan inquiry`;
                   } else {
-                    alert('No email address available for this lead');
+                    toast.error('No email address available for this lead');
                   }
                 }}
                 variant="outline"
@@ -421,7 +426,7 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
                   if (phone) {
                     window.location.href = `sms:${phone}`;
                   } else {
-                    alert('No phone number available for this lead');
+                    toast.error('No phone number available for this lead');
                   }
                 }}
                 variant="outline"
