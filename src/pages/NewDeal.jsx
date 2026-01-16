@@ -138,7 +138,7 @@ export default function NewDeal() {
       // Create borrowers
       for (const borrower of borrowers) {
         await base44.entities.Borrower.create({
-          org_id: orgId,
+          org_id: effectiveOrgId,
           first_name: borrower.first_name,
           last_name: borrower.last_name,
           email: borrower.email || '',
