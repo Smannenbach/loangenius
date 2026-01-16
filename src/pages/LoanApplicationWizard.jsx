@@ -367,7 +367,7 @@ function BorrowerStep({ data, onChange }) {
   const [currentBorrower, setCurrentBorrower] = useState({
     first_name: '', middle_name: '', last_name: '', suffix: '',
     email: '', phone: '', party_type: 'Primary Borrower',
-    ssn_last_4: '', dob: '', citizenship: 'US Citizen', credit_score: '',
+    ssn: '', dob: '', citizenship: 'US Citizen', credit_score: '',
     marital_status: '', mailing_address: '', years_at_address: '',
     ownership_status: '', email_verified: false, phone_verified: false,
   });
