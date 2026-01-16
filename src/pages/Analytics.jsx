@@ -27,13 +27,47 @@ export default function Analytics() {
     queryKey: ['dashboardKPIs', orgId],
     queryFn: async () => {
       try {
-        return await base44.functions.invoke('getDashboardKPIs', { org_id: orgId });
+        const result = await base44.functions.invoke('getDashboardKPIs', { org_id: orgId });
+        return result;
       } catch (e) {
-        // Return empty data if function fails
-        return { data: { kpis: { deals: { total: 0, active: 0, funded: 0, totalAmount: 0 }, leads: { total: 0, new: 0, conversionRate: 0, converted: 0 }, stageDistribution: {} } } };
+        // Fetch data directly from entities as fallback
+        try {
+          const deals = await base44.entities.Deal.list();
+          const leads = await base44.entities.Lead.list();
+          const activeDeals = deals.filter(d => d.status === 'active');
+          const fundedDeals = deals.filter(d => d.stage === 'funded');
+          const totalAmount = deals.reduce((sum, d) => sum + (d.loan_amount || 0), 0);
+          const convertedLeads = leads.filter(l => l.status === 'converted').length;
+          
+          return { 
+            data: { 
+              kpis: { 
+                deals: { 
+                  total: deals.length, 
+                  active: activeDeals.length, 
+                  funded: fundedDeals.length, 
+                  totalAmount 
+                }, 
+                leads: { 
+                  total: leads.length, 
+                  new: leads.filter(l => l.status === 'new').length, 
+                  conversionRate: leads.length > 0 ? Math.round((convertedLeads / leads.length) * 100) : 0, 
+                  converted: convertedLeads 
+                }, 
+                stageDistribution: deals.reduce((acc, d) => {
+                  const stage = d.stage || 'unknown';
+                  acc[stage] = (acc[stage] || 0) + 1;
+                  return acc;
+                }, {})
+              } 
+            } 
+          };
+        } catch {
+          return { data: { kpis: { deals: { total: 0, active: 0, funded: 0, totalAmount: 0 }, leads: { total: 0, new: 0, conversionRate: 0, converted: 0 }, stageDistribution: {} } } };
+        }
       }
     },
-    enabled: !!orgId,
+    enabled: true,
   });
 
   if (isLoading) return <div className="p-8">Loading analytics...</div>;

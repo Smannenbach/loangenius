@@ -679,8 +679,13 @@ export default function LoanApplication() {
                 try {
                   const user = await base44.auth.me();
                   // Get org membership
-                  const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
-                  const orgId = memberships[0]?.org_id || user?.org_id || 'default';
+                  let orgId = 'default';
+                  try {
+                    const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
+                    orgId = memberships[0]?.org_id || user?.org_id || 'default';
+                  } catch {
+                    orgId = user?.org_id || 'default';
+                  }
                   
                   // Create a deal from the application
                   const deal = await base44.entities.Deal.create({
@@ -696,17 +701,21 @@ export default function LoanApplication() {
                   
                   // Create borrower
                   if (formData.first_name && formData.last_name) {
-                    await base44.entities.Borrower.create({
-                      org_id: orgId,
-                      first_name: formData.first_name,
-                      last_name: formData.last_name,
-                      email: formData.email || '',
-                      phone: formData.phone || ''
-                    });
+                    try {
+                      await base44.entities.Borrower.create({
+                        org_id: orgId,
+                        first_name: formData.first_name,
+                        last_name: formData.last_name,
+                        email: formData.email || '',
+                        phone: formData.phone || ''
+                      });
+                    } catch (e) {
+                      console.log('Borrower creation note:', e.message);
+                    }
                   }
                   
                   alert('Application submitted successfully! Deal created.');
-                  window.location.href = `/Pipeline`;
+                  window.location.href = '/Pipeline';
                 } catch (error) {
                   alert('Error submitting application: ' + error.message);
                 }
