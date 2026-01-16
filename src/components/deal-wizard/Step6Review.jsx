@@ -120,22 +120,14 @@ export default function Step6Review({ data, onNext, onPrev, loading }) {
 
       {/* Navigation */}
       <div className="flex justify-between pt-4">
-        <Button variant="outline" onClick={onPrev} disabled={loading}>
+        <Button variant="outline" onClick={onPrev}>
           ← Previous
         </Button>
         <Button 
           onClick={onNext}
-          disabled={loading}
-          className="bg-green-600 hover:bg-green-700 gap-2"
+          className="bg-blue-600 hover:bg-blue-700"
         >
-          {loading ? (
-            'Creating Application...'
-          ) : (
-            <>
-              <Check className="h-5 w-5" />
-              Submit Application
-            </>
-          )}
+          Next →
         </Button>
       </div>
     </div>

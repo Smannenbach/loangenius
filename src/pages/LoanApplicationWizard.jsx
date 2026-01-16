@@ -12,6 +12,9 @@ import Step3Property from '@/components/deal-wizard/Step2Property';
 import Step4Valuation from '@/components/deal-wizard/Step3Valuation';
 import Step5Expenses from '@/components/deal-wizard/Step4Expenses';
 import Step6Review from '@/components/deal-wizard/Step6Review';
+import Step7Assets from '@/components/deal-wizard/Step7Assets';
+import Step8Employment from '@/components/deal-wizard/Step8Employment';
+import Step9Declarations from '@/components/deal-wizard/Step9Declarations';
 
 export default function LoanApplicationWizard() {
   const navigate = useNavigate();
@@ -50,6 +53,7 @@ export default function LoanApplicationWizard() {
     assets: [],
     reoProperties: [],
     declarations: {},
+    employment: {},
   });
 
   const { data: user } = useQuery({
@@ -90,7 +94,7 @@ export default function LoanApplicationWizard() {
   });
 
   const handleNext = () => {
-    if (step === 6) {
+    if (step === 9) {
       createDealMutation.mutate();
     } else {
       setStep(step + 1);
@@ -135,7 +139,7 @@ export default function LoanApplicationWizard() {
         {/* Progress Bar */}
         <div className="mb-12">
           <div className="flex gap-2 mb-3">
-            {[1, 2, 3, 4, 5, 6].map((s) => (
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((s) => (
               <div
                 key={s}
                 className={`flex-1 h-2 rounded-full transition-all ${
@@ -144,7 +148,7 @@ export default function LoanApplicationWizard() {
               />
             ))}
           </div>
-          <p className="text-sm text-gray-600 font-medium">Step {step} of 6</p>
+          <p className="text-sm text-gray-600 font-medium">Step {step} of 9</p>
         </div>
 
         {/* Steps */}
@@ -192,6 +196,30 @@ export default function LoanApplicationWizard() {
         )}
         {step === 6 && (
           <Step6Review
+            data={formData}
+            onChange={handleChange}
+            onNext={handleNext}
+            onPrev={handlePrev}
+          />
+        )}
+        {step === 7 && (
+          <Step7Assets
+            data={formData}
+            onChange={handleChange}
+            onNext={handleNext}
+            onPrev={handlePrev}
+          />
+        )}
+        {step === 8 && (
+          <Step8Employment
+            data={formData}
+            onChange={handleChange}
+            onNext={handleNext}
+            onPrev={handlePrev}
+          />
+        )}
+        {step === 9 && (
+          <Step9Declarations
             data={formData}
             onChange={handleChange}
             onNext={handleNext}
