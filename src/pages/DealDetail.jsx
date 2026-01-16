@@ -41,6 +41,7 @@ import DealCalculator from '@/components/deal-wizard/DealCalculator';
 import DealStatusUpdate from '@/components/deal-detail/DealStatusUpdate';
 import TasksTab from '@/components/deal-detail/TasksTab';
 import SubmitToLenderModal from '@/components/deal-detail/SubmitToLenderModal';
+import LenderOutreachPanel from '@/components/deal-detail/LenderOutreachPanel';
 
 export default function DealDetail() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -320,6 +321,7 @@ export default function DealDetail() {
           <TabsTrigger value="conditions">Conditions ({conditions.length})</TabsTrigger>
           <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
+          <TabsTrigger value="lenders">Lender Outreach</TabsTrigger>
           <TabsTrigger value="portal">Portal</TabsTrigger>
         </TabsList>
 
@@ -611,6 +613,10 @@ export default function DealDetail() {
 
         <TabsContent value="tasks">
           <TasksTab dealId={dealId} orgId={deal.org_id} tasks={tasks} />
+        </TabsContent>
+
+        <TabsContent value="lenders">
+          <LenderOutreachPanel dealId={dealId} deal={deal} />
         </TabsContent>
 
         <TabsContent value="portal" className="space-y-6">
