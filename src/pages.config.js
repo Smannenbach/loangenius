@@ -14,7 +14,6 @@ import AgentKnowledgeBase from './pages/AgentKnowledgeBase';
 import AgentOrchestrator from './pages/AgentOrchestrator';
 import AgentPerformanceDashboard from './pages/AgentPerformanceDashboard';
 import AlertsNotifications from './pages/AlertsNotifications';
-import Analytics from './pages/Analytics';
 import Assumptions from './pages/Assumptions';
 import AuditComplianceViewer from './pages/AuditComplianceViewer';
 import BorrowerPortal from './pages/BorrowerPortal';
@@ -84,7 +83,6 @@ export const PAGES = {
     "AgentOrchestrator": AgentOrchestrator,
     "AgentPerformanceDashboard": AgentPerformanceDashboard,
     "AlertsNotifications": AlertsNotifications,
-    "Analytics": Analytics,
     "Assumptions": Assumptions,
     "AuditComplianceViewer": AuditComplianceViewer,
     "BorrowerPortal": BorrowerPortal,
