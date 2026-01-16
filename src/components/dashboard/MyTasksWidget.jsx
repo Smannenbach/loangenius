@@ -1,26 +1,37 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { CheckCircle2, Circle, Calendar } from 'lucide-react';
+import { CheckCircle2, Circle, Calendar, Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 
 export default function MyTasksWidget({ orgId }) {
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['myTasks', orgId],
     queryFn: async () => {
-      if (!orgId) return [];
       try {
-        const allTasks = await base44.entities.Task.filter({ org_id: orgId });
-        return allTasks
-          .filter(t => t.status === 'pending' || t.status === 'in_progress')
-          .slice(0, 5);
-      } catch (e) {
+        if (orgId) {
+          const allTasks = await base44.entities.Task.filter({ org_id: orgId });
+          return allTasks
+            .filter(t => t.status === 'pending' || t.status === 'in_progress')
+            .slice(0, 5);
+        }
         const allTasks = await base44.entities.Task.list();
         return allTasks
           .filter(t => t.status === 'pending' || t.status === 'in_progress')
           .slice(0, 5);
+      } catch (e) {
+        try {
+          const allTasks = await base44.entities.Task.list();
+          return allTasks
+            .filter(t => t.status === 'pending' || t.status === 'in_progress')
+            .slice(0, 5);
+        } catch {
+          return [];
+        }
       }
     },
-    enabled: !!orgId,
+    enabled: true,
   });
 
   const getPriorityColor = (priority) => {
@@ -55,6 +66,9 @@ export default function MyTasksWidget({ orgId }) {
         <div className="text-center py-4">
           <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-green-500" />
           <p className="text-sm text-gray-500">All caught up! No pending tasks.</p>
+          <Link to={createPageUrl('Deals')} className="text-xs text-blue-600 hover:underline mt-2 inline-block">
+            View deals →
+          </Link>
         </div>
       ) : (
         <div className="space-y-3">
