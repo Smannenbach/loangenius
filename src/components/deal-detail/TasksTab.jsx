@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ClipboardList, CheckCircle2, Clock, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function TasksTab({ dealId, orgId, tasks: initialTasks = [] }) {
   const queryClient = useQueryClient();
@@ -24,6 +25,10 @@ export default function TasksTab({ dealId, orgId, tasks: initialTasks = [] }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deal-tasks'] });
       setNewTaskTitle('');
+      toast.success('Task created!');
+    },
+    onError: (error) => {
+      toast.error('Failed to create task: ' + error.message);
     },
   });
 
@@ -34,8 +39,12 @@ export default function TasksTab({ dealId, orgId, tasks: initialTasks = [] }) {
         completed_at: status === 'completed' ? new Date().toISOString() : null 
       });
     },
-    onSuccess: () => {
+    onSuccess: (data, { status }) => {
       queryClient.invalidateQueries({ queryKey: ['deal-tasks'] });
+      toast.success(status === 'completed' ? 'Task completed!' : 'Task reopened');
+    },
+    onError: (error) => {
+      toast.error('Failed to update task: ' + error.message);
     },
   });
 
