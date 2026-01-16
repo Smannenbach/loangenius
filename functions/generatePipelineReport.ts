@@ -39,24 +39,37 @@ Deno.serve(async (req) => {
       days_in_pipeline: Math.floor((Date.now() - new Date(d.created_date)) / (1000 * 60 * 60 * 24))
     }));
 
+    // Get org_id from membership
+    let orgId = 'default';
+    try {
+      const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+        user_id: user.email
+      });
+      if (memberships.length > 0) {
+        orgId = memberships[0].org_id;
+      }
+    } catch (e) {
+      console.log('Could not get org membership:', e.message);
+    }
+
+    const totalValue = reportData.reduce((sum, r) => sum + (r.loan_amount || 0), 0);
+
     // Create report record
     const report = await base44.asServiceRole.entities.ReportRun.create({
-      org_id: user.org_id || 'default',
-      report_type: 'PIPELINE',
-      report_name: `Pipeline Report - ${new Date().toLocaleDateString()}`,
-      filters_json: { filter_stage, filter_product },
-      data_json: reportData,
-      total_rows: reportData.length,
-      total_value: reportData.reduce((sum, r) => sum + (r.loan_amount || 0), 0),
-      generated_by: user.email,
-      generated_at: new Date().toISOString()
+      org_id: orgId,
+      report_id: `pipeline_${Date.now()}`,
+      run_type: 'MANUAL',
+      filters_used: { filter_stage, filter_product },
+      row_count: reportData.length,
+      status: 'COMPLETED',
+      run_by: user.email
     });
 
     return Response.json({
       report_id: report.id,
-      report_name: report.report_name,
+      report_name: `Pipeline Report - ${new Date().toLocaleDateString()}`,
       total_deals: reportData.length,
-      total_pipeline_value: report.total_value,
+      total_pipeline_value: totalValue,
       data: reportData.slice(0, 50) // Return first 50 for preview
     });
   } catch (error) {
