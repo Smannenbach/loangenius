@@ -79,13 +79,14 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const result = calculateDSCR(req.body);
+    const body = await req.json();
+    const result = calculateDSCR(body);
     
     // If dealId provided, save to deal
-    if (req.body.dealId) {
-      await base44.asServiceRole.entities.Deal.update(req.body.dealId, {
+    if (body.dealId) {
+      await base44.asServiceRole.entities.Deal.update(body.dealId, {
         dscr: result.dscr,
-        dscr_data: { ...req.body, calculated_result: result, calculated_at: new Date().toISOString() }
+        dscr_data: { ...body, calculated_result: result, calculated_at: new Date().toISOString() }
       });
     }
 
