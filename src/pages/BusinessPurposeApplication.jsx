@@ -324,13 +324,10 @@ export default function BusinessPurposeApplication() {
   };
 
   const handleNext = () => {
-    if (validateStep(currentStep)) {
-      if (currentStep < STEPS.length) {
-        setCurrentStep(currentStep + 1);
-        autosaveMutation.mutate(formData);
-      }
-    } else {
-      toast.error('Please fix the errors before continuing');
+    // Validate only on final submit, not on navigation
+    if (currentStep < STEPS.length) {
+      setCurrentStep(currentStep + 1);
+      autosaveMutation.mutate(formData);
     }
   };
 
@@ -338,6 +335,11 @@ export default function BusinessPurposeApplication() {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
+  };
+
+  const handleStepClick = (stepNumber) => {
+    setCurrentStep(stepNumber);
+    autosaveMutation.mutate(formData);
   };
 
   const handleSaveDraft = async () => {
@@ -526,9 +528,21 @@ export default function BusinessPurposeApplication() {
   });
 
   const handleSubmit = () => {
-    if (validateStep(currentStep)) {
-      submitMutation.mutate();
+    // Validate all critical fields before final submit
+    const criticalErrors = {};
+    if (!formData.loan_purpose) criticalErrors.loan_purpose = 'Required';
+    if (!formData.loan_amount) criticalErrors.loan_amount = 'Required';
+    if (!formData.property_address_street) criticalErrors.property_address = 'Required';
+    if (!formData.applicant.first_name) criticalErrors.applicant_name = 'Required';
+    if (!formData.acknowledgement_agreed) criticalErrors.acknowledgement = 'Required';
+    
+    if (Object.keys(criticalErrors).length > 0) {
+      toast.error('Please complete required fields before submitting');
+      setValidationErrors(criticalErrors);
+      return;
     }
+    
+    submitMutation.mutate();
   };
 
   const progress = (currentStep / STEPS.length) * 100;
@@ -594,14 +608,13 @@ export default function BusinessPurposeApplication() {
                 return (
                   <button
                     key={step.id}
-                    onClick={() => step.id <= currentStep && setCurrentStep(step.id)}
-                    disabled={step.id > currentStep}
-                    className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                    onClick={() => handleStepClick(step.id)}
+                    className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                       isActive
                         ? 'bg-blue-100 text-blue-700 border border-blue-200'
                         : isComplete
                         ? 'bg-green-50 text-green-700 hover:bg-green-100'
-                        : 'bg-gray-100 text-gray-400'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
                     {isComplete ? (
