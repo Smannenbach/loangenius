@@ -156,7 +156,7 @@ export default function NewDeal() {
       navigate(createPageUrl(`DealDetail?id=${deal.id}`));
     },
     onError: (error) => {
-      alert('Error creating deal: ' + error.message);
+      console.error('Error creating deal:', error.message);
     },
   });
 
