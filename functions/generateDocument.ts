@@ -6,8 +6,10 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { type, dealId } = req.body;
-    if (!type || !dealId) return Response.json({ error: 'Missing type or dealId' }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const type = body.type || body.document_type;
+    const dealId = body.dealId || body.deal_id;
+    if (!type || !dealId) return Response.json({ error: 'Missing type/document_type or dealId/deal_id' }, { status: 400 });
 
     // Fetch deal, org, and branding info
     const deal = await base44.asServiceRole.entities.Deal.get(dealId);
