@@ -27,6 +27,70 @@ import {
 } from 'lucide-react';
 import QuoteGeneratorModal from '@/components/QuoteGeneratorModal';
 
+function SubmitButton({ formData }) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      const user = await base44.auth.me();
+      // Get org membership
+      let orgId = 'default';
+      try {
+        const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
+        orgId = memberships[0]?.org_id || user?.org_id || 'default';
+      } catch {
+        orgId = user?.org_id || 'default';
+      }
+      
+      // Create a deal from the application
+      const deal = await base44.entities.Deal.create({
+        org_id: orgId,
+        loan_product: formData.loan_product || 'DSCR',
+        loan_purpose: formData.loan_purpose || 'Purchase',
+        loan_amount: parseFloat(formData.loan_amount) || 0,
+        interest_rate: parseFloat(formData.interest_rate) || 0,
+        loan_term_months: parseInt(formData.loan_term_months) || 360,
+        stage: 'application',
+        status: 'active'
+      });
+      
+      // Create borrower
+      if (formData.first_name && formData.last_name) {
+        try {
+          await base44.entities.Borrower.create({
+            org_id: orgId,
+            first_name: formData.first_name,
+            last_name: formData.last_name,
+            email: formData.email || '',
+            phone: formData.phone || ''
+          });
+        } catch (e) {
+          console.log('Borrower creation note:', e.message);
+        }
+      }
+      
+      toast.success('Application submitted successfully!');
+      // Use proper navigation
+      window.location.href = createPageUrl('Pipeline');
+    } catch (error) {
+      toast.error('Error submitting application: ' + error.message);
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Button
+      className="ml-auto gap-2 bg-green-600 hover:bg-green-700 h-11 px-8"
+      onClick={handleSubmit}
+      disabled={isSubmitting}
+    >
+      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+      {isSubmitting ? 'Submitting...' : 'Submit Application'}
+    </Button>
+  );
+}
+
 export default function LoanApplication() {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({});
