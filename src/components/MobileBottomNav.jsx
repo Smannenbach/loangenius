@@ -1,13 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
-import { Home, Briefcase, Users, Settings } from 'lucide-react';
+import { Home, Briefcase, Users, Settings, TrendingUp } from 'lucide-react';
 
 export default function MobileBottomNav() {
   const navItems = [
     { icon: Home, label: 'Home', path: 'Dashboard' },
-    { icon: Briefcase, label: 'Pipeline', path: 'Pipeline' },
-    { icon: Users, label: 'Contacts', path: 'Contacts' },
+    { icon: TrendingUp, label: 'Pipeline', path: 'Pipeline' },
+    { icon: Users, label: 'Leads', path: 'Leads' },
+    { icon: Briefcase, label: 'Loans', path: 'Loans' },
     { icon: Settings, label: 'Settings', path: 'Settings' }
   ];
 
