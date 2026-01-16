@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Plus, Download, Eye, TrendingUp, DollarSign, Users, Zap, FileText, BarChart3 } from 'lucide-react';
+import { toast } from 'sonner';
 import { createPageUrl } from '../utils';
 import { Link } from 'react-router-dom';
 
@@ -279,7 +280,13 @@ function ReportCard({ report }) {
       org_id: 'default',
       report_id: report.id,
       filters: {}
-    })
+    }),
+    onSuccess: () => {
+      toast.success('Report generated successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to generate report: ' + error.message);
+    }
   });
 
   return (

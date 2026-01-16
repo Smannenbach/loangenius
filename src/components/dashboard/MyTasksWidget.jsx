@@ -53,8 +53,8 @@ export default function MyTasksWidget({ orgId }) {
     <div className="bg-white rounded-lg border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold">My Tasks</h3>
-        <Button variant="ghost" size="sm" className="text-blue-600" onClick={() => window.location.href = '/Pipeline'}>
-          View Pipeline
+        <Button variant="ghost" size="sm" className="text-blue-600" onClick={() => window.location.href = createPageUrl('Tasks')}>
+          View All
         </Button>
       </div>
       
