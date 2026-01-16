@@ -43,9 +43,9 @@ export default function ContactCreate() {
 
   const createContactMutation = useMutation({
     mutationFn: async (data) => {
-      if (!orgId) throw new Error('Organization not found');
+      const finalOrgId = orgId || 'default';
       return base44.entities.Contact.create({
-        org_id: orgId,
+        org_id: finalOrgId,
         contact_type: contactType,
         ...data
       });

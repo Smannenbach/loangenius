@@ -1,28 +1,58 @@
 import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mail, Phone, MapPin, User, Building2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Mail, Phone, MapPin, User, Building2, ArrowLeft } from 'lucide-react';
+import { createPageUrl } from '@/utils';
 
 export default function ContactDetail() {
   const [searchParams] = useSearchParams();
   const contactId = searchParams.get('id');
   const [activeTab, setActiveTab] = useState('overview');
 
-  const { data: contact } = useQuery({
+  const { data: contact, isLoading } = useQuery({
     queryKey: ['contact', contactId],
     queryFn: async () => {
-      const result = await base44.entities.Contact.filter({ id: contactId });
-      return result[0];
+      const contacts = await base44.entities.Contact.list();
+      return contacts.find(c => c.id === contactId);
     },
     enabled: !!contactId,
   });
 
+  // Fetch deals associated with this contact
+  const { data: deals = [] } = useQuery({
+    queryKey: ['contact-deals', contactId],
+    queryFn: async () => {
+      if (!contact) return [];
+      return await base44.entities.Deal.filter({ primary_borrower_id: contactId });
+    },
+    enabled: !!contact,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 w-48 bg-gray-200 rounded" />
+          <div className="h-48 bg-gray-200 rounded" />
+        </div>
+      </div>
+    );
+  }
+
   if (!contact) {
-    return <div className="p-6">Loading...</div>;
+    return (
+      <div className="p-6 bg-gray-50 min-h-screen text-center">
+        <p className="text-gray-500">Contact not found</p>
+        <Link to={createPageUrl('Contacts')} className="text-blue-600 hover:underline mt-2 inline-block">
+          Back to Contacts
+        </Link>
+      </div>
+    );
   }
 
   const getContactName = () => {
@@ -40,12 +70,13 @@ export default function ContactDetail() {
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="mb-6">
-        <button 
-          className="text-blue-600 hover:text-blue-700 text-sm font-medium mb-4"
-          onClick={() => window.history.back()}
+        <Link 
+          to={createPageUrl('Contacts')}
+          className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium mb-4"
         >
-          ← Back to Contacts
-        </button>
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back to Contacts
+        </Link>
 
         <Card className="bg-white">
           <CardContent className="py-6">
@@ -185,7 +216,28 @@ export default function ContactDetail() {
         <TabsContent value="deals">
           <Card className="bg-white">
             <CardContent className="py-6">
-              <p className="text-gray-500 text-sm">No deals associated with this contact yet.</p>
+              {deals.length === 0 ? (
+                <p className="text-gray-500 text-sm">No deals associated with this contact yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {deals.map(deal => (
+                    <Link key={deal.id} to={createPageUrl(`DealDetail?id=${deal.id}`)}>
+                      <div className="p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-medium text-gray-900">{deal.deal_number || 'Draft Deal'}</p>
+                            <p className="text-sm text-gray-600">{deal.loan_product}</p>
+                          </div>
+                          <Badge className="bg-blue-100 text-blue-800">{deal.stage}</Badge>
+                        </div>
+                        <p className="text-sm font-medium text-gray-900 mt-2">
+                          ${(deal.loan_amount || 0).toLocaleString()}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
