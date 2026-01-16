@@ -149,7 +149,7 @@ export default function NewDeal() {
       // Create properties
       for (const prop of properties) {
         await base44.entities.Property.create({
-          org_id: orgId,
+          org_id: effectiveOrgId,
           deal_id: deal.id,
           address_street: prop.address_street,
           address_city: prop.address_city,
