@@ -55,6 +55,7 @@ import AddressAutocomplete from '@/components/AddressAutocomplete';
 import QuoteGeneratorModal from '@/components/QuoteGeneratorModal';
 import LeadDetailModal from '@/components/LeadDetailModal';
 import LeadsImportModal from '@/components/LeadsImportModal';
+import { TCPAConsentCompact } from '@/components/TCPAConsent';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
@@ -103,6 +104,7 @@ export default function Leads() {
     source: '',
     status: 'new',
     notes: '',
+    tcpa_consent: false,
   });
 
   const { data: user } = useQuery({
@@ -373,14 +375,25 @@ export default function Leads() {
                     className="h-10"
                   />
                 </div>
+                <div className="pt-2 border-t">
+                  <TCPAConsentCompact
+                    checked={newLead.tcpa_consent}
+                    onCheckedChange={(checked) => setNewLead({ ...newLead, tcpa_consent: checked })}
+                    error={false}
+                  />
+                </div>
                 <Button 
                   className="w-full bg-blue-600 hover:bg-blue-700 h-10 mt-2" 
                   onClick={() => { 
+                    if (!newLead.tcpa_consent) {
+                      toast.error('TCPA consent is required');
+                      return;
+                    }
                     createLeadMutation.mutate(newLead); 
                     setIsQuickAddOpen(false);
-                    setNewLead({...newLead, first_name: '', last_name: '', home_email: '', mobile_phone: ''});
+                    setNewLead({...newLead, first_name: '', last_name: '', home_email: '', mobile_phone: '', tcpa_consent: false});
                   }}
-                  disabled={createLeadMutation.isPending}
+                  disabled={createLeadMutation.isPending || !newLead.tcpa_consent}
                 >
                   {createLeadMutation.isPending ? 'Adding...' : 'Add Lead'}
                 </Button>
@@ -735,10 +748,25 @@ export default function Leads() {
                   placeholder="Add any notes..."
                 />
               </div>
+              {!editingLead && (
+                <div className="pt-3 border-t">
+                  <TCPAConsentCompact
+                    checked={newLead.tcpa_consent}
+                    onCheckedChange={(checked) => setNewLead({ ...newLead, tcpa_consent: checked })}
+                    error={false}
+                  />
+                </div>
+              )}
               <Button 
                 className="w-full bg-blue-600 hover:bg-blue-500"
-                onClick={() => createLeadMutation.mutate(newLead)}
-                disabled={createLeadMutation.isPending}
+                onClick={() => {
+                  if (!editingLead && !newLead.tcpa_consent) {
+                    toast.error('TCPA consent is required for new leads');
+                    return;
+                  }
+                  createLeadMutation.mutate(newLead);
+                }}
+                disabled={createLeadMutation.isPending || (!editingLead && !newLead.tcpa_consent)}
               >
                 {createLeadMutation.isPending ? 'Saving...' : editingLead ? 'Update Lead' : 'Add Lead'}
               </Button>
