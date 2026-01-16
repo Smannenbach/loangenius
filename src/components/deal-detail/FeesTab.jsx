@@ -23,7 +23,13 @@ export default function FeesTab({ dealId, deal }) {
 
   const { data: fees = [] } = useQuery({
     queryKey: ['deal-fees', dealId],
-    queryFn: () => base44.entities.Fee.filter({ deal_id: dealId }),
+    queryFn: async () => {
+      try {
+        return await base44.entities.Fee.filter({ deal_id: dealId });
+      } catch {
+        return await base44.entities.DealFee.filter({ deal_id: dealId });
+      }
+    },
     enabled: !!dealId,
   });
 

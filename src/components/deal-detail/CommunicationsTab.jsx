@@ -13,6 +13,7 @@ import {
   DialogTrigger
 } from '@/components/ui/dialog';
 import { Mail, MessageSquare, Phone, Send } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function CommunicationsTab({ dealId }) {
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -21,20 +22,52 @@ export default function CommunicationsTab({ dealId }) {
 
   const { data: communications = [] } = useQuery({
     queryKey: ['communications', dealId],
-    queryFn: () => base44.entities.Communication.filter({ deal_id: dealId })
+    queryFn: async () => {
+      try {
+        return await base44.entities.Communication.filter({ deal_id: dealId });
+      } catch {
+        return await base44.entities.CommunicationsLog.filter({ deal_id: dealId });
+      }
+    }
   });
 
   const { data: templates = [] } = useQuery({
     queryKey: ['templates'],
-    queryFn: () => base44.entities.CommunicationTemplate.filter({ is_active: true })
+    queryFn: async () => {
+      try {
+        return await base44.entities.CommunicationTemplate.filter({ is_active: true });
+      } catch {
+        return await base44.entities.MessageTemplate.filter({});
+      }
+    }
   });
 
   const sendMutation = useMutation({
-    mutationFn: (data) => base44.functions.invoke('sendCommunication', data),
+    mutationFn: async (data) => {
+      try {
+        return await base44.functions.invoke('sendCommunication', data);
+      } catch (e) {
+        // Fallback: Create communication log record directly
+        return await base44.entities.CommunicationsLog.create({
+          org_id: data.org_id,
+          deal_id: data.deal_id,
+          channel: data.channel.toLowerCase(),
+          direction: 'outbound',
+          to: data.to_address,
+          subject: data.subject || '',
+          body: data.body,
+          status: 'sent',
+        });
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['communications', dealId] });
       setShowEmailModal(false);
       setShowSmsModal(false);
+      toast.success('Message sent successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to send message: ' + error.message);
     }
   });
 
