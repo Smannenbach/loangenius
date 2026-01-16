@@ -104,7 +104,7 @@ export default function LeadsImportModal({ trigger, onImportComplete }) {
                 {headers.map((header) => (
                   <div key={header} className="flex gap-2 items-center">
                     <span className="text-sm font-medium w-32">{header}</span>
-                    <Select value={mapping[header] || ''} onValueChange={(v) => setMapping({ ...mapping, [header]: v })}>
+                    <Select value={mapping[header] || 'skip'} onValueChange={(v) => setMapping({ ...mapping, [header]: v === 'skip' ? null : v })}>
                       <SelectTrigger className="flex-1">
                         <SelectValue placeholder="Skip field" />
                       </SelectTrigger>
