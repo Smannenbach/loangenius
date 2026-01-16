@@ -117,8 +117,9 @@ export default function Dashboard() {
   }, {});
   const pipelineStages = Object.entries(stageGroups).map(([stage, count]) => ({ stage, count }));
 
-  // Show loading state for KPIs
-  if (kpisLoading) {
+  // Show loading state only when everything is loading
+  const isLoading = kpisLoading && deals.length === 0 && leads.length === 0;
+  if (isLoading) {
     return (
       <div className="p-6 bg-gray-50 min-h-screen flex items-center justify-center">
         <div className="text-center">
