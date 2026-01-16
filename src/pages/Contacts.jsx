@@ -21,13 +21,25 @@ export default function Contacts() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: contacts = [] } = useQuery({
-    queryKey: ['contacts', user?.org_id, searchTerm, contactType, filterType, currentPage],
+  // Get user's org membership
+  const { data: memberships = [] } = useQuery({
+    queryKey: ['userMembership', user?.email],
     queryFn: async () => {
-      if (!user?.org_id) return [];
-      return await base44.entities.Contact.filter({ org_id: user.org_id });
+      if (!user?.email) return [];
+      return await base44.entities.OrgMembership.filter({ user_id: user.email });
     },
-    enabled: !!user?.org_id,
+    enabled: !!user?.email,
+  });
+
+  const orgId = memberships[0]?.org_id || user?.org_id;
+
+  const { data: contacts = [] } = useQuery({
+    queryKey: ['contacts', orgId, searchTerm, contactType, filterType, currentPage],
+    queryFn: async () => {
+      if (!orgId) return [];
+      return await base44.entities.Contact.filter({ org_id: orgId });
+    },
+    enabled: !!orgId,
   });
 
   // Filter contacts
