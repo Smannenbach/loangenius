@@ -7,16 +7,33 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { TrendingUp, DollarSign, Users, Zap } from 'lucide-react';
 
 export default function Analytics() {
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: memberships = [] } = useQuery({
+    queryKey: ['userMembership', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return await base44.entities.OrgMembership.filter({ user_id: user.email });
+    },
+    enabled: !!user?.email,
+  });
+
+  const orgId = memberships[0]?.org_id || user?.org_id;
+
   const { data: kpis, isLoading } = useQuery({
-    queryKey: ['dashboardKPIs'],
+    queryKey: ['dashboardKPIs', orgId],
     queryFn: async () => {
       try {
-        return await base44.functions.invoke('getDashboardKPIs');
+        return await base44.functions.invoke('getDashboardKPIs', { org_id: orgId });
       } catch (e) {
         // Return empty data if function fails
         return { data: { kpis: { deals: { total: 0, active: 0, funded: 0, totalAmount: 0 }, leads: { total: 0, new: 0, conversionRate: 0, converted: 0 }, stageDistribution: {} } } };
       }
     },
+    enabled: !!orgId,
   });
 
   if (isLoading) return <div className="p-8">Loading analytics...</div>;
