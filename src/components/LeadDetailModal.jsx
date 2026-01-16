@@ -270,12 +270,34 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
                 Edit Lead
               </Button>
               <Button 
-                onClick={() => alert('Coming soon: Send message to lead')}
+                onClick={() => {
+                  const email = lead.home_email || lead.work_email;
+                  if (email) {
+                    window.location.href = `mailto:${email}?subject=Regarding your loan inquiry`;
+                  } else {
+                    alert('No email address available for this lead');
+                  }
+                }}
                 variant="outline"
                 className="w-full gap-2"
               >
                 <MessageCircle className="h-4 w-4" />
-                Send Message
+                Send Email
+              </Button>
+              <Button 
+                onClick={() => {
+                  const phone = lead.mobile_phone || lead.home_phone || lead.work_phone;
+                  if (phone) {
+                    window.location.href = `sms:${phone}`;
+                  } else {
+                    alert('No phone number available for this lead');
+                  }
+                }}
+                variant="outline"
+                className="w-full gap-2"
+              >
+                <MessageSquare className="h-4 w-4" />
+                Send SMS
               </Button>
             </TabsContent>
           </Tabs>

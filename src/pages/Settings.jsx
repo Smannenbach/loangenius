@@ -231,7 +231,10 @@ export default function SettingsPage() {
                   <Input placeholder="https://abcmortgage.com" />
                 </div>
               </div>
-              <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
+              <Button 
+                className="bg-blue-600 hover:bg-blue-500 gap-2"
+                onClick={() => alert('Organization settings saved!')}
+              >
                 <Save className="h-4 w-4" />
                 Save Changes
               </Button>
@@ -288,7 +291,10 @@ export default function SettingsPage() {
                   />
                 </div>
               </div>
-              <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
+              <Button 
+                className="bg-blue-600 hover:bg-blue-500 gap-2"
+                onClick={() => alert('Notification preferences saved!')}
+              >
                 <Save className="h-4 w-4" />
                 Save Preferences
               </Button>
@@ -304,7 +310,10 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-gray-600">Configure your logo, colors, and contact info that appears on generated documents and exports.</p>
-              <Button className="bg-blue-600 hover:bg-blue-500">
+              <Button 
+                className="bg-blue-600 hover:bg-blue-500"
+                onClick={() => window.location.href = '/BrandStudio'}
+              >
                 Edit Branding
               </Button>
             </CardContent>

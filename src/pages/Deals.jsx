@@ -94,7 +94,32 @@ export default function Deals() {
           <p className="text-gray-500 mt-1">View and manage all loan deals</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2">
+          <Button 
+            variant="outline" 
+            className="gap-2"
+            onClick={() => {
+              // Export deals to CSV
+              const csvContent = [
+                ['Deal #', 'Loan Type', 'Amount', 'Status', 'LTV', 'DSCR'].join(','),
+                ...deals.map(d => [
+                  d.deal_number || 'Draft',
+                  d.loan_type || '',
+                  d.loan_amount || 0,
+                  d.status || '',
+                  d.ltv_ratio || '',
+                  d.dscr_ratio || ''
+                ].join(','))
+              ].join('\n');
+              
+              const blob = new Blob([csvContent], { type: 'text/csv' });
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'deals-export.csv';
+              a.click();
+              window.URL.revokeObjectURL(url);
+            }}
+          >
             <Download className="h-4 w-4" />
             Export
           </Button>
