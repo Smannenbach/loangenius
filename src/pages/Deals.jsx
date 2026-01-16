@@ -35,9 +35,30 @@ export default function Deals() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  // Get user's org membership
+  const { data: memberships = [] } = useQuery({
+    queryKey: ['userMembership', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return await base44.entities.OrgMembership.filter({ user_id: user.email });
+    },
+    enabled: !!user?.email,
+  });
+
+  const orgId = memberships[0]?.org_id || user?.org_id;
+
   const { data: deals = [], isLoading } = useQuery({
-    queryKey: ['deals'],
-    queryFn: () => base44.entities.Deal.filter({ is_deleted: false }),
+    queryKey: ['deals', orgId],
+    queryFn: async () => {
+      if (!orgId) return [];
+      return await base44.entities.Deal.filter({ org_id: orgId, is_deleted: false });
+    },
+    enabled: !!orgId,
   });
 
   const getStatusColor = (status) => {

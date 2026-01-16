@@ -20,6 +20,12 @@ import {
   ChevronRight,
   MoreVertical,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Pipeline() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -121,10 +127,19 @@ export default function Pipeline() {
             className="pl-10"
           />
         </div>
-        <Button variant="outline" className="gap-2 md:w-auto w-full">
-          <Filter className="h-4 w-4" />
-          Filters
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="gap-2 md:w-auto w-full">
+              <Filter className="h-4 w-4" />
+              Filters
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => setSearchTerm('')}>All Deals</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSearchTerm('DSCR')}>DSCR Only</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSearchTerm('Commercial')}>Commercial Only</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Pipeline Board */}

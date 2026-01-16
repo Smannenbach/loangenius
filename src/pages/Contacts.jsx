@@ -193,13 +193,21 @@ export default function Contacts() {
 
       {/* Pagination */}
       <div className="flex justify-center gap-4 mt-6">
-        <Button variant="outline" disabled={currentPage === 1}>
+        <Button 
+          variant="outline" 
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+        >
           Previous
         </Button>
         <span className="px-4 py-2 text-sm text-gray-600">
           Page {currentPage}
         </span>
-        <Button variant="outline">
+        <Button 
+          variant="outline"
+          onClick={() => setCurrentPage(p => p + 1)}
+          disabled={filtered.length < 20}
+        >
           Next
         </Button>
       </div>
