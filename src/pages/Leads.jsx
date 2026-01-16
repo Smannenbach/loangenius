@@ -971,7 +971,7 @@ export default function Leads() {
       )}
 
       {/* View Mode */}
-      {!isLoading && !error && viewMode === 'table' ? (
+      {!isLoading && !error && leads.length > 0 && viewMode === 'table' ? (
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -1037,7 +1037,7 @@ export default function Leads() {
             </table>
           </div>
         </div>
-      ) : !isLoading && !error ? (
+      ) : !isLoading && !error && leads.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredLeads.length === 0 ? (
             <div className="col-span-full text-center py-12 text-gray-400"><AlertCircle className="h-8 w-8 mx-auto mb-2" /><p>No leads match your filters</p></div>
