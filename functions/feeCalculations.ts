@@ -1,14 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 async function calculateFeeAmount(base44, feeCatalogId, dealId) {
-  const base44 = createClientFromRequest(req);
-  
   try {
-    const user = await base44.auth.me();
-    if (!user) {
-      return { error: 'Unauthorized', status: 401 };
-    }
-
     // Fetch fee catalog and deal
     const catalogs = await base44.entities.FeeCatalog.filter({ id: feeCatalogId });
     const deals = await base44.entities.Deal.filter({ id: dealId });
