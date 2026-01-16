@@ -152,36 +152,64 @@ export default function SettingsPage() {
         <TabsContent value="profile">
           <Card className="border-gray-200">
             <CardHeader>
-              <CardTitle>Profile Settings</CardTitle>
-              <CardDescription>Update your personal information</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Profile Settings</CardTitle>
+                  <CardDescription>Update your personal information</CardDescription>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : lastSaved ? (
+                    <>
+                      <Check className="h-4 w-4 text-green-500" />
+                      <span>Auto-saved</span>
+                    </>
+                  ) : null}
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Headshot Upload */}
               <div className="space-y-2">
                 <Label>Professional Headshot</Label>
                 <div className="flex items-center gap-4">
-                  {profile.headshot_url && (
-                    <img src={profile.headshot_url} alt="Headshot" className="h-24 w-24 rounded-lg object-cover border border-gray-200" />
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        try {
-                          const formData = new FormData();
-                          formData.append('file', file);
-                          const { data } = await base44.functions.invoke('uploadUserHeadshot', formData);
-                          setProfile({ ...profile, headshot_url: data.url });
-                        } catch (err) {
-                          console.error('Upload failed:', err);
-                          alert('Upload failed: ' + err.message);
-                        }
-                      }
-                    }}
-                    className="block"
-                  />
+                  <div className="relative">
+                    {profile.headshot_url ? (
+                      <img src={profile.headshot_url} alt="Headshot" className="h-24 w-24 rounded-lg object-cover border border-gray-200" />
+                    ) : (
+                      <div className="h-24 w-24 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center">
+                        <User className="h-8 w-8 text-gray-400" />
+                      </div>
+                    )}
+                    {uploadingHeadshot && (
+                      <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 text-white animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleHeadshotUpload}
+                      className="hidden"
+                    />
+                    <Button 
+                      variant="outline" 
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingHeadshot}
+                      className="gap-2"
+                    >
+                      <Upload className="h-4 w-4" />
+                      {uploadingHeadshot ? 'Uploading...' : 'Upload Photo'}
+                    </Button>
+                    <p className="text-xs text-gray-500 mt-1">JPG, PNG up to 5MB</p>
+                  </div>
                 </div>
               </div>
 
@@ -190,7 +218,7 @@ export default function SettingsPage() {
                   <Label>Full Name</Label>
                   <Input
                     value={profile.full_name}
-                    onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
+                    onChange={(e) => handleProfileChange('full_name', e.target.value)}
                     placeholder="John Smith"
                   />
                 </div>
@@ -199,15 +227,15 @@ export default function SettingsPage() {
                   <Input
                     type="email"
                     value={profile.email}
-                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
                     disabled
+                    className="bg-gray-50"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Phone</Label>
                   <Input
                     value={profile.phone}
-                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                    onChange={(e) => handleProfileChange('phone', e.target.value)}
                     placeholder="(555) 123-4567"
                   />
                 </div>
@@ -215,30 +243,22 @@ export default function SettingsPage() {
                   <Label>NMLS ID</Label>
                   <Input
                     value={profile.nmls_id}
-                    onChange={(e) => setProfile({ ...profile, nmls_id: e.target.value })}
+                    onChange={(e) => handleProfileChange('nmls_id', e.target.value)}
                     placeholder="123456"
                   />
                 </div>
               </div>
-              <Button 
-                className="bg-blue-600 hover:bg-blue-500 gap-2"
-                onClick={async () => {
-                  try {
-                    await base44.auth.updateMe({
-                      full_name: profile.full_name,
-                      phone: profile.phone,
-                      nmls_id: profile.nmls_id,
-                      headshot_url: profile.headshot_url,
-                    });
-                    alert('Profile saved successfully!');
-                  } catch (err) {
-                    alert('Error saving profile: ' + err.message);
-                  }
-                }}
-              >
-                <Save className="h-4 w-4" />
-                Save Changes
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-500 gap-2"
+                  onClick={() => saveProfile(profile)}
+                  disabled={isSaving}
+                >
+                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Save Changes
+                </Button>
+                <span className="text-sm text-gray-500">Changes auto-save as you type</span>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
