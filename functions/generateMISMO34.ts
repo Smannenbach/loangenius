@@ -542,40 +542,91 @@ function buildMISMOXml(deal, borrowers, properties, fees, originator, organizati
   // Link borrowers to loans
   borrowers.forEach((b, idx) => {
     xml += `
-            <RELATIONSHIP SequenceNumber="${idx + 1}" xlink:from="Party_${idx + 1}" xlink:to="Loan_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/PARTY_IsVerifiedBy_VERIFICATION"/>`;
+            <RELATIONSHIP SequenceNumber="${idx + 1}" xlink:from="Party_${idx + 1}" xlink:to="Loan_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/PARTY_IsVerifiedBy_VERIFICATION"/>
+            <RELATIONSHIP SequenceNumber="${idx + 100}" xlink:from="Borrower_${idx + 1}" xlink:to="Loan_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/BORROWER_BorrowsOn_LOAN"/>`;
   });
   
   // Link properties to loans
   properties.forEach((p, idx) => {
     xml += `
-            <RELATIONSHIP SequenceNumber="${borrowers.length + idx + 1}" xlink:from="Collateral_${idx + 1}" xlink:to="Loan_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/COLLATERAL_IsCollateralFor_LOAN"/>`;
+            <RELATIONSHIP SequenceNumber="${borrowers.length + idx + 1}" xlink:from="Collateral_${idx + 1}" xlink:to="Loan_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/COLLATERAL_IsCollateralFor_LOAN"/>
+            <RELATIONSHIP SequenceNumber="${borrowers.length + idx + 200}" xlink:from="Property_${idx + 1}" xlink:to="Loan_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/PROPERTY_IsSubjectPropertyFor_LOAN"/>`;
   });
   
   xml += `
           </RELATIONSHIPS>`;
   
-  // Services/Fees section
+  // Services/Fees section with comprehensive TRID categories
   if (fees.length > 0) {
     xml += `
           <SERVICES>`;
     fees.forEach((fee, idx) => {
+      const tridSection = mapTRIDSection(fee.trid_category || fee.fee_type);
       xml += `
             <SERVICE SequenceNumber="${idx + 1}">
+              <SERVICE_DETAIL>
+                <ServiceType>${escapeXml(fee.service_type || 'Other')}</ServiceType>
+              </SERVICE_DETAIL>
+              <SERVICE_PAYMENTS>
+                <SERVICE_PAYMENT>
+                  <SERVICE_PAYMENT_DETAIL>
+                    <ServicePaymentAmount>${formatMoney(fee.calculated_amount || fee.amount)}</ServicePaymentAmount>
+                  </SERVICE_PAYMENT_DETAIL>
+                </SERVICE_PAYMENT>
+              </SERVICE_PAYMENTS>
               <FEES>
                 <FEE>
                   <FEE_DETAIL>
-                    <FeeActualTotalAmount>${fee.calculated_amount || fee.amount || 0}</FeeActualTotalAmount>
-                    <FeePaidByType>${fee.is_borrower_paid ? 'Borrower' : 'Lender'}</FeePaidByType>
-                    <FeeType>${escapeXml(fee.fee_name || fee.trid_category || 'Other')}</FeeType>
-                    <FeeTotalPercent>${fee.fee_percent || 0}</FeeTotalPercent>
-                    ${fee.trid_category ? `<IntegratedDisclosureSectionType>${escapeXml(fee.trid_category)}</IntegratedDisclosureSectionType>` : ''}
+                    <FeeActualTotalAmount>${formatMoney(fee.calculated_amount || fee.amount)}</FeeActualTotalAmount>
+                    <FeeEstimatedTotalAmount>${formatMoney(fee.estimated_amount || fee.calculated_amount || fee.amount)}</FeeEstimatedTotalAmount>
+                    <FeePaidByType>${fee.is_borrower_paid !== false ? 'Borrower' : 'Lender'}</FeePaidByType>
+                    <FeePaidToType>${escapeXml(fee.paid_to || 'Lender')}</FeePaidToType>
+                    <FeeType>${escapeXml(fee.fee_name || fee.fee_type || 'Other')}</FeeType>
+                    <FeeTotalPercent>${formatPercent(fee.fee_percent)}</FeeTotalPercent>
+                    <IntegratedDisclosureSectionType>${tridSection}</IntegratedDisclosureSectionType>
+                    ${fee.is_apr_fee !== undefined ? `<APRIndicator>${fee.is_apr_fee}</APRIndicator>` : ''}
+                    ${fee.is_financed !== undefined ? `<FeeFinancedIndicator>${fee.is_financed}</FeeFinancedIndicator>` : ''}
                   </FEE_DETAIL>
+                  <FEE_PAYMENTS>
+                    <FEE_PAYMENT>
+                      <FEE_PAYMENT_DETAIL>
+                        <FeePaymentPaidByType>${fee.is_borrower_paid !== false ? 'Borrower' : 'Lender'}</FeePaymentPaidByType>
+                        <FeePaymentAmount>${formatMoney(fee.calculated_amount || fee.amount)}</FeePaymentAmount>
+                      </FEE_PAYMENT_DETAIL>
+                    </FEE_PAYMENT>
+                  </FEE_PAYMENTS>
                 </FEE>
               </FEES>
             </SERVICE>`;
     });
     xml += `
           </SERVICES>`;
+  }
+  
+  // Add loan originator info if available
+  if (originator) {
+    xml += `
+          <LOAN_ORIGINATOR>
+            <LOAN_ORIGINATOR_DETAIL>
+              <LoanOriginatorName>${escapeXml(originator.originator_name)}</LoanOriginatorName>
+              ${originator.originator_nmls_id ? `<NMLSLicenseIdentifier>${escapeXml(originator.originator_nmls_id)}</NMLSLicenseIdentifier>` : ''}
+              ${originator.originator_state_license_id ? `<StateLicenseIdentifier>${escapeXml(originator.originator_state_license_id)}</StateLicenseIdentifier>` : ''}
+            </LOAN_ORIGINATOR_DETAIL>
+            ${originator.organization_name ? `
+            <LOAN_ORIGINATION_COMPANY>
+              <LOAN_ORIGINATION_COMPANY_DETAIL>
+                <LoanOriginationCompanyName>${escapeXml(originator.organization_name)}</LoanOriginationCompanyName>
+                ${originator.organization_nmls_id ? `<LoanOriginationCompanyNMLSIdentifier>${escapeXml(originator.organization_nmls_id)}</LoanOriginationCompanyNMLSIdentifier>` : ''}
+              </LOAN_ORIGINATION_COMPANY_DETAIL>
+              ${originator.organization_address_street ? `
+              <ADDRESS>
+                <AddressLineText>${escapeXml(originator.organization_address_street)}</AddressLineText>
+                <CityName>${escapeXml(originator.organization_address_city || '')}</CityName>
+                <StateCode>${escapeXml(originator.organization_address_state || '')}</StateCode>
+                <PostalCode>${escapeXml(originator.organization_address_zip || '')}</PostalCode>
+              </ADDRESS>` : ''}
+            </LOAN_ORIGINATION_COMPANY>` : ''}
+          </LOAN_ORIGINATOR>`;
   }
   
   xml += `
@@ -586,4 +637,34 @@ function buildMISMOXml(deal, borrowers, properties, fees, originator, organizati
 </MESSAGE>`;
 
   return xml;
+}
+
+// Map fee types to TRID integrated disclosure sections
+function mapTRIDSection(feeType) {
+  const map = {
+    'origination': 'OriginationCharges',
+    'Origination Fee': 'OriginationCharges',
+    'points': 'OriginationCharges',
+    'discount': 'OriginationCharges',
+    'appraisal': 'ServicesYouCannotShopFor',
+    'Appraisal Fee': 'ServicesYouCannotShopFor',
+    'credit_report': 'ServicesYouCannotShopFor',
+    'flood_certification': 'ServicesYouCannotShopFor',
+    'title_insurance': 'ServicesYouCanShopFor',
+    'Title Insurance': 'ServicesYouCanShopFor',
+    'title_search': 'ServicesYouCanShopFor',
+    'Title Search': 'ServicesYouCanShopFor',
+    'survey': 'ServicesYouCanShopFor',
+    'Survey': 'ServicesYouCanShopFor',
+    'recording': 'TaxesAndOtherGovernmentFees',
+    'transfer_tax': 'TaxesAndOtherGovernmentFees',
+    'prepaid_interest': 'Prepaids',
+    'prepaid_taxes': 'Prepaids',
+    'prepaid_insurance': 'Prepaids',
+    'escrow': 'InitialEscrowPaymentAtClosing',
+    'reserves': 'InitialEscrowPaymentAtClosing',
+    'owner_title': 'OtherCosts',
+    'other': 'OtherCosts',
+  };
+  return map[feeType] || map[feeType?.toLowerCase()] || 'OtherCosts';
 }
