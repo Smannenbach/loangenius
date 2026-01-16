@@ -40,21 +40,21 @@ export default function TestingHub() {
 
   const testSuites = {
     'Core Functions': [
-      { id: 'deal_create', name: 'Deal Creation', function: 'createOrUpdateDeal', description: 'Tests creating a new deal with borrowers and properties' },
       { id: 'ai_status', name: 'AI Service Status', function: 'aiStatus', description: 'Checks if AI services are operational' },
       { id: 'ai_chat', name: 'AI Chat Response', function: 'aiAssistantChat', description: 'Tests AI assistant chat functionality' },
+      { id: 'dashboard_kpi', name: 'Dashboard KPIs', function: 'getDashboardKPIs', description: 'Tests dashboard KPI loading' },
     ],
     'MISMO Export': [
-      { id: 'export_generic', name: 'Generic MISMO 3.4 Export', function: 'exportDealMISMO', description: 'Requires existing deal' },
-      { id: 'export_profile', name: 'Profile-Based Export', function: 'exportWithProfile', description: 'Requires deal and profile' },
+      { id: 'mismo_34', name: 'MISMO 3.4 Export', function: 'generateMISMO34', description: 'Tests MISMO 3.4 XML generation' },
+      { id: 'export_generic', name: 'Generic Deal Export', function: 'exportDealMISMO', description: 'Requires existing deal' },
     ],
     'Workflows': [
       { id: 'autosave', name: 'BPA Wizard Autosave', function: 'applicationAutosave', description: 'Requires existing application' },
-      { id: 'resume', name: 'Resume Application', function: 'applicationResume', description: 'Requires resume token' },
-      { id: 'submit', name: 'Submit Application', function: 'applicationSubmit', description: 'Requires completed application' },
+      { id: 'prequal', name: 'Pre-Qualification Check', function: 'preQualifyBorrower', description: 'Tests pre-qualification logic' },
     ],
     'Integrations': [
       { id: 'sheets_import', name: 'Google Sheets Import', function: 'importLeadsFromGoogleSheets', description: 'Requires Sheets configuration' },
+      { id: 'send_email', name: 'Send Email', function: 'sendCommunication', description: 'Tests email sending' },
     ],
   };
 
@@ -132,6 +132,78 @@ export default function TestingHub() {
         case 'aiAssistantChat':
           payload = { message: 'What is DSCR?', conversation_context: [] };
           break;
+          
+        case 'getDashboardKPIs':
+          payload = { org_id: orgId, period: 'month' };
+          break;
+          
+        case 'generateMISMO34':
+          // Get a real deal to test with
+          try {
+            const deals = await base44.entities.Deal.list();
+            if (deals.length > 0) {
+              payload = { deal_id: deals[0].id };
+            } else {
+              setTestResults(prev => ({
+                ...prev,
+                [testId]: {
+                  status: 'skip',
+                  message: 'No deals found - create a deal first to test MISMO export',
+                },
+              }));
+              setRunningTests(prev => {
+                const next = new Set(prev);
+                next.delete(testId);
+                return next;
+              });
+              return;
+            }
+          } catch (e) {
+            setTestResults(prev => ({
+              ...prev,
+              [testId]: {
+                status: 'fail',
+                message: 'Failed to fetch deals: ' + e.message,
+              },
+            }));
+            setRunningTests(prev => {
+              const next = new Set(prev);
+              next.delete(testId);
+              return next;
+            });
+            return;
+          }
+          break;
+          
+        case 'preQualifyBorrower':
+          payload = {
+            borrower_data: {
+              credit_score: 720,
+              annual_income: 150000,
+              total_debt: 2000,
+            },
+            loan_data: {
+              loan_amount: 500000,
+              property_value: 625000,
+              loan_type: 'DSCR',
+            }
+          };
+          break;
+          
+        case 'sendCommunication':
+          setTestResults(prev => ({
+            ...prev,
+            [testId]: {
+              status: 'skip',
+              message: 'Email test skipped - would send actual email',
+            },
+          }));
+          setRunningTests(prev => {
+            const next = new Set(prev);
+            next.delete(testId);
+            return next;
+          });
+          return;
           
         case 'applicationAutosave':
           setTestResults(prev => ({
