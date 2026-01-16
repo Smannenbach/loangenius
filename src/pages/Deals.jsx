@@ -228,10 +228,10 @@ export default function Deals() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {deal.ltv_ratio ? `${deal.ltv_ratio.toFixed(1)}%` : '-'}
+                      {deal.ltv ? `${deal.ltv.toFixed(1)}%` : (deal.ltv_ratio ? `${deal.ltv_ratio.toFixed(1)}%` : '-')}
                     </TableCell>
                     <TableCell>
-                      {deal.dscr_ratio ? deal.dscr_ratio.toFixed(2) : '-'}
+                      {deal.dscr ? deal.dscr.toFixed(2) : (deal.dscr_ratio ? deal.dscr_ratio.toFixed(2) : '-')}
                     </TableCell>
                     <TableCell>
                       {deal.estimated_close_date 

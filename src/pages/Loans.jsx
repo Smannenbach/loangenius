@@ -339,15 +339,15 @@ export default function LoansPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  window.location.href = createPageUrl(`DealDetail?id=${loan.id}`);
-                                }}
-                                className="gap-2"
-                              >
-                                <ChevronRight className="h-4 w-4" />
-                                View Details
+                              <DropdownMenuItem asChild>
+                                <Link 
+                                  to={createPageUrl(`DealDetail?id=${loan.id}`)}
+                                  className="gap-2"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <ChevronRight className="h-4 w-4" />
+                                  View Details
+                                </Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => {
                                 e.stopPropagation();
@@ -448,14 +448,15 @@ export default function LoansPage() {
                     <Edit2 className="h-4 w-4 mr-2" />
                     Edit Loan Details
                   </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => window.location.href = createPageUrl(`DealDetail?id=${selectedLoan.id}`)}
-                    className="flex-1 h-11"
-                  >
-                    <ChevronRight className="h-4 w-4 mr-2" />
-                    Full Details
-                  </Button>
+                  <Link to={createPageUrl(`DealDetail?id=${selectedLoan.id}`)}>
+                    <Button 
+                      variant="outline"
+                      className="w-full h-11"
+                    >
+                      <ChevronRight className="h-4 w-4 mr-2" />
+                      Full Details
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </DialogContent>
