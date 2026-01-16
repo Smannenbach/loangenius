@@ -27,7 +27,7 @@ export default function TestingValidationHub() {
       id: 'dashboard_kpis',
       name: 'Dashboard KPIs',
       function: 'getDashboardKPIs',
-      payload: { period: 'month' },
+      payload: { org_id: 'default', period: 'month' },
       icon: Database,
       category: 'Core'
     },
@@ -43,17 +43,17 @@ export default function TestingValidationHub() {
       id: 'ai_assistant',
       name: 'AI Assistant Chat',
       function: 'aiAssistantChat',
-      payload: { message: 'Test query for DSCR loans' },
+      payload: { message: 'Test query for DSCR loans', conversation_context: [] },
       icon: MessageSquare,
       category: 'AI'
     },
     {
-      id: 'seed_data',
-      name: 'Seed Test Data',
-      function: 'seedComprehensiveTestData',
-      payload: {},
-      icon: Database,
-      category: 'Data'
+      id: 'create_deal',
+      name: 'Create Deal API',
+      function: 'createOrUpdateDeal',
+      payload: { action: 'create', dealData: { loan_product: 'DSCR', loan_purpose: 'Purchase', loan_amount: 500000 } },
+      icon: FileText,
+      category: 'Core'
     },
     {
       id: 'orchestrator_status',
