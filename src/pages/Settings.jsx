@@ -21,7 +21,7 @@ import {
 import debounce from 'lodash/debounce';
 
 export default function SettingsPage() {
-  const { data: user } = useQuery({
+  const { data: user, refetch: refetchUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
   });
@@ -33,6 +33,10 @@ export default function SettingsPage() {
     nmls_id: '',
     headshot_url: '',
   });
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState(null);
+  const [uploadingHeadshot, setUploadingHeadshot] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (user) {
@@ -40,6 +44,8 @@ export default function SettingsPage() {
         ...prev,
         full_name: user.full_name || '',
         email: user.email || '',
+        phone: user.phone || '',
+        nmls_id: user.nmls_id || '',
         headshot_url: user.headshot_url || '',
       }));
     }
@@ -51,6 +57,67 @@ export default function SettingsPage() {
     email_status_change: true,
     sms_urgent: false,
   });
+
+  // Auto-save function
+  const saveProfile = useCallback(async (profileData) => {
+    setIsSaving(true);
+    try {
+      await base44.auth.updateMe({
+        full_name: profileData.full_name,
+        phone: profileData.phone,
+        nmls_id: profileData.nmls_id,
+        headshot_url: profileData.headshot_url,
+      });
+      setLastSaved(new Date());
+      toast.success('Changes saved');
+    } catch (err) {
+      toast.error('Failed to save: ' + err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  }, []);
+
+  // Debounced auto-save (waits 1.5 seconds after user stops typing)
+  const debouncedSave = useCallback(
+    debounce((profileData) => {
+      saveProfile(profileData);
+    }, 1500),
+    [saveProfile]
+  );
+
+  // Handle profile field changes with auto-save
+  const handleProfileChange = (field, value) => {
+    const newProfile = { ...profile, [field]: value };
+    setProfile(newProfile);
+    debouncedSave(newProfile);
+  };
+
+  // Handle headshot upload
+  const handleHeadshotUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingHeadshot(true);
+    try {
+      // Upload using Core.UploadFile integration directly
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      
+      // Update profile with new URL
+      const newProfile = { ...profile, headshot_url: file_url };
+      setProfile(newProfile);
+      
+      // Save immediately
+      await base44.auth.updateMe({ headshot_url: file_url });
+      setLastSaved(new Date());
+      toast.success('Headshot uploaded successfully');
+      refetchUser();
+    } catch (err) {
+      console.error('Upload failed:', err);
+      toast.error('Upload failed: ' + err.message);
+    } finally {
+      setUploadingHeadshot(false);
+    }
+  };
 
   return (
     <div className="p-6 lg:p-8 max-w-4xl mx-auto">
