@@ -53,12 +53,12 @@ function BorrowerOnboarding() {
 
   const handleDocumentsComplete = () => {
     // Navigate to full application with portal mode enabled
-    navigate(createPageUrl('LoanApplicationWizard?portal=true'));
+    window.location.href = createPageUrl('LoanApplicationWizard?portal=true');
   };
 
   const handleSkipDocuments = () => {
     // Skip directly to application
-    navigate(createPageUrl('LoanApplicationWizard?portal=true'));
+    window.location.href = createPageUrl('LoanApplicationWizard?portal=true');
   };
 
   return (
