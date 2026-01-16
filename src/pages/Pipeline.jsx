@@ -209,13 +209,18 @@ export default function Pipeline() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => window.location.href = createPageUrl(`DealDetail?id=${deal.id}`)}>
-                                View Details
+                              <DropdownMenuItem asChild>
+                                <Link to={createPageUrl(`DealDetail?id=${deal.id}`)}>
+                                  View Details
+                                </Link>
                               </DropdownMenuItem>
                               {stages.filter(s => s.id !== stage.id).map(s => (
                                 <DropdownMenuItem 
                                   key={s.id}
-                                  onClick={() => updateStage.mutate({ dealId: deal.id, newStage: s.id })}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    updateStage.mutate({ dealId: deal.id, newStage: s.id });
+                                  }}
                                 >
                                   Move to {s.name}
                                 </DropdownMenuItem>

@@ -2,345 +2,167 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Upload, Search, FileText, CheckCircle, Plus, Trash2, Eye, Download, Lock } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-
-const knowledgeArticles = [
-  {
-    id: 1,
-    title: 'DSCR Minimum Ratios by Loan Product',
-    category: 'Underwriting',
-    status: 'published',
-    views: 234,
-    agents: ['DSCR Underwriter', 'Credit/AUS'],
-    updated: '2025-01-10'
-  },
-  {
-    id: 2,
-    title: 'Acceptable Income Documentation',
-    category: 'Document Quality',
-    status: 'published',
-    views: 567,
-    agents: ['Document Intelligence', 'Document QC'],
-    updated: '2025-01-08'
-  },
-  {
-    id: 3,
-    title: 'Pricing Matrix & Rate Adjustments',
-    category: 'Pricing',
-    status: 'published',
-    views: 389,
-    agents: ['Pricing & Lock', 'Pricing Compliance'],
-    updated: '2025-01-12'
-  },
-  {
-    id: 4,
-    title: 'Fair Lending Compliance Guidelines',
-    category: 'Compliance',
-    status: 'published',
-    views: 123,
-    agents: ['Compliance/Audit', 'Credit/AUS'],
-    updated: '2025-01-15'
-  },
-  {
-    id: 5,
-    title: 'Fraud Detection Red Flags',
-    category: 'Risk Management',
-    status: 'draft',
-    views: 45,
-    agents: ['Fraud Detection', 'Exceptions/HITL'],
-    updated: '2025-01-14'
-  }
-];
-
-const documents = [
-  { id: 1, name: 'Pricing Guide 2025.pdf', size: '2.4 MB', type: 'PDF', uploadedAt: '2025-01-10' },
-  { id: 2, name: 'Underwriting Standards.docx', size: '1.8 MB', type: 'Document', uploadedAt: '2025-01-08' },
-  { id: 3, name: 'Compliance Checklist.xlsx', size: '512 KB', type: 'Spreadsheet', uploadedAt: '2025-01-12' }
-];
+import { BookOpen, Plus, Search, Edit, Trash2, FileText, Tag } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function AgentKnowledgeBase() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedArticle, setSelectedArticle] = useState(null);
-  const [isAddDocOpen, setIsAddDocOpen] = useState(false);
-  const [docTitle, setDocTitle] = useState('');
-  const [docCategory, setDocCategory] = useState('');
 
-  const filteredArticles = knowledgeArticles.filter(article =>
-    article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    article.category.toLowerCase().includes(searchTerm.toLowerCase())
+  const knowledgeItems = [
+    { 
+      id: 1, 
+      title: 'DSCR Calculation Standards', 
+      category: 'Underwriting',
+      tags: ['DSCR', 'Calculation', 'Guidelines'],
+      content: 'Standard DSCR calculation formula: Net Operating Income / Total Debt Service. Minimum ratio: 1.00 for most programs, 1.25 for optimal pricing.',
+      lastUpdated: '2026-01-15'
+    },
+    { 
+      id: 2, 
+      title: 'Document Requirements by Loan Type', 
+      category: 'Documentation',
+      tags: ['Documents', 'Requirements', 'Checklist'],
+      content: 'DSCR loans require: 12-24 months bank statements, current lease agreement, rent roll (if applicable), property insurance.',
+      lastUpdated: '2026-01-14'
+    },
+    { 
+      id: 3, 
+      title: 'LTV Guidelines', 
+      category: 'Underwriting',
+      tags: ['LTV', 'Guidelines', 'Limits'],
+      content: 'Maximum LTV ratios: SFR Investment 80%, 2-4 Unit 75%, 5+ Unit 70%. Lower LTVs may qualify for better rates.',
+      lastUpdated: '2026-01-13'
+    },
+    { 
+      id: 4, 
+      title: 'MISMO 3.4 Export Requirements', 
+      category: 'Compliance',
+      tags: ['MISMO', 'Export', 'XML'],
+      content: 'All MISMO 3.4 exports must include proper AssetBase types, borrower demographics, and property details. Use OWNED_PROPERTY for subject property.',
+      lastUpdated: '2026-01-12'
+    },
+  ];
+
+  const filteredItems = knowledgeItems.filter(item =>
+    !searchTerm || 
+    item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  const categories = [...new Set(knowledgeItems.map(i => i.category))];
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Agent Knowledge Base</h1>
-            <p className="text-gray-600 mt-1">Documents, policies, and reference materials for agent decision-making</p>
+    <div className="p-6 lg:p-8">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <BookOpen className="h-8 w-8 text-purple-600" />
+            Agent Knowledge Base
+          </h1>
+          <p className="text-gray-500 mt-1">Manage training data and knowledge for AI agents</p>
+        </div>
+        <Button className="bg-purple-600 hover:bg-purple-700 gap-2">
+          <Plus className="h-4 w-4" />
+          Add Knowledge Item
+        </Button>
+      </div>
+
+      {/* Search */}
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search knowledge base..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
-          <Dialog open={isAddDocOpen} onOpenChange={setIsAddDocOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Document
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Knowledge Document</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Title</label>
-                  <Input
-                    placeholder="e.g., DSCR Underwriting Guidelines"
-                    value={docTitle}
-                    onChange={(e) => setDocTitle(e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Category</label>
-                  <Input
-                    placeholder="e.g., Underwriting, Pricing, Compliance"
-                    value={docCategory}
-                    onChange={(e) => setDocCategory(e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Upload File</label>
-                  <div className="border-2 border-dashed rounded-lg p-6 text-center mt-1 cursor-pointer hover:bg-gray-50">
-                    <Upload className="h-6 w-6 mx-auto mb-2 text-gray-400" />
-                    <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setIsAddDocOpen(false)}>Cancel</Button>
-                  <Button className="bg-blue-600 hover:bg-blue-700">Add Document</Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-gray-600 mb-1">Total Articles</p>
-              <p className="text-2xl font-bold">42</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-gray-600 mb-1">Total Documents</p>
-              <p className="text-2xl font-bold">18</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-gray-600 mb-1">Indexed by Agents</p>
-              <p className="text-2xl font-bold">22</p>
-            </CardContent>
-          </Card>
-        </div>
+      <Tabs defaultValue="all">
+        <TabsList className="mb-6">
+          <TabsTrigger value="all">All Items ({knowledgeItems.length})</TabsTrigger>
+          {categories.map(cat => (
+            <TabsTrigger key={cat} value={cat}>
+              {cat} ({knowledgeItems.filter(i => i.category === cat).length})
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
-        <Tabs defaultValue="articles" className="w-full">
-          <TabsList>
-            <TabsTrigger value="articles">Knowledge Articles</TabsTrigger>
-            <TabsTrigger value="documents">Reference Documents</TabsTrigger>
-            <TabsTrigger value="policies">Global Policies</TabsTrigger>
-          </TabsList>
-
-          {/* Knowledge Articles */}
-          <TabsContent value="articles">
-            <Card>
-              <CardHeader>
-                <CardTitle>Knowledge Base Articles</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Search */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search articles..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-
-                {/* Articles List */}
-                <div className="space-y-2">
-                  {filteredArticles.map((article) => (
-                    <div
-                      key={article.id}
-                      onClick={() => setSelectedArticle(selectedArticle?.id === article.id ? null : article)}
-                      className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                        selectedArticle?.id === article.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-start gap-3">
-                          <FileText className="h-5 w-5 text-gray-600 mt-1 flex-shrink-0" />
-                          <div>
-                            <p className="font-semibold text-gray-900">{article.title}</p>
-                            <div className="flex gap-2 mt-1">
-                              <Badge variant="outline" className="text-xs">{article.category}</Badge>
-                              <Badge className={article.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'} >
-                                {article.status}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right text-xs text-gray-600">
-                          <p>{article.views} views</p>
-                          <p>{article.updated}</p>
-                        </div>
-                      </div>
-
-                      {/* Agents Using This */}
-                      <div className="flex flex-wrap gap-1">
-                        {article.agents.map((agent, idx) => (
-                          <Badge key={idx} variant="outline" className="text-xs">{agent}</Badge>
+        <TabsContent value="all" className="space-y-4">
+          {filteredItems.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="py-12 text-center">
+                <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p className="text-gray-500">No knowledge items found</p>
+              </CardContent>
+            </Card>
+          ) : (
+            filteredItems.map(item => (
+              <Card key={item.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg">{item.title}</CardTitle>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Badge variant="outline">{item.category}</Badge>
+                        {item.tags.map(tag => (
+                          <Badge key={tag} className="bg-purple-100 text-purple-700 text-xs">
+                            <Tag className="h-3 w-3 mr-1" />
+                            {tag}
+                          </Badge>
                         ))}
                       </div>
-
-                      {/* Expanded Preview */}
-                      {selectedArticle?.id === article.id && (
-                        <div className="mt-4 pt-4 border-t bg-white -mx-4 px-4 py-3">
-                          <p className="text-sm text-gray-700 mb-3">
-                            Sample content: {article.title} provides guidance on {article.category.toLowerCase()} standards that agents follow during underwriting and decision-making...
-                          </p>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
-                              <Eye className="h-4 w-4 mr-2" /> View
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Download className="h-4 w-4 mr-2" /> Export
-                            </Button>
-                          </div>
-                        </div>
-                      )}
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => toast.info('Edit functionality coming soon')}>
+                        <Edit className="h-4 w-4 text-gray-400" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => toast.info('Delete functionality coming soon')}>
+                        <Trash2 className="h-4 w-4 text-gray-400" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-700">{item.content}</p>
+                  <p className="text-xs text-gray-400 mt-3">Last updated: {item.lastUpdated}</p>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </TabsContent>
+
+        {categories.map(category => (
+          <TabsContent key={category} value={category} className="space-y-4">
+            {knowledgeItems.filter(i => i.category === category).map(item => (
+              <Card key={item.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-lg">{item.title}</CardTitle>
+                  <div className="flex gap-2 mt-2">
+                    {item.tags.map(tag => (
+                      <Badge key={tag} className="bg-purple-100 text-purple-700 text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-700">{item.content}</p>
+                  <p className="text-xs text-gray-400 mt-3">Last updated: {item.lastUpdated}</p>
+                </CardContent>
+              </Card>
+            ))}
           </TabsContent>
-
-          {/* Reference Documents */}
-          <TabsContent value="documents">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Uploaded Documents</span>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button size="sm" className="bg-gray-300 text-gray-600 cursor-not-allowed" disabled>
-                          <Upload className="h-4 w-4 mr-2" /> Upload
-                          <Lock className="h-3 w-3 ml-1" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Coming soon</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {documents.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-5 w-5 text-gray-600" />
-                        <div>
-                          <p className="font-semibold text-gray-900">{doc.name}</p>
-                          <p className="text-xs text-gray-600">{doc.type} • {doc.size} • Uploaded {doc.uploadedAt}</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="icon">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="icon">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Global Policies */}
-          <TabsContent value="policies">
-            <Card>
-              <CardHeader>
-                <CardTitle>Global Policies & Guardrails</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="p-4 border rounded-lg space-y-2">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold text-gray-900">Data Provenance & Audit Trail</p>
-                      <p className="text-sm text-gray-700">All agent decisions must be traceable to source documents with confidence scores</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 border rounded-lg space-y-2">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold text-gray-900">DSCR Firm Lock Guardrails</p>
-                      <p className="text-sm text-gray-700">No firm lock without verified DSCR ≥ 1.20x. All income sources must be documented.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 border rounded-lg space-y-2">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold text-gray-900">Confidence-Based Routing</p>
-                      <p className="text-sm text-gray-700">Document confidence &lt; 75% routes to human review. No auto-approval below threshold.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 border rounded-lg space-y-2">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold text-gray-900">PII Encryption</p>
-                      <p className="text-sm text-gray-700">All SSN, DOB, account data encrypted with AES-256. Logged access tracked immutably.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 border rounded-lg space-y-2">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold text-gray-900">Connector Idempotency</p>
-                      <p className="text-sm text-gray-700">Third-party API calls (Zillow, Plaid, OFAC) use idempotency keys to prevent duplicates.</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+        ))}
+      </Tabs>
     </div>
   );
 }

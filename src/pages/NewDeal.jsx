@@ -183,7 +183,7 @@ export default function NewDeal() {
     onSuccess: (deal) => {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
       toast.success('Deal created successfully');
-      navigate(createPageUrl(`DealDetail?id=${deal.id}`));
+      window.location.href = createPageUrl(`DealDetail?id=${deal.id}`);
     },
     onError: (error) => {
       console.error('Error creating deal:', error.message);
