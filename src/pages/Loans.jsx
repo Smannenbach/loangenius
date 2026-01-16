@@ -43,13 +43,25 @@ export default function LoansPage() {
     queryFn: () => base44.auth.me(),
   });
 
+  // Get user's org membership
+  const { data: memberships = [] } = useQuery({
+    queryKey: ['userMembership', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return await base44.entities.OrgMembership.filter({ user_id: user.email });
+    },
+    enabled: !!user?.email,
+  });
+
+  const orgId = memberships[0]?.org_id || user?.org_id;
+
   const { data: deals = [], isLoading: dealsLoading, error: dealsError } = useQuery({
-     queryKey: ['deals', user?.org_id],
+     queryKey: ['deals', orgId],
      queryFn: async () => {
-       if (!user?.org_id) return [];
-       return await base44.entities.Deal.filter({ org_id: user.org_id });
+       if (!orgId) return [];
+       return await base44.entities.Deal.filter({ org_id: orgId });
      },
-     enabled: !!user?.org_id,
+     enabled: !!orgId,
      retry: 2,
      staleTime: 5 * 60 * 1000, // 5 minutes
    });
