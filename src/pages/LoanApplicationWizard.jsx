@@ -112,7 +112,7 @@ export default function LoanApplicationWizard() {
         phone: b.phone,
         role: b.party_type === 'Primary Borrower' ? 'primary' : 
               b.party_type === 'Co-Borrower' ? 'co_borrower' : 'guarantor',
-        ssn_last_4: b.ssn_last_4,
+        ssn: b.ssn,
         dob: b.dob,
         citizenship: b.citizenship,
         maritalStatus: b.marital_status,
@@ -381,7 +381,7 @@ function BorrowerStep({ data, onChange }) {
     setCurrentBorrower({
       first_name: '', middle_name: '', last_name: '', suffix: '',
       email: '', phone: '', party_type: 'Primary Borrower',
-      ssn_last_4: '', dob: '', citizenship: 'US Citizen', credit_score: '',
+      ssn: '', dob: '', citizenship: 'US Citizen', credit_score: '',
       marital_status: '', mailing_address: '', years_at_address: '',
       ownership_status: '', email_verified: false, phone_verified: false,
     });
@@ -494,8 +494,19 @@ function BorrowerStep({ data, onChange }) {
                 <Input type="date" value={currentBorrower.dob} onChange={(e) => setCurrentBorrower({ ...currentBorrower, dob: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>SSN Last 4 Digits</Label>
-                <Input maxLength={4} value={currentBorrower.ssn_last_4} onChange={(e) => setCurrentBorrower({ ...currentBorrower, ssn_last_4: e.target.value.replace(/\D/g, '').slice(0, 4) })} placeholder="••••" />
+                <Label>Social Security Number</Label>
+                <Input 
+                  type="password"
+                  maxLength={11} 
+                  value={currentBorrower.ssn} 
+                  onChange={(e) => {
+                    let value = e.target.value.replace(/\D/g, '');
+                    if (value.length > 3) value = value.slice(0, 3) + '-' + value.slice(3);
+                    if (value.length > 6) value = value.slice(0, 6) + '-' + value.slice(6);
+                    setCurrentBorrower({ ...currentBorrower, ssn: value.slice(0, 11) });
+                  }} 
+                  placeholder="XXX-XX-XXXX" 
+                />
               </div>
             </div>
 
