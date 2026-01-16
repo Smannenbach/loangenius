@@ -10,6 +10,7 @@ import KPICard from '../components/dashboard/KPICard';
 import PipelineChart from '../components/dashboard/PipelineChart';
 import ActivityFeed from '../components/dashboard/ActivityFeed';
 import AttentionDeals from '../components/dashboard/AttentionDeals';
+import MyTasksWidget from '../components/dashboard/MyTasksWidget';
 
 export default function Dashboard() {
   const { data: user } = useQuery({
