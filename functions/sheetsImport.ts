@@ -187,14 +187,33 @@ async function handleImport(req) {
 }
 
 Deno.serve(async (req) => {
-  const path = new URL(req.url).pathname;
+  const body = await req.json().catch(() => ({}));
+  const action = body.action || 'preview';
 
-  if (req.method === 'POST' && path === '/functions/sheetsImportPreview') {
-    return handlePreview(req);
+  if (action === 'preview') {
+    // Reconstruct request for preview handler
+    const newReq = new Request(req.url, {
+      method: 'POST',
+      headers: req.headers,
+      body: JSON.stringify(body)
+    });
+    return handlePreview(newReq);
   }
-  if (req.method === 'POST' && path === '/functions/sheetsImportLeads') {
-    return handleImport(req);
+  
+  if (action === 'import') {
+    const newReq = new Request(req.url, {
+      method: 'POST',
+      headers: req.headers,
+      body: JSON.stringify(body)
+    });
+    return handleImport(newReq);
   }
 
-  return Response.json({ error: 'Not found' }, { status: 404 });
+  // Default to preview
+  const newReq = new Request(req.url, {
+    method: 'POST',
+    headers: req.headers,
+    body: JSON.stringify(body)
+  });
+  return handlePreview(newReq);
 });
