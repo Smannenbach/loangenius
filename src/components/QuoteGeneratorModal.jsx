@@ -13,8 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileOutput, Download, Send, Loader, ChevronRight } from 'lucide-react';
+import { FileOutput, Download, Send, Loader2, ChevronRight } from 'lucide-react';
 import PremiumQuoteSheet from './quote/PremiumQuoteSheet';
+import { toast } from 'sonner';
 
 export default function QuoteGeneratorModal({ isOpen, onClose, lead }) {
   const [tab, setTab] = useState('generate');
@@ -111,8 +112,12 @@ export default function QuoteGeneratorModal({ isOpen, onClose, lead }) {
       });
     },
     onSuccess: () => {
-      alert('Quote sent successfully!');
+      toast.success('Quote sent successfully!');
       onClose();
+    },
+    onError: (error) => {
+      console.error('Send quote error:', error);
+      toast.error('Failed to send quote: ' + error.message);
     },
   });
 
@@ -333,7 +338,7 @@ export default function QuoteGeneratorModal({ isOpen, onClose, lead }) {
               <PremiumQuoteSheet 
                 quote={generatedQuote}
                 onEdit={() => setTab('generate')}
-                onDownload={() => alert('PDF download coming soon')}
+                onDownload={() => toast.info('PDF download coming soon')}
                 onSend={() => sendMutation.mutate()}
               />
             )}
