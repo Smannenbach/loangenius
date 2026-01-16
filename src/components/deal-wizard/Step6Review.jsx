@@ -1,9 +1,9 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 
-export default function Step6Review({ data, onNext, onPrev, loading }) {
+export default function Step6Review({ data, onNext, onPrev, loading, isEditMode }) {
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -120,14 +120,25 @@ export default function Step6Review({ data, onNext, onPrev, loading }) {
 
       {/* Navigation */}
       <div className="flex justify-between pt-4">
-        <Button variant="outline" onClick={onPrev}>
+        <Button variant="outline" onClick={onPrev} disabled={loading}>
           ← Previous
         </Button>
         <Button 
           onClick={onNext}
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-blue-600 hover:bg-blue-700 gap-2"
+          disabled={loading}
         >
-          Next →
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {isEditMode ? 'Saving...' : 'Creating...'}
+            </>
+          ) : (
+            <>
+              <Check className="h-4 w-4" />
+              {isEditMode ? 'Save Changes' : 'Create Deal'}
+            </>
+          )}
         </Button>
       </div>
     </div>
