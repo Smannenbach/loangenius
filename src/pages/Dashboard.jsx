@@ -61,7 +61,7 @@ export default function Dashboard() {
           <p className="text-sm text-gray-500 mt-1">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
         </div>
         <Link 
-          to={createPageUrl('DealWizard')}
+          to={createPageUrl('LoanApplicationWizard')}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors"
         >
           <Plus className="h-5 w-5" />

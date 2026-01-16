@@ -111,7 +111,7 @@ export default function LoansPage() {
               <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Loan Portfolio</h1>
               <p className="text-slate-600 mt-2 text-lg">Comprehensive view of all loans and deal pipelines</p>
             </div>
-            <Link to={createPageUrl('NewDeal')}>
+            <Link to={createPageUrl('LoanApplicationWizard')}>
               <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg gap-2 h-12 px-6">
                 <Plus className="h-5 w-5" />
                 <span className="font-semibold">New Loan</span>
