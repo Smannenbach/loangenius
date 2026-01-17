@@ -51,6 +51,7 @@ import {
         Sparkles,
         Zap,
         CheckCircle,
+        Globe,
 } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
@@ -86,7 +87,6 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Leads', href: '/Leads', icon: Users },
     { name: 'Loans', href: '/Loans', icon: Briefcase },
     { name: 'Contacts', href: '/Contacts', icon: Users },
-    { name: 'Documents', href: '/Documents', icon: FileText },
   ];
 
   const toolsNav = [
@@ -100,6 +100,7 @@ export default function Layout({ children, currentPageName }) {
   const adminNav = [
     { name: 'Users & Permissions', href: '/Users', icon: Users },
     { name: 'Lender Partners', href: '/LenderIntegrations', icon: Building },
+    { name: 'Borrower Portal', href: '/PortalSettings', icon: Globe },
     { name: 'Testing Hub', href: '/TestingHub', icon: Sparkles },
     { name: 'Underwriting', href: '/Underwriting', icon: Scale },
     { name: 'Compliance', href: '/ComplianceDashboard', icon: CheckCircle },
