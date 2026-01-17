@@ -327,10 +327,14 @@ function calculateAIMatchScore(lender, deal, property, performanceData) {
 }
 
 /**
- * Use LLM to generate strategic recommendations
+ * Use AI Model Router for strategic recommendations with thinking mode
  */
-async function generateAIRecommendations(deal, property, matchedLenders, performanceData) {
-  const prompt = `You are an expert loan broker AI assistant. Analyze this deal and the matched lenders to provide strategic outreach recommendations.
+async function generateAIRecommendations(base44, deal, property, matchedLenders, performanceData) {
+  const systemPrompt = `You are an expert loan broker AI assistant specializing in DSCR and commercial lending. 
+Analyze deals and lender data to provide strategic outreach recommendations.
+Think step-by-step about the best approach for each lender based on their historical performance and the deal characteristics.`;
+
+  const userPrompt = `Analyze this deal and recommend the best lender outreach strategy.
 
 DEAL DETAILS:
 - Loan Product: ${deal.loan_product || 'DSCR'}
@@ -366,32 +370,36 @@ Provide a JSON response with:
 
 Return ONLY valid JSON, no markdown.`;
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.3,
-      max_tokens: 1500,
-    }),
-  });
-
-  if (!response.ok) {
-    console.error('OpenAI API error:', await response.text());
-    return null;
-  }
-
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-  
   try {
-    return JSON.parse(content);
-  } catch (e) {
-    console.error('Failed to parse AI response:', content);
+    const response = await base44.functions.invoke('aiModelRouter', {
+      task_type: 'lender_matching',
+      system_prompt: systemPrompt,
+      user_prompt: userPrompt,
+      options: {
+        json_response: true,
+        thinking: true,
+        thinking_budget: 8000
+      }
+    });
+
+    if (response.data?.parsed) {
+      return response.data.parsed;
+    }
+    
+    if (response.data?.content) {
+      try {
+        return JSON.parse(response.data.content);
+      } catch (e) {
+        const jsonMatch = response.data.content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          return JSON.parse(jsonMatch[0]);
+        }
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('AI Model Router error:', error);
     return null;
   }
 }
@@ -489,10 +497,10 @@ Deno.serve(async (req) => {
           already_contacted: contactedLenderIds.has(lender.id)
         }));
 
-        // Generate AI recommendations for top lenders
+        // Generate AI recommendations for top lenders using AI Router
         let aiRecommendations = null;
-        if (scoredLenders.length > 0 && OPENAI_API_KEY) {
-          aiRecommendations = await generateAIRecommendations(deal, property, scoredLenders, performanceData);
+        if (scoredLenders.length > 0) {
+          aiRecommendations = await generateAIRecommendations(base44, deal, property, scoredLenders, performanceData);
         }
 
         return Response.json({

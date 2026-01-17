@@ -51,11 +51,27 @@ export default Deno.serve(async (req) => {
       }
     }
 
-    // Call LLM
-    const llmResponse = await base44.integrations.Core.InvokeLLM({
-      prompt: `${systemPrompt}${dealContext}\n\nPrevious messages: ${JSON.stringify(conversation_context.slice(-5))}\n\nUser: ${message}`,
-      add_context_from_internet: false
-    });
+    // Use AI Model Router for optimal model selection
+    let llmResponse;
+    try {
+      const routerResponse = await base44.functions.invoke('aiModelRouter', {
+        task_type: 'chat_assistant',
+        system_prompt: systemPrompt + dealContext,
+        user_prompt: `Previous messages: ${JSON.stringify(conversation_context.slice(-5))}\n\nUser: ${message}`,
+        options: {
+          temperature: 0.4,
+          max_tokens: 2000
+        }
+      });
+      llmResponse = routerResponse.data?.content || 'I apologize, but I encountered an issue processing your request.';
+    } catch (routerError) {
+      // Fallback to InvokeLLM if router fails
+      console.log('AI Router fallback:', routerError.message);
+      llmResponse = await base44.integrations.Core.InvokeLLM({
+        prompt: `${systemPrompt}${dealContext}\n\nPrevious messages: ${JSON.stringify(conversation_context.slice(-5))}\n\nUser: ${message}`,
+        add_context_from_internet: false
+      });
+    }
 
     // Create activity log with proper org isolation
     await base44.asServiceRole.entities.ActivityLog.create({
