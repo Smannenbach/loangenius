@@ -84,8 +84,8 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Dashboard', href: '/Dashboard', icon: LayoutDashboard },
     { name: 'Pipeline', href: '/Pipeline', icon: TrendingUp },
     { name: 'Leads', href: '/Leads', icon: Users },
+    { name: 'Loans', href: '/Loans', icon: Briefcase },
     { name: 'Contacts', href: '/Contacts', icon: Users },
-    { name: 'Borrowers', href: '/Borrowers', icon: User },
     { name: 'Documents', href: '/Documents', icon: FileText },
   ];
 

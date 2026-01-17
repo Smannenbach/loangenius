@@ -21,7 +21,6 @@ import BorrowerPortal from './pages/BorrowerPortal';
 import BorrowerPortalDashboard from './pages/BorrowerPortalDashboard';
 import BorrowerPortalHome from './pages/BorrowerPortalHome';
 import BorrowerPortalLogin from './pages/BorrowerPortalLogin';
-import Borrowers from './pages/Borrowers';
 import BrandStudio from './pages/BrandStudio';
 import BrandingSettings from './pages/BrandingSettings';
 import BusinessPurposeApplication from './pages/BusinessPurposeApplication';
@@ -95,7 +94,6 @@ export const PAGES = {
     "BorrowerPortalDashboard": BorrowerPortalDashboard,
     "BorrowerPortalHome": BorrowerPortalHome,
     "BorrowerPortalLogin": BorrowerPortalLogin,
-    "Borrowers": Borrowers,
     "BrandStudio": BrandStudio,
     "BrandingSettings": BrandingSettings,
     "BusinessPurposeApplication": BusinessPurposeApplication,
