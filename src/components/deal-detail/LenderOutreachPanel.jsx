@@ -25,20 +25,28 @@ import {
   Percent,
   TrendingUp,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Brain,
+  Sparkles,
+  ThumbsUp,
+  ThumbsDown,
+  Timer,
+  BarChart3,
+  Lightbulb
 } from 'lucide-react';
 
 export default function LenderOutreachPanel({ dealId, deal }) {
   const queryClient = useQueryClient();
   const [selectedLenders, setSelectedLenders] = useState(new Set());
   const [includeMismo, setIncludeMismo] = useState(false);
+  const [showAIInsights, setShowAIInsights] = useState(true);
 
-  // Fetch matching lenders
+  // Fetch AI-powered matching lenders
   const { data: matchData, isLoading, refetch } = useQuery({
-    queryKey: ['lender-match', dealId],
+    queryKey: ['lender-match-ai', dealId],
     queryFn: async () => {
-      const response = await base44.functions.invoke('autoLenderOutreach', {
-        action: 'match_lenders',
+      const response = await base44.functions.invoke('aiLenderMatcher', {
+        action: 'ai_match_lenders',
         deal_id: dealId
       });
       return response.data;
@@ -114,7 +122,9 @@ export default function LenderOutreachPanel({ dealId, deal }) {
   });
 
   const lenders = matchData?.matched_lenders || [];
+  const aiRecommendations = matchData?.ai_recommendations;
   const autoEnabledCount = lenders.filter(l => l.auto_submit_enabled && !l.already_contacted).length;
+  const topRecommendedCount = lenders.filter(l => l.ai_score >= 70 && !l.already_contacted).length;
 
   const toggleLender = (id) => {
     const newSet = new Set(selectedLenders);
@@ -141,25 +151,93 @@ export default function LenderOutreachPanel({ dealId, deal }) {
     );
   }
 
+  // Get outreach strategy for a lender
+  const getOutreachStrategy = (lenderName) => {
+    return aiRecommendations?.outreach_strategy?.find(
+      s => s.lender_name.toLowerCase() === lenderName.toLowerCase()
+    );
+  };
+
   return (
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-blue-600" />
-              Lender Outreach
+              <Brain className="h-5 w-5 text-purple-600" />
+              AI-Powered Lender Matching
             </CardTitle>
             <CardDescription>
-              {lenders.length} matching lenders • {matchData?.already_contacted || 0} already contacted
+              {lenders.length} matching lenders • {topRecommendedCount} AI recommended • {matchData?.already_contacted || 0} contacted
             </CardDescription>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant={showAIInsights ? "secondary" : "ghost"} 
+              size="sm"
+              onClick={() => setShowAIInsights(!showAIInsights)}
+            >
+              <Sparkles className="h-4 w-4 mr-1" />
+              AI Insights
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* AI Recommendations Panel */}
+        {showAIInsights && aiRecommendations && (
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-purple-600" />
+              <span className="font-semibold text-purple-900">AI Strategy Recommendations</span>
+              <Badge variant="outline" className={
+                aiRecommendations.overall_confidence === 'high' ? 'bg-green-100 text-green-700' :
+                aiRecommendations.overall_confidence === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                'bg-red-100 text-red-700'
+              }>
+                {aiRecommendations.overall_confidence} confidence
+              </Badge>
+            </div>
+            
+            {aiRecommendations.top_recommendation && (
+              <div className="text-sm text-purple-800">
+                <span className="font-medium">Top Pick: </span>
+                {aiRecommendations.top_recommendation}
+              </div>
+            )}
+            
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              {aiRecommendations.deal_strengths?.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-1 text-green-700 font-medium mb-1">
+                    <ThumbsUp className="h-3 w-3" /> Deal Strengths
+                  </div>
+                  <ul className="text-green-700 space-y-0.5">
+                    {aiRecommendations.deal_strengths.slice(0, 3).map((s, i) => (
+                      <li key={i} className="text-xs">• {s}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {aiRecommendations.deal_concerns?.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-1 text-amber-700 font-medium mb-1">
+                    <AlertCircle className="h-3 w-3" /> Address Proactively
+                  </div>
+                  <ul className="text-amber-700 space-y-0.5">
+                    {aiRecommendations.deal_concerns.slice(0, 3).map((c, i) => (
+                      <li key={i} className="text-xs">• {c}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-2">
           <TooltipProvider>
@@ -168,18 +246,18 @@ export default function LenderOutreachPanel({ dealId, deal }) {
                 <Button
                   onClick={() => autoOutreachMutation.mutate()}
                   disabled={autoOutreachMutation.isPending || autoEnabledCount === 0}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600"
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600"
                 >
                   {autoOutreachMutation.isPending ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
-                    <Zap className="h-4 w-4 mr-2" />
+                    <Brain className="h-4 w-4 mr-2" />
                   )}
-                  Auto Outreach ({autoEnabledCount})
+                  Smart Outreach ({topRecommendedCount > 0 ? topRecommendedCount : autoEnabledCount})
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Send intro emails to all auto-enabled lenders</p>
+                <p>Send to AI-recommended lenders with highest match scores</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -225,15 +303,22 @@ export default function LenderOutreachPanel({ dealId, deal }) {
                 <p className="text-sm">Add lenders to your database that match this deal's criteria</p>
               </div>
             ) : (
-              lenders.map((lender) => (
+              lenders.map((lender) => {
+                const strategy = getOutreachStrategy(lender.lender_name);
+                const scoreColor = lender.ai_score >= 70 ? 'text-green-600' : 
+                                   lender.ai_score >= 50 ? 'text-yellow-600' : 'text-gray-500';
+                
+                return (
                 <div
                   key={lender.id}
                   className={`p-4 rounded-lg border transition-all ${
                     lender.already_contacted 
                       ? 'bg-muted/50 opacity-60' 
-                      : selectedLenders.has(lender.id)
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'hover:border-gray-300'
+                      : lender.ai_score >= 70
+                        ? 'border-purple-300 bg-purple-50/50'
+                        : selectedLenders.has(lender.id)
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'hover:border-gray-300'
                   }`}
                 >
                   <div className="flex items-start gap-3">
@@ -248,12 +333,43 @@ export default function LenderOutreachPanel({ dealId, deal }) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-medium truncate">{lender.lender_name}</span>
-                        {lender.auto_submit_enabled && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Zap className="h-3 w-3 mr-1" />
-                            Auto
+                        
+                        {/* AI Score Badge */}
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Badge variant="outline" className={`text-xs ${scoreColor}`}>
+                                <Brain className="h-3 w-3 mr-1" />
+                                {lender.ai_score}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p className="font-medium">AI Match Score: {lender.ai_score}/100</p>
+                              {lender.ai_insights?.length > 0 && (
+                                <ul className="mt-1 text-xs">
+                                  {lender.ai_insights.map((i, idx) => (
+                                    <li key={idx} className="text-green-600">✓ {i}</li>
+                                  ))}
+                                </ul>
+                              )}
+                              {lender.ai_warnings?.length > 0 && (
+                                <ul className="mt-1 text-xs">
+                                  {lender.ai_warnings.map((w, idx) => (
+                                    <li key={idx} className="text-amber-600">⚠ {w}</li>
+                                  ))}
+                                </ul>
+                              )}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+
+                        {lender.ai_score >= 70 && !lender.already_contacted && (
+                          <Badge className="text-xs bg-purple-600">
+                            <Sparkles className="h-3 w-3 mr-1" />
+                            Top Pick
                           </Badge>
                         )}
+                        
                         {lender.already_contacted && (
                           <Badge variant="outline" className="text-xs text-green-600">
                             <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -267,33 +383,52 @@ export default function LenderOutreachPanel({ dealId, deal }) {
                           <Building2 className="h-3 w-3" />
                           {lender.lender_type}
                         </span>
+                        {lender.historical_stats?.approval_rate > 0 && (
+                          <span className="flex items-center gap-1">
+                            <BarChart3 className="h-3 w-3" />
+                            {lender.historical_stats.approval_rate}% approval
+                          </span>
+                        )}
+                        {lender.historical_stats?.avg_response_time && (
+                          <span className="flex items-center gap-1">
+                            <Timer className="h-3 w-3" />
+                            ~{lender.historical_stats.avg_response_time}d response
+                          </span>
+                        )}
                         {lender.min_loan_amount && (
                           <span className="flex items-center gap-1">
                             <DollarSign className="h-3 w-3" />
                             ${(lender.min_loan_amount / 1000).toFixed(0)}K - ${((lender.max_loan_amount || 10000000) / 1000000).toFixed(1)}M
                           </span>
                         )}
-                        {lender.max_ltv && (
-                          <span className="flex items-center gap-1">
-                            <Percent className="h-3 w-3" />
-                            Max {lender.max_ltv}% LTV
-                          </span>
-                        )}
-                        {lender.min_dscr && (
-                          <span className="flex items-center gap-1">
-                            <TrendingUp className="h-3 w-3" />
-                            Min {lender.min_dscr} DSCR
-                          </span>
-                        )}
                       </div>
 
-                      {lender.match_reasons?.length > 0 && (
+                      {/* AI Insights */}
+                      {showAIInsights && lender.ai_insights?.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">
-                          {lender.match_reasons.slice(0, 3).map((reason, idx) => (
-                            <Badge key={idx} variant="outline" className="text-xs font-normal">
-                              {reason}
+                          {lender.ai_insights.slice(0, 2).map((insight, idx) => (
+                            <Badge key={idx} variant="outline" className="text-xs font-normal text-green-700 bg-green-50">
+                              {insight}
                             </Badge>
                           ))}
+                          {lender.ai_warnings?.slice(0, 1).map((warning, idx) => (
+                            <Badge key={`w-${idx}`} variant="outline" className="text-xs font-normal text-amber-700 bg-amber-50">
+                              {warning}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Strategy recommendation */}
+                      {showAIInsights && strategy && !lender.already_contacted && (
+                        <div className="mt-2 p-2 bg-blue-50 rounded text-xs">
+                          <span className="font-medium text-blue-800">Strategy: </span>
+                          <span className="text-blue-700">
+                            {strategy.recommended_method === 'mismo' ? 'Send MISMO package' : 
+                             strategy.recommended_method === 'phone_then_email' ? 'Call first, then email' : 'Email intro'}
+                            {strategy.priority === 'immediate' && ' • Act now'}
+                            {strategy.follow_up_timing && ` • Follow up: ${strategy.follow_up_timing}`}
+                          </span>
                         </div>
                       )}
 
@@ -321,7 +456,7 @@ export default function LenderOutreachPanel({ dealId, deal }) {
                     )}
                   </div>
                 </div>
-              ))
+              )})
             )}
           </div>
         </ScrollArea>
@@ -329,18 +464,24 @@ export default function LenderOutreachPanel({ dealId, deal }) {
         {/* Stats Footer */}
         {lenders.length > 0 && (
           <div className="pt-3 border-t">
-            <div className="grid grid-cols-3 gap-4 text-center text-sm">
+            <div className="grid grid-cols-4 gap-4 text-center text-sm">
               <div>
                 <div className="text-2xl font-bold text-blue-600">{lenders.length}</div>
                 <div className="text-muted-foreground">Matched</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-purple-600">{topRecommendedCount}</div>
+                <div className="text-muted-foreground">AI Top Picks</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-green-600">{matchData?.already_contacted || 0}</div>
                 <div className="text-muted-foreground">Contacted</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-amber-600">{autoEnabledCount}</div>
-                <div className="text-muted-foreground">Auto-Ready</div>
+                <div className="text-2xl font-bold text-amber-600">
+                  {lenders.filter(l => l.historical_stats?.approval_rate >= 70).length}
+                </div>
+                <div className="text-muted-foreground">High Approval</div>
               </div>
             </div>
           </div>
