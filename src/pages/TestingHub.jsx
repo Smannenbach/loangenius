@@ -22,6 +22,8 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import MISMORelationshipGraph from '@/components/MISMORelationshipGraph';
 import RoundTripTestPanel from '@/components/testing/RoundTripTestPanel.jsx';
+import XMLValidatorPanel from '@/components/testing/XMLValidatorPanel.jsx';
+import MappingCoverageDashboard from '@/components/testing/MappingCoverageDashboard.jsx';
 
 function MISMOTestPanel() {
   const [selectedDeal, setSelectedDeal] = useState(null);
@@ -590,6 +592,14 @@ export default function TestingHub() {
             <Database className="h-4 w-4" />
             Round-Trip Tests
           </TabsTrigger>
+          <TabsTrigger value="xmlvalidator" className="gap-2">
+            <FileCode className="h-4 w-4" />
+            XML Validator
+          </TabsTrigger>
+          <TabsTrigger value="mapping" className="gap-2">
+            <Network className="h-4 w-4" />
+            Mapping Coverage
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="functional" className="space-y-6 mt-6">
@@ -707,6 +717,14 @@ export default function TestingHub() {
 
         <TabsContent value="roundtrip" className="mt-6">
           <RoundTripTestPanel orgId={orgId} />
+        </TabsContent>
+
+        <TabsContent value="xmlvalidator" className="mt-6">
+          <XMLValidatorPanel />
+        </TabsContent>
+
+        <TabsContent value="mapping" className="mt-6">
+          <MappingCoverageDashboard />
         </TabsContent>
       </Tabs>
     </div>
