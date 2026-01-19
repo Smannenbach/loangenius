@@ -25,9 +25,10 @@ import {
 import {
   Building2, Plus, Search, Globe, Settings, Zap, Upload, Check, 
   AlertCircle, Loader2, ExternalLink, Send, FileCode, MoreVertical,
-  Edit, Trash2, RefreshCw, CheckCircle2, XCircle, Clock
+  Edit, Trash2, RefreshCw, CheckCircle2, XCircle, Clock, Bot, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
+import AILenderMatcher from '@/components/AILenderMatcher';
 
 export default function LenderIntegrations() {
   const queryClient = useQueryClient();
@@ -396,6 +397,10 @@ export default function LenderIntegrations() {
         <TabsList className="mb-6">
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
           <TabsTrigger value="submissions">Recent Submissions</TabsTrigger>
+          <TabsTrigger value="ai-search" className="gap-2">
+            <Sparkles className="h-4 w-4" />
+            AI Lender Search
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="integrations">
@@ -542,6 +547,10 @@ export default function LenderIntegrations() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="ai-search">
+          <AILenderMatcher />
         </TabsContent>
       </Tabs>
 
