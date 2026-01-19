@@ -17,7 +17,7 @@ export default function PortalSecureMessaging({ dealId, borrowerEmail, sessionId
   const [attachmentFile, setAttachmentFile] = useState(null);
   const messagesEndRef = useRef(null);
 
-  const { data: messages = [], isLoading } = useQuery({
+  const { data: messages = [], isLoading, refetch } = useQuery({
     queryKey: ['portalMessages', dealId, sessionId],
     queryFn: async () => {
       // Try session-based fetch first
@@ -35,15 +35,16 @@ export default function PortalSecureMessaging({ dealId, borrowerEmail, sessionId
       
       if (!dealId) return [];
       try {
-        return await base44.entities.CommunicationsLog.filter({ 
+        const comms = await base44.entities.CommunicationsLog.filter({ 
           deal_id: dealId 
         }, '-created_date', 50);
+        return comms.filter(c => c.channel === 'portal_message' || c.channel === 'in_app');
       } catch {
         return [];
       }
     },
     enabled: !!dealId || !!sessionId,
-    refetchInterval: 10000 // Refresh every 10 seconds
+    refetchInterval: 8000 // Refresh every 8 seconds for near real-time
   });
 
   const sendMutation = useMutation({
@@ -121,8 +122,14 @@ export default function PortalSecureMessaging({ dealId, borrowerEmail, sessionId
     scrollToBottom();
   }, [messages]);
 
-  const groupedMessages = messages.reduce((groups, msg) => {
-    const date = new Date(msg.created_date).toLocaleDateString('en-US', { 
+  // Sort messages chronologically for display
+  const sortedMessages = [...messages].sort((a, b) => 
+    new Date(a.created_date || a.created_at) - new Date(b.created_date || b.created_at)
+  );
+
+  const groupedMessages = sortedMessages.reduce((groups, msg) => {
+    const msgDate = msg.created_date || msg.created_at;
+    const date = new Date(msgDate).toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric', 
       year: 'numeric' 
@@ -164,6 +171,7 @@ export default function PortalSecureMessaging({ dealId, borrowerEmail, sessionId
               <div className="space-y-3">
                 {msgs.map((msg) => {
                   const isFromBorrower = msg.direction === 'inbound' || msg.from === borrowerEmail;
+                  const msgDate = msg.created_date || msg.created_at;
                   
                   return (
                     <div key={msg.id} className={`flex ${isFromBorrower ? 'justify-end' : 'justify-start'}`}>
@@ -194,15 +202,20 @@ export default function PortalSecureMessaging({ dealId, borrowerEmail, sessionId
                             </a>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500 mt-1 px-2">
-                          {new Date(msg.created_date).toLocaleTimeString('en-US', { 
-                            hour: 'numeric', 
-                            minute: '2-digit' 
-                          })}
-                          {msg.read_by_recipient && isFromBorrower && (
-                            <CheckCircle2 className="h-3 w-3 inline ml-1 text-blue-600" />
+                        <div className="flex items-center gap-1 text-xs text-gray-500 mt-1 px-2">
+                          <span>
+                            {new Date(msgDate).toLocaleTimeString('en-US', { 
+                              hour: 'numeric', 
+                              minute: '2-digit' 
+                            })}
+                          </span>
+                          {isFromBorrower && msg.read_by_recipient && (
+                            <span className="flex items-center gap-0.5 text-blue-600">
+                              <CheckCircle2 className="h-3 w-3" />
+                              <span className="text-[10px]">Read</span>
+                            </span>
                           )}
-                        </p>
+                        </div>
                       </div>
                     </div>
                   );
