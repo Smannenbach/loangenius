@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AILenderMatcher from '@/components/AILenderMatcher.jsx';
+import LenderAPIConfig from '@/components/lender/LenderAPIConfig';
 
 export default function LenderIntegrations() {
   const queryClient = useQueryClient();
@@ -472,10 +473,7 @@ export default function LenderIntegrations() {
                         size="sm" 
                         variant="outline" 
                         className="flex-1"
-                        onClick={() => {
-                          setSelectedIntegration(integration);
-                          toast.info(`Configuring ${integration.lender_name}`);
-                        }}
+                        onClick={() => setSelectedIntegration(integration)}
                       >
                         <Settings className="h-4 w-4 mr-1" />
                         Configure
@@ -559,19 +557,33 @@ export default function LenderIntegrations() {
 
       {/* Configure Integration Dialog */}
       <Dialog open={!!selectedIntegration} onOpenChange={(open) => !open && setSelectedIntegration(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Configure: {selectedIntegration?.lender_name}</DialogTitle>
           </DialogHeader>
           {selectedIntegration && (
-            <ConfigureIntegrationForm 
-              integration={selectedIntegration} 
-              onClose={() => setSelectedIntegration(null)}
-              onSave={() => {
-                queryClient.invalidateQueries({ queryKey: ['lenderIntegrations'] });
-                setSelectedIntegration(null);
-              }}
-            />
+            <Tabs defaultValue="basic">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                <TabsTrigger value="api">API & Webhooks</TabsTrigger>
+              </TabsList>
+              <TabsContent value="basic">
+                <ConfigureIntegrationForm 
+                  integration={selectedIntegration} 
+                  onClose={() => setSelectedIntegration(null)}
+                  onSave={() => {
+                    queryClient.invalidateQueries({ queryKey: ['lenderIntegrations'] });
+                    setSelectedIntegration(null);
+                  }}
+                />
+              </TabsContent>
+              <TabsContent value="api">
+                <LenderAPIConfig 
+                  lender={selectedIntegration}
+                  onClose={() => setSelectedIntegration(null)}
+                />
+              </TabsContent>
+            </Tabs>
           )}
         </DialogContent>
       </Dialog>

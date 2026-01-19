@@ -27,9 +27,34 @@ export default function EmailSequences() {
   
   const queryClient = useQueryClient();
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: memberships = [] } = useQuery({
+    queryKey: ['userMembership', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return await base44.entities.OrgMembership.filter({ user_id: user.email });
+    },
+    enabled: !!user?.email,
+  });
+
+  const orgId = memberships[0]?.org_id;
+
   const { data: sequences = [], isLoading } = useQuery({
-    queryKey: ['emailSequences'],
-    queryFn: () => base44.entities.EmailSequence.list('-created_date')
+    queryKey: ['emailSequences', orgId],
+    queryFn: async () => {
+      try {
+        if (orgId) {
+          return await base44.entities.EmailSequence.filter({ org_id: orgId });
+        }
+        return await base44.entities.EmailSequence.list('-created_date');
+      } catch {
+        return [];
+      }
+    }
   });
 
   const { data: enrollments = [] } = useQuery({
@@ -61,7 +86,7 @@ export default function EmailSequences() {
   const createMutation = useMutation({
     mutationFn: (data) => editingSequence 
       ? base44.entities.EmailSequence.update(editingSequence.id, data)
-      : base44.entities.EmailSequence.create(data),
+      : base44.entities.EmailSequence.create({ ...data, org_id: orgId }),
     onSuccess: () => {
       queryClient.invalidateQueries(['emailSequences']);
       setIsCreateOpen(false);

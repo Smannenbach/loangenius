@@ -47,9 +47,34 @@ export default function Communications() {
     body: '',
   });
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: memberships = [] } = useQuery({
+    queryKey: ['userMembership', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return await base44.entities.OrgMembership.filter({ user_id: user.email });
+    },
+    enabled: !!user?.email,
+  });
+
+  const orgId = memberships[0]?.org_id;
+
   const { data: logs = [] } = useQuery({
-    queryKey: ['communications'],
-    queryFn: () => base44.entities.CommunicationsLog.list(),
+    queryKey: ['communications', orgId],
+    queryFn: async () => {
+      try {
+        if (orgId) {
+          return await base44.entities.CommunicationsLog.filter({ org_id: orgId });
+        }
+        return await base44.entities.CommunicationsLog.list();
+      } catch {
+        return [];
+      }
+    },
   });
 
   const sendMutation = useMutation({
@@ -71,7 +96,11 @@ export default function Communications() {
             body: data.body
           });
           // Log it manually
+          const memberships = await base44.entities.OrgMembership.filter({ user_id: (await base44.auth.me()).email });
+          const orgId = memberships[0]?.org_id || 'default';
+          
           await base44.entities.CommunicationsLog.create({
+            org_id: orgId,
             channel: 'email',
             to: data.to,
             subject: data.subject,
