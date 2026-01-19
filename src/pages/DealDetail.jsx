@@ -44,6 +44,7 @@ import DealStatusUpdate from '@/components/deal-detail/DealStatusUpdate';
 import TasksTab from '@/components/deal-detail/TasksTab';
 import SubmitToLenderModal from '@/components/deal-detail/SubmitToLenderModal';
 import LenderOutreachPanel from '@/components/deal-detail/LenderOutreachPanel';
+import OfferLetterGenerator from '@/components/deal-detail/OfferLetterGenerator';
 
 export default function DealDetail() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -627,6 +628,14 @@ export default function DealDetail() {
         </TabsContent>
 
         <TabsContent value="portal" className="space-y-6">
+          {/* AI Offer Generator */}
+          <OfferLetterGenerator 
+            dealId={dealId} 
+            deal={deal} 
+            borrower={borrowers[0]}
+            onSend={() => toast.success('Offer sent!')}
+          />
+
           <Card>
             <CardHeader>
               <CardTitle>Borrower Portal Access</CardTitle>
