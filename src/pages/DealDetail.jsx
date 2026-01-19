@@ -408,7 +408,11 @@ export default function DealDetail() {
         </TabsContent>
 
         <TabsContent value="activity">
-           <CommunicationsTab dealId={dealId} />
+           <CommunicationsTab 
+             dealId={dealId} 
+             borrowerEmail={borrowers[0]?.email || borrowers[0]?.cell_phone}
+             borrowerPhone={borrowers[0]?.cell_phone || borrowers[0]?.home_phone}
+           />
         </TabsContent>
 
         <TabsContent value="documents">
