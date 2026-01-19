@@ -465,10 +465,10 @@ function buildMISMOXml(deal, borrowers, properties, fees, originator, organizati
           </LOANS>
           <COLLATERALS>`;
 
-  properties.forEach((prop, idx) => {
+  sequencedProperties.forEach((prop) => {
     const propValue = prop.estimated_value || prop.appraised_value || (deal.loan_amount / 0.75);
     xml += `
-            <COLLATERAL SequenceNumber="${idx + 1}">
+            <COLLATERAL SequenceNumber="${prop._seq}" xlink:label="${prop._label}">
               <SUBJECT_PROPERTY>
                 <ADDRESS>
                   <AddressLineText>${escapeXml(prop.address_street)}</AddressLineText>
@@ -666,8 +666,10 @@ function buildMISMOXml(deal, borrowers, properties, fees, originator, organizati
                     ${b.assets && b.assets.length > 0 ? `
                     <CURRENT_INCOME>
                       <CURRENT_INCOME_ITEMS>
-                        ${b.assets.filter(a => a.account_balance).map((asset, aidx) => `
-                        <CURRENT_INCOME_ITEM SequenceNumber="${aidx + 1}">
+                        ${[...b.assets].filter(a => a.account_balance)
+                          .sort((x, y) => (x.sequence_number ?? 999) - (y.sequence_number ?? 999) || (x.account_type || '').localeCompare(y.account_type || ''))
+                          .map((asset, aidx) => `
+                        <CURRENT_INCOME_ITEM SequenceNumber="${aidx + 1}" xlink:label="${generateLabel('IncomeItem', aidx + 1, borrowerLabel)}">
                           <CURRENT_INCOME_ITEM_DETAIL>
                             <IncomeType>Asset</IncomeType>
                             <CurrentIncomeMonthlyTotalAmount>${formatMoney((asset.account_balance || 0) / 12)}</CurrentIncomeMonthlyTotalAmount>
@@ -784,14 +786,14 @@ function buildMISMOXml(deal, borrowers, properties, fees, originator, organizati
   xml += `
           </RELATIONSHIPS>`;
   
-  // Services/Fees section with comprehensive TRID categories
-  if (fees.length > 0) {
+  // Services/Fees section with comprehensive TRID categories - deterministic ordering
+  if (sequencedFees.length > 0) {
     xml += `
           <SERVICES>`;
-    fees.forEach((fee, idx) => {
+    sequencedFees.forEach((fee) => {
       const tridSection = mapTRIDSection(fee.trid_category || fee.fee_type);
       xml += `
-            <SERVICE SequenceNumber="${idx + 1}">
+            <SERVICE SequenceNumber="${fee._seq}" xlink:label="${fee._label}">
               <SERVICE_DETAIL>
                 <ServiceType>${escapeXml(fee.service_type || 'Other')}</ServiceType>
               </SERVICE_DETAIL>
