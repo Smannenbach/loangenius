@@ -11,7 +11,23 @@
  */
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { MISMO_CONFIG, generateMISMOHeader, generateMISMOFooter } from './mismoVersionConfig.js';
+
+// MISMO Version Lock Configuration - Build 324
+const MISMO_CONFIG = {
+  VERSION: '3.4',
+  BUILD: '324',
+  VERSION_ID: '3.4.0',
+  ROOT_ELEMENT: 'MESSAGE',
+  NAMESPACE: 'http://www.mismo.org/residential/2009/schemas',
+  XSI_NAMESPACE: 'http://www.w3.org/2001/XMLSchema-instance',
+  XLINK_NAMESPACE: 'http://www.w3.org/1999/xlink',
+  SCHEMA_LOCATION: 'http://www.mismo.org/residential/2009/schemas MISMO_3.4.0_B324.xsd',
+  LDD_IDENTIFIER: 'urn:fdc:mismo.org:ldd:3.4.324',
+  ULAD_NAMESPACE: 'http://www.datamodelextension.org/Schema/ULAD',
+  DU_NAMESPACE: 'http://www.datamodelextension.org/Schema/DU',
+  LG_NAMESPACE: 'urn:loangenius:mismo:extension:1.0',
+  LG_PREFIX: 'LG',
+};
 
 Deno.serve(async (req) => {
   try {

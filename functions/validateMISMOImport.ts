@@ -10,7 +10,91 @@
  */
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { MISMO_CONFIG, validateMISMOVersion, assessImportConformance } from './mismoVersionConfig.js';
+
+// MISMO Version Lock Configuration - Build 324
+const MISMO_CONFIG = {
+  VERSION: '3.4',
+  BUILD: '324',
+  VERSION_ID: '3.4.0',
+  ROOT_ELEMENT: 'MESSAGE',
+  NAMESPACE: 'http://www.mismo.org/residential/2009/schemas',
+  XSI_NAMESPACE: 'http://www.w3.org/2001/XMLSchema-instance',
+  SCHEMA_LOCATION: 'http://www.mismo.org/residential/2009/schemas MISMO_3.4.0_B324.xsd',
+  LDD_IDENTIFIER: 'urn:fdc:mismo.org:ldd:3.4.324',
+};
+
+/**
+ * Validate that an imported XML declares the correct MISMO version/build
+ */
+function validateMISMOVersion(xmlContent) {
+  const result = {
+    isConforming: true,
+    version: null,
+    build: null,
+    lddIdentifier: null,
+    issues: [],
+    rootElement: null,
+  };
+
+  const rootMatch = xmlContent.match(/<([A-Z_]+)\s+[^>]*xmlns=/);
+  if (rootMatch) {
+    result.rootElement = rootMatch[1];
+    if (result.rootElement !== MISMO_CONFIG.ROOT_ELEMENT) {
+      result.issues.push({ type: 'error', field: 'root_element', message: `Root element is '${result.rootElement}', expected '${MISMO_CONFIG.ROOT_ELEMENT}'` });
+      result.isConforming = false;
+    }
+  } else {
+    result.issues.push({ type: 'error', field: 'root_element', message: 'Could not determine root element' });
+    result.isConforming = false;
+  }
+
+  const versionMatch = xmlContent.match(/MISMOVersionID="([^"]+)"/);
+  if (versionMatch) {
+    result.version = versionMatch[1];
+    if (!result.version.startsWith(MISMO_CONFIG.VERSION)) {
+      result.issues.push({ type: 'warning', field: 'version', message: `MISMO version is '${result.version}', expected '${MISMO_CONFIG.VERSION}.x'` });
+    }
+  } else {
+    result.issues.push({ type: 'error', field: 'version', message: 'MISMOVersionID attribute not found' });
+    result.isConforming = false;
+  }
+
+  const lddMatch = xmlContent.match(/<MISMOLogicalDataDictionaryIdentifier>([^<]+)<\/MISMOLogicalDataDictionaryIdentifier>/);
+  if (lddMatch) {
+    result.lddIdentifier = lddMatch[1];
+    if (result.lddIdentifier !== MISMO_CONFIG.LDD_IDENTIFIER) {
+      result.issues.push({ type: 'warning', field: 'ldd_identifier', message: `LDD Identifier is '${result.lddIdentifier}', expected '${MISMO_CONFIG.LDD_IDENTIFIER}'` });
+    }
+  } else {
+    result.issues.push({ type: 'warning', field: 'ldd_identifier', message: 'MISMOLogicalDataDictionaryIdentifier not found' });
+  }
+
+  const schemaMatch = xmlContent.match(/MISMO_3\.4\.0_B(\d+)\.xsd/);
+  if (schemaMatch) {
+    result.build = schemaMatch[1];
+    if (result.build !== MISMO_CONFIG.BUILD) {
+      result.issues.push({ type: 'warning', field: 'build', message: `Schema references Build ${result.build}, expected Build ${MISMO_CONFIG.BUILD}` });
+    }
+  }
+
+  return result;
+}
+
+function assessImportConformance(validationResult) {
+  const hasErrors = validationResult.issues.some(i => i.type === 'error');
+  const hasWarnings = validationResult.issues.some(i => i.type === 'warning');
+
+  return {
+    conformance_status: hasErrors ? 'non-conforming' : hasWarnings ? 'conforming-with-warnings' : 'conforming',
+    is_valid: !hasErrors,
+    mismo_version: validationResult.version,
+    mismo_build: validationResult.build,
+    ldd_identifier: validationResult.lddIdentifier,
+    root_element: validationResult.rootElement,
+    issues: validationResult.issues,
+    expected: { version: MISMO_CONFIG.VERSION, build: MISMO_CONFIG.BUILD, ldd_identifier: MISMO_CONFIG.LDD_IDENTIFIER, root_element: MISMO_CONFIG.ROOT_ELEMENT },
+  };
+}
 
 Deno.serve(async (req) => {
   try {
