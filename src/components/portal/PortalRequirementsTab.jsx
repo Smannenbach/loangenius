@@ -1,18 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileText, CheckCircle2, Clock, AlertCircle, Upload } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { FileText, CheckCircle2, Clock, AlertCircle, Upload, ChevronRight } from 'lucide-react';
+import PortalDocumentUploadEnhanced from './PortalDocumentUploadEnhanced';
 
 const statusConfig = {
-  pending: { icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', label: 'Pending', badge: 'bg-amber-100 text-amber-800' },
-  requested: { icon: AlertCircle, color: 'text-blue-600', bg: 'bg-blue-50', label: 'Requested', badge: 'bg-blue-100 text-blue-800' },
-  uploaded: { icon: Upload, color: 'text-purple-600', bg: 'bg-purple-50', label: 'Uploaded', badge: 'bg-purple-100 text-purple-800' },
-  under_review: { icon: Clock, color: 'text-purple-600', bg: 'bg-purple-50', label: 'Under Review', badge: 'bg-purple-100 text-purple-800' },
-  approved: { icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50', label: 'Approved', badge: 'bg-green-100 text-green-800' },
-  rejected: { icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', label: 'Rejected', badge: 'bg-red-100 text-red-800' },
+  pending: { icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', label: 'Pending', badge: 'bg-amber-100 text-amber-800', canUpload: true },
+  requested: { icon: AlertCircle, color: 'text-blue-600', bg: 'bg-blue-50', label: 'Requested', badge: 'bg-blue-100 text-blue-800', canUpload: true },
+  uploaded: { icon: Upload, color: 'text-purple-600', bg: 'bg-purple-50', label: 'Uploaded', badge: 'bg-purple-100 text-purple-800', canUpload: false },
+  under_review: { icon: Clock, color: 'text-purple-600', bg: 'bg-purple-50', label: 'Under Review', badge: 'bg-purple-100 text-purple-800', canUpload: false },
+  approved: { icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50', label: 'Approved', badge: 'bg-green-100 text-green-800', canUpload: false },
+  rejected: { icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', label: 'Rejected', badge: 'bg-red-100 text-red-800', canUpload: true },
 };
 
-export default function PortalRequirementsTab({ requirements = {} }) {
+export default function PortalRequirementsTab({ requirements = {}, sessionId }) {
+  const [uploadModal, setUploadModal] = useState(null);
   if (!requirements || Object.keys(requirements).length === 0) {
     return (
       <Card>
@@ -37,7 +41,7 @@ export default function PortalRequirementsTab({ requirements = {} }) {
               const StatusIcon = status.icon;
 
               return (
-                <Card key={req.id} className={`border transition-all ${status.bg.replace('bg-', 'border-').slice(0, -3)}`}>
+                <Card key={req.id} className={`border transition-all hover:shadow-md ${status.bg.replace('bg-', 'border-').slice(0, -3)}`}>
                   <CardContent className="p-4">
                     <div className="flex items-start gap-4">
                       <div className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 ${status.bg}`}>
@@ -51,7 +55,19 @@ export default function PortalRequirementsTab({ requirements = {} }) {
                               <p className="text-sm text-slate-600 mt-1">{req.instructions}</p>
                             )}
                           </div>
-                          <Badge className={status.badge}>{status.label}</Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge className={status.badge}>{status.label}</Badge>
+                            {status.canUpload && (
+                              <Button
+                                size="sm"
+                                onClick={() => setUploadModal(req)}
+                                className="bg-blue-600 hover:bg-blue-700 gap-1"
+                              >
+                                <Upload className="h-3 w-3" />
+                                Upload
+                              </Button>
+                            )}
+                          </div>
                         </div>
                         {req.due_date && (
                           <p className="text-xs text-slate-500 flex items-center gap-1 mt-2">
@@ -65,6 +81,12 @@ export default function PortalRequirementsTab({ requirements = {} }) {
                             <p className="text-xs text-slate-600">{req.reviewer_notes}</p>
                           </div>
                         )}
+                        {req.status === 'rejected' && (
+                          <div className="mt-3 p-2 bg-red-50 rounded border border-red-200">
+                            <p className="text-xs font-medium text-red-700 mb-1">Please re-upload:</p>
+                            <p className="text-xs text-red-600">{req.rejection_reason || 'Document was not accepted. Please upload a new file.'}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -74,6 +96,31 @@ export default function PortalRequirementsTab({ requirements = {} }) {
           </div>
         </div>
       ))}
+
+      {/* Upload Modal */}
+      <Dialog open={!!uploadModal} onOpenChange={() => setUploadModal(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5 text-blue-600" />
+              Upload: {uploadModal?.display_name || uploadModal?.document_type}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            {uploadModal?.instructions && (
+              <p className="text-sm text-slate-600 mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                💡 {uploadModal.instructions}
+              </p>
+            )}
+            <PortalDocumentUploadEnhanced
+              sessionId={sessionId}
+              requirementId={uploadModal?.id}
+              requirementName={uploadModal?.display_name || uploadModal?.document_type}
+              onUploadComplete={() => setUploadModal(null)}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
