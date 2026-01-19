@@ -648,16 +648,67 @@ Deno.serve(async (req) => {
           assets: prepareAssetsForExport(b.assets || []),
         }));
         
+        // Generate relationships
+        const relationships = generateDealRelationships(borrowersWithResidences, preparedProperties, preparedFees);
+        
         return Response.json({
           success: true,
           borrowers: borrowersWithResidences,
           properties: preparedProperties,
           fees: preparedFees,
+          relationships,
           summary: {
             borrower_count: preparedBorrowers.length,
             property_count: preparedProperties.length,
             fee_count: preparedFees.length,
+            relationship_count: relationships.length,
           },
+        });
+
+      case 'generate_relationships':
+        // Generate relationships for given data
+        const relBorrowers = prepareBorrowersForExport(data.borrowers || []);
+        const relProperties = preparePropertiesForExport(data.properties || []);
+        const relServices = prepareFeesForExport(data.services || data.fees || []);
+        const rels = generateDealRelationships(relBorrowers, relProperties, relServices);
+        
+        return Response.json({
+          success: true,
+          relationships: rels,
+          relationship_count: rels.length,
+        });
+
+      case 'relationship_graph':
+        // Build relationship graph for debugging
+        const graphContainers = parseRepeatingContainers(xml_content || '');
+        const graphSequenced = generateImportSequencing(graphContainers);
+        const graph = buildRelationshipGraph(graphSequenced);
+        
+        return Response.json({
+          success: true,
+          graph,
+          node_count: graph.nodes.length,
+          edge_count: graph.edges.length,
+        });
+
+      case 'validate_relationships':
+        // Validate relationships survive round-trip
+        const valContainers = parseRepeatingContainers(xml_content || '');
+        const valSequenced = generateImportSequencing(valContainers);
+        const resolution = resolveXlinkReferences(valSequenced);
+        
+        return Response.json({
+          success: true,
+          total_relationships: resolution.relationship_count,
+          valid_relationships: resolution.valid_relationships,
+          invalid_relationships: resolution.invalid_relationships,
+          validation_passed: resolution.invalid_relationships === 0,
+          issues: resolution.resolved?.relationships?.filter(r => !r.is_valid).map(r => ({
+            sequence: r.sequence_number,
+            from: r.xlinkFrom,
+            to: r.xlinkTo,
+            error: !r.from_item ? `Missing from reference: ${r.xlinkFrom}` : `Missing to reference: ${r.xlinkTo}`,
+          })) || [],
         });
 
       default:
