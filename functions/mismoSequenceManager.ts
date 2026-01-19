@@ -712,7 +712,7 @@ Deno.serve(async (req) => {
         });
 
       default:
-        return Response.json({ error: 'Invalid action' }, { status: 400 });
+        return Response.json({ error: `Invalid action: ${action}` }, { status: 400 });
     }
   } catch (error) {
     console.error('Sequence manager error:', error);
