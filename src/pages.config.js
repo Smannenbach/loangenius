@@ -67,6 +67,7 @@ import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
+import MISMOImportExport from './pages/MISMOImportExport';
 import __Layout from './Layout.jsx';
 
 
@@ -140,6 +141,7 @@ export const PAGES = {
     "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
+    "MISMOImportExport": MISMOImportExport,
 }
 
 export const pagesConfig = {

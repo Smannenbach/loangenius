@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import MISMOExportPanel from '@/components/deal-detail/MISMOExportPanel';
+import MISMOImportPanel from '@/components/deal-detail/MISMOImportPanel';
 import CommunicationsTab from "../components/deal-detail/CommunicationsTab";
 import { Progress } from "@/components/ui/progress";
 import {
