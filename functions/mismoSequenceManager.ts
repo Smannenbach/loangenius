@@ -598,12 +598,14 @@ Deno.serve(async (req) => {
         // Parse XML and extract sequencing info
         const containers = parseRepeatingContainers(xml_content || '');
         const sequenced = generateImportSequencing(containers);
+        const xlinkResolution = resolveXlinkReferences(sequenced);
         return Response.json({
           success: true,
           containers: sequenced,
           container_counts: Object.fromEntries(
             Object.entries(sequenced).map(([k, v]) => [k, v.length])
           ),
+          xlink_resolution: xlinkResolution,
         });
 
       case 'assign_sequences':
