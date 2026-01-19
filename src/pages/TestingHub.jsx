@@ -15,10 +15,12 @@ import {
   Database,
   Workflow,
   AlertTriangle,
+  Network,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import MISMORelationshipGraph from '@/components/MISMORelationshipGraph';
 
 function MISMOTestPanel() {
   const [selectedDeal, setSelectedDeal] = useState(null);
