@@ -671,20 +671,33 @@ export default function TestingHub() {
         </TabsContent>
 
         <TabsContent value="mismo" className="mt-6">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>MISMO 3.4 Validation</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-gray-600">Test MISMO 3.4 XML export with real deal data</p>
-                <MISMOTestPanel />
-              </CardContent>
-            </Card>
-            
-            {/* Relationship Graph Debug */}
-            <MISMORelationshipGraph />
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>MISMO 3.4 Validation</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-gray-600">Test MISMO 3.4 XML export with real deal data</p>
+              <MISMOTestPanel />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="relationships" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Network className="h-5 w-5 text-blue-600" />
+                Relationship Graph Debug
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 mb-4">
+                Analyze xlink:labels, xlink:from/to, and arcroles in MISMO XML. 
+                Paste XML below to visualize the relationship graph and validate round-trip integrity.
+              </p>
+              <MISMORelationshipGraph />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
