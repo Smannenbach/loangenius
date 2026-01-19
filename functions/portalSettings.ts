@@ -21,7 +21,29 @@ Deno.serve(async (req) => {
     }
     const org_id = memberships[0].org_id;
 
-    if (req.method === 'GET') {
+    if (req.method === 'GET' || req.method === 'POST') {
+      // Handle POST with no action as GET (for invoke compatibility)
+      let body = {};
+      if (req.method === 'POST') {
+        try {
+          body = await req.json();
+        } catch {}
+      }
+
+      // If action is 'update', handle as PUT
+      if (body.action === 'update') {
+        const { action, ...updates } = body;
+        const existing = await base44.asServiceRole.entities.OrgSettings.filter({ org_id });
+        if (existing.length === 0) {
+          const created = await base44.asServiceRole.entities.OrgSettings.create({ org_id, ...updates });
+          return Response.json(created);
+        } else {
+          const updated = await base44.asServiceRole.entities.OrgSettings.update(existing[0].id, updates);
+          return Response.json(updated);
+        }
+      }
+
+      // Otherwise treat as GET
       // Get portal settings
       const settings = await base44.asServiceRole.entities.OrgSettings.filter({
         org_id,

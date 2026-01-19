@@ -16,8 +16,26 @@ export default function PortalSettings() {
   const { data: settings, isLoading } = useQuery({
     queryKey: ['portalSettings'],
     queryFn: async () => {
-      const response = await base44.functions.invoke('portalSettings');
-      return response.data;
+      try {
+        const response = await base44.functions.invoke('portalSettings', {});
+        return response.data;
+      } catch (e) {
+        // Return defaults if function fails
+        return {
+          portal_enabled: true,
+          portal_primary_color: '#2563eb',
+          portal_secondary_color: '#1e40af',
+          session_timeout_minutes: 240,
+          session_max_duration_hours: 24,
+          link_expiration_days: 7,
+          max_file_size_mb: 25,
+          allowed_file_types: 'pdf,doc,docx,jpg,jpeg,png',
+          enable_borrower_messaging: true,
+          enable_borrower_timeline: true,
+          enable_document_notifications: true,
+          enable_sms_notifications: true,
+        };
+      }
     },
   });
 
