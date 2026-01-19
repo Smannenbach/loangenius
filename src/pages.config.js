@@ -68,9 +68,9 @@ import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
-import base44ClickMap from './pages/BASE44_CLICK_MAP';
-import bugfixChangelog from './pages/BUGFIX_CHANGELOG';
-import smokeTestResults from './pages/SMOKE_TEST_RESULTS';
+import base44ClickMapMd from './pages/BASE44_CLICK_MAP.md';
+import bugfixChangelogMd from './pages/BUGFIX_CHANGELOG.md';
+import smokeTestResultsMd from './pages/SMOKE_TEST_RESULTS.md';
 import __Layout from './Layout.jsx';
 
 
@@ -145,9 +145,9 @@ export const PAGES = {
     "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
-    "BASE44_CLICK_MAP": base44ClickMap,
-    "BUGFIX_CHANGELOG": bugfixChangelog,
-    "SMOKE_TEST_RESULTS": smokeTestResults,
+    "BASE44_CLICK_MAP.md": base44ClickMapMd,
+    "BUGFIX_CHANGELOG.md": bugfixChangelogMd,
+    "SMOKE_TEST_RESULTS.md": smokeTestResultsMd,
 }
 
 export const pagesConfig = {
