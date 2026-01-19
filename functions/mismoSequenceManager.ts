@@ -563,6 +563,8 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { action, data, xml_content } = body;
 
+    console.log('Action received:', action);
+    
     switch (action) {
       case 'prepare_borrowers':
         return Response.json({
