@@ -23,6 +23,21 @@ const MISMO_CONFIG = {
   LDD_IDENTIFIER: 'urn:fdc:mismo.org:ldd:3.4.324',
 };
 
+// Import LDD enum validation (inline for performance)
+const LDD_ENUM_VALUES = {
+  LoanPurposeType: ['CashOutRefinance', 'ConstructionOnly', 'ConstructionToPermanent', 'HELOC', 'NoCashOutRefinance', 'Other', 'Purchase', 'SecondMortgage'],
+  PropertyType: ['Attached', 'Commercial', 'Condominium', 'Cooperative', 'Detached', 'HighRiseCondominium', 'Land', 'ManufacturedHousing', 'MixedUse', 'Modular', 'Multifamily', 'Other', 'PUDAttached', 'PUDDetached', 'SingleFamily', 'Townhouse', 'TwoToFourFamily'],
+  PropertyUsageType: ['Investment', 'PrimaryResidence', 'SecondHome'],
+  AmortizationType: ['AdjustableRate', 'Fixed', 'GraduatedPaymentARM', 'GraduatedPaymentMortgage', 'GrowingEquityMortgage', 'InterestOnly', 'Other', 'Step'],
+  MortgageType: ['Conventional', 'FHA', 'FarmersHomeAdministration', 'Other', 'USDA-RHS', 'VA'],
+  CitizenshipResidencyType: ['NonPermanentResidentAlien', 'PermanentResidentAlien', 'USCitizen'],
+  MaritalStatusType: ['Married', 'Separated', 'Unmarried'],
+  BorrowerResidencyBasisType: ['LivingRentFree', 'Own', 'Rent'],
+  LegalEntityType: ['Corporation', 'Estate', 'GeneralPartnership', 'GovernmentEntity', 'Individual', 'LimitedLiabilityCompany', 'LimitedPartnership', 'Trust'],
+  AssetType: ['Annuity', 'Bond', 'CashOnHand', 'CertificateOfDeposit', 'CheckingAccount', 'IndividualRetirementAccount', 'MoneyMarketFund', 'MutualFund', 'Other', 'RetirementFund', 'SavingsAccount', 'Stock', 'StocksBondsMutualFundsOther', 'TrustFund'],
+  PrepaymentPenaltyOptionType: ['PrepaymentPenaltyOptionHard', 'PrepaymentPenaltyOptionNotApplicable', 'PrepaymentPenaltyOptionSoft'],
+};
+
 // Schema pack definitions (XSD validation rules derived from MISMO spec)
 const SCHEMA_PACKS = {
   standard: {
@@ -526,6 +541,38 @@ function validateBusinessRules(xmlContent, schemaPack) {
         column: 1,
         xpath: '//PARTY/INDIVIDUAL/NAME',
       });
+    }
+  }
+
+  // LDD Enum validation - check enum values against LDD
+  const enumValidations = [
+    { element: 'LoanPurposeType', enumKey: 'LoanPurposeType' },
+    { element: 'PropertyType', enumKey: 'PropertyType' },
+    { element: 'PropertyUsageType', enumKey: 'PropertyUsageType' },
+    { element: 'AmortizationType', enumKey: 'AmortizationType' },
+    { element: 'MortgageType', enumKey: 'MortgageType' },
+    { element: 'CitizenshipResidencyType', enumKey: 'CitizenshipResidencyType' },
+    { element: 'MaritalStatusType', enumKey: 'MaritalStatusType' },
+    { element: 'BorrowerResidencyBasisType', enumKey: 'BorrowerResidencyBasisType' },
+    { element: 'LegalEntityType', enumKey: 'LegalEntityType' },
+    { element: 'PrepaymentPenaltyOptionType', enumKey: 'PrepaymentPenaltyOptionType' },
+  ];
+
+  for (const { element, enumKey } of enumValidations) {
+    const pattern = new RegExp(`<${element}>([^<]*)</${element}>`, 'g');
+    let match;
+    while ((match = pattern.exec(xmlContent)) !== null) {
+      const value = match[1].trim();
+      if (value && LDD_ENUM_VALUES[enumKey] && !LDD_ENUM_VALUES[enumKey].includes(value)) {
+        result.errors.push({
+          code: 'INVALID_LDD_ENUM',
+          severity: 'error',
+          message: `Invalid ${element} value "${value}". LDD valid values: ${LDD_ENUM_VALUES[enumKey].join(', ')}`,
+          line: getLineNumber(xmlContent, match[0]),
+          column: 1,
+          xpath: `//${element}`,
+        });
+      }
     }
   }
 
