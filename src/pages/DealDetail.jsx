@@ -325,6 +325,7 @@ export default function DealDetail() {
           <TabsTrigger value="activity">Activity</TabsTrigger>
           <TabsTrigger value="lenders">Lender Outreach</TabsTrigger>
           <TabsTrigger value="portal">Portal</TabsTrigger>
+          <TabsTrigger value="mismo">MISMO Export</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -685,6 +686,10 @@ export default function DealDetail() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="mismo">
+          <MISMOExportPanel dealId={dealId} />
         </TabsContent>
       </Tabs>
 

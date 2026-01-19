@@ -121,6 +121,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Underwriting', href: '/Underwriting', icon: Scale },
     { name: 'Compliance', href: '/ComplianceDashboard', icon: CheckCircle },
     { name: 'MISMO Profiles', href: '/MISMOExportProfiles', icon: FileOutput },
+    { name: 'MISMO Import/Export', href: '/MISMOImportExport', icon: FileText },
     { name: 'Integrations', href: '/AdminIntegrations', icon: Zap },
     { name: 'Settings', href: '/Settings', icon: Settings },
   ];
