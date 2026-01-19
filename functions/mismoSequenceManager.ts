@@ -41,7 +41,7 @@ const SEQUENCED_CONTAINERS = {
   'FEE_PAYMENT': { labelPrefix: 'FeePayment', roleAttribute: null },
   
   // Relationship containers
-  'RELATIONSHIP': { labelPrefix: 'Relationship', roleAttribute: null },
+  'RELATIONSHIP': { labelPrefix: 'Rel', roleAttribute: null },
   
   // Document containers
   'DOCUMENT': { labelPrefix: 'Document', roleAttribute: null },
@@ -57,6 +57,17 @@ const SEQUENCED_CONTAINERS = {
   
   // Nested address types
   'ADDRESS': { labelPrefix: 'Address', roleAttribute: null },
+};
+
+// MISMO 3.4 Standard ArcRole URIs
+const ARCROLES = {
+  BORROWER_LOAN: 'urn:fdc:mismo.org:2009:residential/BORROWER_BorrowsOn_LOAN',
+  PARTY_VERIFICATION: 'urn:fdc:mismo.org:2009:residential/PARTY_IsVerifiedBy_VERIFICATION',
+  COLLATERAL_LOAN: 'urn:fdc:mismo.org:2009:residential/COLLATERAL_IsCollateralFor_LOAN',
+  PROPERTY_LOAN: 'urn:fdc:mismo.org:2009:residential/PROPERTY_IsSubjectPropertyFor_LOAN',
+  SERVICE_LOAN: 'urn:fdc:mismo.org:2009:residential/SERVICE_IsProvidedFor_LOAN',
+  ASSET_BORROWER: 'urn:fdc:mismo.org:2009:residential/ASSET_IsOwnedBy_BORROWER',
+  INCOME_BORROWER: 'urn:fdc:mismo.org:2009:residential/INCOME_IsReceivedBy_BORROWER',
 };
 
 /**
