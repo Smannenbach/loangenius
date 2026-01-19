@@ -50,6 +50,7 @@ import LoanApplication from './pages/LoanApplication';
 import LoanApplicationWizard from './pages/LoanApplicationWizard';
 import Loans from './pages/Loans';
 import MISMOExportProfiles from './pages/MISMOExportProfiles';
+import MISMOImportExport from './pages/MISMOImportExport';
 import NewDeal from './pages/NewDeal';
 import Pipeline from './pages/Pipeline';
 import PortalSettings from './pages/PortalSettings';
@@ -67,7 +68,9 @@ import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
-import MISMOImportExport from './pages/MISMOImportExport';
+import base44ClickMap from './pages/BASE44_CLICK_MAP';
+import bugfixChangelog from './pages/BUGFIX_CHANGELOG';
+import smokeTestResults from './pages/SMOKE_TEST_RESULTS';
 import __Layout from './Layout.jsx';
 
 
@@ -124,6 +127,7 @@ export const PAGES = {
     "LoanApplicationWizard": LoanApplicationWizard,
     "Loans": Loans,
     "MISMOExportProfiles": MISMOExportProfiles,
+    "MISMOImportExport": MISMOImportExport,
     "NewDeal": NewDeal,
     "Pipeline": Pipeline,
     "PortalSettings": PortalSettings,
@@ -141,7 +145,9 @@ export const PAGES = {
     "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
-    "MISMOImportExport": MISMOImportExport,
+    "BASE44_CLICK_MAP": base44ClickMap,
+    "BUGFIX_CHANGELOG": bugfixChangelog,
+    "SMOKE_TEST_RESULTS": smokeTestResults,
 }
 
 export const pagesConfig = {
