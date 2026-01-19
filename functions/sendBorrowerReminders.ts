@@ -7,11 +7,22 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     
     // Service role access for automated reminders
-    if (!user && req.headers.get('x-automation') !== 'true') {
+    const isAutomation = req.headers.get('x-automation') === 'true';
+    if (!user && !isAutomation) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { deal_id, force } = await req.json().catch(() => ({}));
+    const body = await req.json().catch(() => ({}));
+    const { force } = body;
+    
+    // Handle entity automation payload if present
+    let deal_id = body.deal_id;
+    if (!deal_id && body.event?.entity_id) {
+      deal_id = body.event.entity_id;
+    }
+    if (!deal_id && body.data?.id) {
+      deal_id = body.data.id;
+    }
     
     // Get all deals in application or processing stage with incomplete documents
     let dealsToRemind = [];
@@ -33,12 +44,18 @@ Deno.serve(async (req) => {
 
     for (const deal of dealsToRemind) {
       // Check for incomplete requirements
-      const requirements = await base44.asServiceRole.entities.DealDocumentRequirement.filter({
-        deal_id: deal.id,
-        status: 'pending'
-      });
+      let requirements = [];
+      try {
+        requirements = await base44.asServiceRole.entities.DealDocumentRequirement.filter({
+          deal_id: deal.id,
+          status: 'pending'
+        });
+      } catch (e) {
+        console.log(`No requirements found for deal ${deal.id}, skipping`);
+        continue;
+      }
 
-      if (requirements.length === 0) continue; // All docs uploaded
+      if (!requirements || requirements.length === 0) continue; // All docs uploaded or none exist
 
       // Get borrower email
       const dealBorrowers = await base44.asServiceRole.entities.DealBorrower.filter({

@@ -136,19 +136,44 @@ Deno.serve(async (req) => {
   
   try {
     const user = await base44.auth.me();
-    if (!user) {
+    // Allow automation calls without user auth
+    const isAutomation = req.headers.get('x-automation') === 'true';
+    if (!user && !isAutomation) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { deal_id, loan_purpose, vesting_type } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    
+    // Handle entity automation payload (triggered by Deal create)
+    // Entity automations send: { event: { type, entity_name, entity_id }, data: {...} }
+    let deal_id = body.deal_id;
+    let loan_purpose = body.loan_purpose;
+    let vesting_type = body.vesting_type;
+    
+    if (!deal_id && body.event?.entity_id) {
+      deal_id = body.event.entity_id;
+    }
+    if (!deal_id && body.data?.id) {
+      deal_id = body.data.id;
+    }
+    
+    // Extract loan_purpose and vesting_type from entity data if available
+    if (body.data) {
+      loan_purpose = loan_purpose || body.data.loan_purpose;
+      vesting_type = vesting_type || body.data.vesting_type;
+    }
     
     if (!deal_id) {
       return Response.json({ error: 'deal_id is required' }, { status: 400 });
     }
 
     // Get deal to determine org_id
-    const deal = await base44.entities.Deal.get(deal_id);
+    const deal = await base44.asServiceRole.entities.Deal.get(deal_id);
     const org_id = deal.org_id;
+
+    // Use deal data if loan_purpose/vesting_type not provided
+    loan_purpose = loan_purpose || deal.loan_purpose;
+    vesting_type = vesting_type || deal.vesting_type;
 
     // Filter requirements based on loan purpose and vesting
     let requirements = DSCR_DOCUMENT_REQUIREMENTS.filter(req => {
@@ -180,7 +205,7 @@ Deno.serve(async (req) => {
     // Create document requirements
     const created = [];
     for (const req of requirements) {
-      const docReq = await base44.entities.DealDocumentRequirement.create({
+      const docReq = await base44.asServiceRole.entities.DealDocumentRequirement.create({
         org_id,
         deal_id,
         requirement_name: req.requirement_name,

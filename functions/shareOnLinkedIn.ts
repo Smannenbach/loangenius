@@ -4,20 +4,31 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-
-    if (!user) {
+    
+    // Allow automation calls without user auth
+    const isAutomation = req.headers.get('x-automation') === 'true';
+    if (!user && !isAutomation) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { deal_id } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    
+    // Handle entity automation payload (triggered by Deal update to 'funded')
+    // Entity automations send: { event: { type, entity_name, entity_id }, data: {...} }
+    let deal_id = body.deal_id;
+    if (!deal_id && body.event?.entity_id) {
+      deal_id = body.event.entity_id;
+    }
+    if (!deal_id && body.data?.id) {
+      deal_id = body.data.id;
+    }
 
     if (!deal_id) {
       return Response.json({ error: 'deal_id required' }, { status: 400 });
     }
 
     // Get deal details
-    const deals = await base44.asServiceRole.entities.Deal.filter({ id: deal_id });
-    const deal = deals[0];
+    const deal = await base44.asServiceRole.entities.Deal.get(deal_id);
 
     if (!deal) {
       return Response.json({ error: 'Deal not found' }, { status: 404 });

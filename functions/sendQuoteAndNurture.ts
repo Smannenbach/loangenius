@@ -9,7 +9,17 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { deal_id } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    
+    // Handle entity automation payload (triggered by Deal create/update)
+    // Entity automations send: { event: { type, entity_name, entity_id }, data: {...} }
+    let deal_id = body.deal_id;
+    if (!deal_id && body.event?.entity_id) {
+      deal_id = body.event.entity_id;
+    }
+    if (!deal_id && body.data?.id) {
+      deal_id = body.data.id;
+    }
     
     if (!deal_id) {
       return Response.json({ error: 'deal_id is required' }, { status: 400 });
