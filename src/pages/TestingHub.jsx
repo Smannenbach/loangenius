@@ -581,6 +581,10 @@ export default function TestingHub() {
             <FileCode className="h-4 w-4" />
             MISMO Validation
           </TabsTrigger>
+          <TabsTrigger value="relationships" className="gap-2">
+            <Network className="h-4 w-4" />
+            Relationship Graph
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="functional" className="space-y-6 mt-6">
