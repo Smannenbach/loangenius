@@ -1,8 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { MISMO_CONFIG } from './mismoVersionConfig.js';
 
 /**
  * Export Deal as MISMO 3.4 XML
  * Universal export for any deal type with comprehensive validation
+ * 
+ * Version Lock:
+ * - MISMO Version: 3.4
+ * - Build: 324
+ * - Root Element: MESSAGE
+ * - LDD Identifier: urn:fdc:mismo.org:ldd:3.4.324
  */
 Deno.serve(async (req) => {
   try {
@@ -126,18 +133,28 @@ function buildMISMO34XML(deal, borrowers, properties, fees, signatures) {
     .replace(/'/g, '&apos;');
 
   const timestamp = new Date().toISOString();
+  const messageId = `MSG-${deal.id || 'NEW'}-${Date.now()}`;
 
+  // Use centralized MISMO version config for Build 324 compliance
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<MESSAGE xmlns="http://www.mismo.org/residential/2009/schemas"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xmlns:LG="http://loangenius.com/mismo/extension/1.0"
-         MISMOVersionID="3.4">
+<${MISMO_CONFIG.ROOT_ELEMENT} xmlns="${MISMO_CONFIG.NAMESPACE}"
+         xmlns:xsi="${MISMO_CONFIG.XSI_NAMESPACE}"
+         xmlns:${MISMO_CONFIG.LG_PREFIX}="${MISMO_CONFIG.LG_NAMESPACE}"
+         xsi:schemaLocation="${MISMO_CONFIG.SCHEMA_LOCATION}"
+         MISMOVersionID="${MISMO_CONFIG.VERSION_ID}">
   <ABOUT_VERSIONS>
     <ABOUT_VERSION>
       <CreatedDatetime>${timestamp}</CreatedDatetime>
-      <DataVersionIdentifier>1</DataVersionIdentifier>
+      <DataVersionIdentifier>1.0</DataVersionIdentifier>
+      <DataVersionName>LoanGenius MISMO ${MISMO_CONFIG.VERSION} Build ${MISMO_CONFIG.BUILD} Export</DataVersionName>
     </ABOUT_VERSION>
   </ABOUT_VERSIONS>
+  <MESSAGE_HEADER>
+    <MessageIdentifier>${messageId}</MessageIdentifier>
+    <MessageDatetime>${timestamp}</MessageDatetime>
+    <SenderName>LoanGenius</SenderName>
+    <MISMOLogicalDataDictionaryIdentifier>${MISMO_CONFIG.LDD_IDENTIFIER}</MISMOLogicalDataDictionaryIdentifier>
+  </MESSAGE_HEADER>
   <DEAL_SETS>
     <DEAL_SET>
       <DEALS>
@@ -222,7 +239,7 @@ function buildMISMO34XML(deal, borrowers, properties, fees, signatures) {
       </DEALS>
     </DEAL_SET>
   </DEAL_SETS>
-</MESSAGE>`;
+</${MISMO_CONFIG.ROOT_ELEMENT}>`;
 
   return xml;
 }

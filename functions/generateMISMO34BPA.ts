@@ -2,13 +2,16 @@
  * Generate MISMO 3.4 XML export from Business Purpose Application
  * Supports DSCR, Commercial, Hard Money, Bridge, Fix & Flip, Multifamily
  * With extension namespace for business-purpose specific fields
+ * 
+ * Version Lock:
+ * - MISMO Version: 3.4
+ * - Build: 324
+ * - Root Element: MESSAGE
+ * - LDD Identifier: urn:fdc:mismo.org:ldd:3.4.324
  */
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-
-const MISMO_VERSION = '3.4';
-const EXTENSION_NAMESPACE = 'LG';
-const EXTENSION_URI = 'http://loangenius.com/mismo/extension/1.0';
+import { MISMO_CONFIG } from './mismoVersionConfig.js';
 
 Deno.serve(async (req) => {
   try {
@@ -167,6 +170,7 @@ Deno.serve(async (req) => {
 
 function buildMISMO34XML(deal, borrowers, properties, fees, signatures) {
   const xmlDate = new Date().toISOString();
+  const messageId = `MSG-${deal.id || 'NEW'}-${Date.now()}`;
   const escapeXml = (str) => (str || '').toString()
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -214,17 +218,26 @@ function buildMISMO34XML(deal, borrowers, properties, fees, signatures) {
     return mapping[status] || 'Unknown';
   };
 
+  // Use centralized MISMO version config for Build 324 compliance
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<MESSAGE xmlns="http://www.mismo.org/residential/2009/schemas"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xmlns:${EXTENSION_NAMESPACE}="${EXTENSION_URI}"
-         MISMOVersionID="${MISMO_VERSION}">
+<${MISMO_CONFIG.ROOT_ELEMENT} xmlns="${MISMO_CONFIG.NAMESPACE}"
+         xmlns:xsi="${MISMO_CONFIG.XSI_NAMESPACE}"
+         xmlns:${MISMO_CONFIG.LG_PREFIX}="${MISMO_CONFIG.LG_NAMESPACE}"
+         xsi:schemaLocation="${MISMO_CONFIG.SCHEMA_LOCATION}"
+         MISMOVersionID="${MISMO_CONFIG.VERSION_ID}">
   <ABOUT_VERSIONS>
     <ABOUT_VERSION>
       <CreatedDatetime>${xmlDate}</CreatedDatetime>
-      <DataVersionIdentifier>1</DataVersionIdentifier>
+      <DataVersionIdentifier>1.0</DataVersionIdentifier>
+      <DataVersionName>LoanGenius MISMO ${MISMO_CONFIG.VERSION} Build ${MISMO_CONFIG.BUILD} Export</DataVersionName>
     </ABOUT_VERSION>
   </ABOUT_VERSIONS>
+  <MESSAGE_HEADER>
+    <MessageIdentifier>${messageId}</MessageIdentifier>
+    <MessageDatetime>${xmlDate}</MessageDatetime>
+    <SenderName>LoanGenius</SenderName>
+    <MISMOLogicalDataDictionaryIdentifier>${MISMO_CONFIG.LDD_IDENTIFIER}</MISMOLogicalDataDictionaryIdentifier>
+  </MESSAGE_HEADER>
   <DEAL_SETS>
     <DEAL_SET>
       <DEALS>
@@ -456,7 +469,7 @@ function buildMISMO34XML(deal, borrowers, properties, fees, signatures) {
       </DEALS>
     </DEAL_SET>
   </DEAL_SETS>
-</MESSAGE>`;
+</${MISMO_CONFIG.ROOT_ELEMENT}>`;
 
   return xml;
 }
