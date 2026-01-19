@@ -127,16 +127,183 @@ function assignSequenceNumbers(items, startFrom = 1) {
 }
 
 /**
- * Extract SequenceNumber and xlink:label from XML element
+ * Extract SequenceNumber, xlink:label, xlink:from, xlink:to, xlink:arcrole from XML element
  */
 function extractSequenceInfo(elementMatch) {
   const seqMatch = elementMatch.match(/SequenceNumber="(\d+)"/);
   const labelMatch = elementMatch.match(/xlink:label="([^"]+)"/);
+  const fromMatch = elementMatch.match(/xlink:from="([^"]+)"/);
+  const toMatch = elementMatch.match(/xlink:to="([^"]+)"/);
+  const arcroleMatch = elementMatch.match(/xlink:arcrole="([^"]+)"/);
   
   return {
     sequenceNumber: seqMatch ? parseInt(seqMatch[1], 10) : null,
     xlinkLabel: labelMatch ? labelMatch[1] : null,
+    xlinkFrom: fromMatch ? fromMatch[1] : null,
+    xlinkTo: toMatch ? toMatch[1] : null,
+    xlinkArcrole: arcroleMatch ? arcroleMatch[1] : null,
   };
+}
+
+/**
+ * Build a RELATIONSHIP element with proper xlink attributes
+ */
+function buildRelationship(seq, fromLabel, toLabel, arcrole) {
+  return {
+    sequence_number: seq,
+    xlink_label: generateLabel('RELATIONSHIP', seq),
+    xlink_from: fromLabel,
+    xlink_to: toLabel,
+    xlink_arcrole: arcrole,
+    xml: `<RELATIONSHIP SequenceNumber="${seq}" xlink:from="${fromLabel}" xlink:to="${toLabel}" xlink:arcrole="${arcrole}"/>`,
+  };
+}
+
+/**
+ * Generate all required relationships for a deal export
+ */
+function generateDealRelationships(borrowers, properties, services) {
+  const relationships = [];
+  let seq = 1;
+  
+  // Link borrowers to loan
+  for (const borrower of borrowers) {
+    // Party verification relationship
+    relationships.push(buildRelationship(
+      seq++,
+      borrower.xlink_label,
+      'Loan_1',
+      ARCROLES.PARTY_VERIFICATION
+    ));
+    
+    // Borrower role to loan relationship
+    relationships.push(buildRelationship(
+      seq++,
+      borrower.role_label,
+      'Loan_1',
+      ARCROLES.BORROWER_LOAN
+    ));
+  }
+  
+  // Link properties/collateral to loan
+  for (const property of properties) {
+    relationships.push(buildRelationship(
+      seq++,
+      property.xlink_label,
+      'Loan_1',
+      ARCROLES.COLLATERAL_LOAN
+    ));
+    
+    // Subject property relationship
+    relationships.push(buildRelationship(
+      seq++,
+      `Property_${property.sequence_number}`,
+      'Loan_1',
+      ARCROLES.PROPERTY_LOAN
+    ));
+  }
+  
+  // Link services to loan
+  for (const service of (services || [])) {
+    relationships.push(buildRelationship(
+      seq++,
+      service.xlink_label,
+      'Loan_1',
+      ARCROLES.SERVICE_LOAN
+    ));
+  }
+  
+  return relationships;
+}
+
+/**
+ * Parse and resolve xlink references from imported XML
+ */
+function resolveXlinkReferences(containers) {
+  const labelMap = {};
+  const resolved = {};
+  
+  // Build a map of all xlink:labels to their containers
+  for (const [containerType, items] of Object.entries(containers)) {
+    for (const item of items) {
+      if (item.xlink_label) {
+        labelMap[item.xlink_label] = {
+          containerType,
+          item,
+        };
+      }
+    }
+  }
+  
+  // Resolve relationship references
+  if (containers.RELATIONSHIP) {
+    resolved.relationships = containers.RELATIONSHIP.map(rel => {
+      const fromRef = labelMap[rel.xlinkFrom];
+      const toRef = labelMap[rel.xlinkTo];
+      
+      return {
+        ...rel,
+        from_container_type: fromRef?.containerType,
+        from_item: fromRef?.item,
+        to_container_type: toRef?.containerType,
+        to_item: toRef?.item,
+        is_valid: !!(fromRef && toRef),
+      };
+    });
+  }
+  
+  return {
+    labelMap,
+    resolved,
+    relationship_count: resolved.relationships?.length || 0,
+    valid_relationships: resolved.relationships?.filter(r => r.is_valid).length || 0,
+    invalid_relationships: resolved.relationships?.filter(r => !r.is_valid).length || 0,
+  };
+}
+
+/**
+ * Build relationship graph for debugging
+ */
+function buildRelationshipGraph(containers) {
+  const graph = {
+    nodes: [],
+    edges: [],
+    labels: {},
+  };
+  
+  // Add nodes for each labeled container
+  for (const [containerType, items] of Object.entries(containers)) {
+    for (const item of items) {
+      if (item.xlink_label) {
+        graph.nodes.push({
+          id: item.xlink_label,
+          type: containerType,
+          sequence: item.sequence_number,
+        });
+        graph.labels[item.xlink_label] = {
+          type: containerType,
+          seq: item.sequence_number,
+        };
+      }
+    }
+  }
+  
+  // Add edges for relationships
+  if (containers.RELATIONSHIP) {
+    for (const rel of containers.RELATIONSHIP) {
+      if (rel.xlinkFrom && rel.xlinkTo) {
+        graph.edges.push({
+          from: rel.xlinkFrom,
+          to: rel.xlinkTo,
+          arcrole: rel.xlinkArcrole,
+          arcrole_short: rel.xlinkArcrole?.split('/').pop() || 'Unknown',
+          sequence: rel.sequence_number,
+        });
+      }
+    }
+  }
+  
+  return graph;
 }
 
 /**
