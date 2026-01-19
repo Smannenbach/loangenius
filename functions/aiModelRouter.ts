@@ -18,27 +18,28 @@ const XAI_API_KEY = Deno.env.get('xAI_Grok_API_Key');
 const DEEPSEEK_API_KEY = Deno.env.get('Deepseek_API_Key');
 
 // Task categories and their optimal model assignments
+// Note: Anthropic thinking mode disabled to avoid message format complexity
 const TASK_MODEL_MAP = {
-  // Complex reasoning & analysis - use thinking models
-  'underwriting_analysis': { provider: 'anthropic', model: 'claude-sonnet-4-20250514', thinking: true },
-  'compliance_check': { provider: 'anthropic', model: 'claude-sonnet-4-20250514', thinking: true },
-  'risk_assessment': { provider: 'openai', model: 'o1-preview', thinking: true },
-  'document_analysis': { provider: 'anthropic', model: 'claude-sonnet-4-20250514', thinking: true },
-  'fraud_detection': { provider: 'openai', model: 'o1-preview', thinking: true },
+  // Complex reasoning & analysis - use capable models without thinking
+  'underwriting_analysis': { provider: 'anthropic', model: 'claude-sonnet-4-20250514', thinking: false },
+  'compliance_check': { provider: 'anthropic', model: 'claude-sonnet-4-20250514', thinking: false },
+  'risk_assessment': { provider: 'openai', model: 'gpt-4o', thinking: false },
+  'document_analysis': { provider: 'anthropic', model: 'claude-sonnet-4-20250514', thinking: false },
+  'fraud_detection': { provider: 'openai', model: 'gpt-4o', thinking: false },
   
   // Strategic recommendations - use premium models
   'lender_matching': { provider: 'openai', model: 'gpt-4o', thinking: false },
-  'deal_strategy': { provider: 'anthropic', model: 'claude-sonnet-4-20250514', thinking: true },
+  'deal_strategy': { provider: 'openai', model: 'gpt-4o', thinking: false },
   'pricing_optimization': { provider: 'openai', model: 'gpt-4o', thinking: false },
   
   // Data extraction & structured output
   'data_extraction': { provider: 'openai', model: 'gpt-4o', thinking: false },
   'mismo_generation': { provider: 'openai', model: 'gpt-4o', thinking: false },
-  'report_generation': { provider: 'anthropic', model: 'claude-sonnet-4-20250514', thinking: false },
+  'report_generation': { provider: 'openai', model: 'gpt-4o', thinking: false },
   
   // Conversational & general assistance
   'chat_assistant': { provider: 'openai', model: 'gpt-4o', thinking: false },
-  'email_generation': { provider: 'anthropic', model: 'claude-sonnet-4-20250514', thinking: false },
+  'email_generation': { provider: 'openai', model: 'gpt-4o', thinking: false },
   'summarization': { provider: 'openai', model: 'gpt-4o', thinking: false },
   
   // Fast operations - use efficient models
@@ -91,7 +92,7 @@ async function callOpenAI(model, messages, options = {}) {
 }
 
 /**
- * Call Anthropic API with extended thinking support
+ * Call Anthropic API (standard mode, no extended thinking)
  */
 async function callAnthropic(model, messages, options = {}) {
   const systemMessage = messages.find(m => m.role === 'system')?.content || '';
@@ -102,20 +103,10 @@ async function callAnthropic(model, messages, options = {}) {
 
   const body = {
     model,
-    max_tokens: options.max_tokens || 16000,
+    max_tokens: options.max_tokens || 4096,
     system: systemMessage,
     messages: userMessages,
   };
-  
-  // Enable extended thinking for complex reasoning tasks
-  if (options.thinking) {
-    body.thinking = {
-      type: 'enabled',
-      budget_tokens: options.thinking_budget || 10000
-    };
-    // Extended thinking requires higher max_tokens
-    body.max_tokens = Math.max(body.max_tokens, 16000);
-  }
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -134,21 +125,16 @@ async function callAnthropic(model, messages, options = {}) {
 
   const data = await response.json();
   
-  // Extract content and thinking from response
+  // Extract text content from response
   let content = '';
-  let thinking = null;
-  
   for (const block of data.content || []) {
-    if (block.type === 'thinking') {
-      thinking = block.thinking;
-    } else if (block.type === 'text') {
+    if (block.type === 'text') {
       content = block.text;
     }
   }
   
   return {
     content,
-    thinking,
     model: data.model,
     usage: data.usage,
     provider: 'anthropic'
