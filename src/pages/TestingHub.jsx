@@ -23,7 +23,10 @@ import { createPageUrl } from '@/utils';
 function MISMOTestPanel() {
   const [selectedDeal, setSelectedDeal] = useState(null);
   const [mismoResult, setMismoResult] = useState(null);
+  const [validationResult, setValidationResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [schemaPack, setSchemaPack] = useState('standard');
   
   const { data: deals = [] } = useQuery({
     queryKey: ['mismoTestDeals'],
@@ -37,10 +40,30 @@ function MISMOTestPanel() {
     }
     
     setIsLoading(true);
+    setValidationResult(null);
     try {
       const result = await base44.functions.invoke('generateMISMO34', { deal_id: selectedDeal });
       setMismoResult(result.data);
-      toast.success('MISMO 3.4 XML generated successfully!');
+      
+      // Auto-validate generated XML
+      if (result.data?.xml_content) {
+        setIsValidating(true);
+        const validation = await base44.functions.invoke('mismoSchemaValidator', {
+          xml_content: result.data.xml_content,
+          schema_pack: schemaPack,
+          context: 'export'
+        });
+        setValidationResult(validation.data);
+        setIsValidating(false);
+        
+        if (validation.data.validation_status === 'FAIL') {
+          toast.error('XSD validation failed - download blocked');
+        } else if (validation.data.validation_status === 'PASS_WITH_WARNINGS') {
+          toast.warning('XML generated with warnings');
+        } else {
+          toast.success('MISMO 3.4 XML validated successfully!');
+        }
+      }
     } catch (err) {
       toast.error('MISMO generation failed: ' + err.message);
       setMismoResult({ error: err.message });
@@ -51,6 +74,10 @@ function MISMOTestPanel() {
   
   const downloadXML = () => {
     if (!mismoResult?.xml_content) return;
+    if (validationResult?.validation_status === 'FAIL') {
+      toast.error('Cannot download - XSD validation failed');
+      return;
+    }
     const blob = new Blob([mismoResult.xml_content], { type: 'application/xml' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -62,8 +89,8 @@ function MISMOTestPanel() {
   
   return (
     <div className="space-y-4">
-      <div className="flex gap-4 items-end">
-        <div className="flex-1">
+      <div className="flex gap-4 items-end flex-wrap">
+        <div className="flex-1 min-w-[200px]">
           <label className="text-sm font-medium text-gray-700 mb-1 block">Select Deal</label>
           <select 
             className="w-full border border-gray-300 rounded-md px-3 py-2"
@@ -78,13 +105,24 @@ function MISMOTestPanel() {
             ))}
           </select>
         </div>
+        <div className="w-48">
+          <label className="text-sm font-medium text-gray-700 mb-1 block">Schema Pack</label>
+          <select 
+            className="w-full border border-gray-300 rounded-md px-3 py-2"
+            value={schemaPack}
+            onChange={(e) => setSchemaPack(e.target.value)}
+          >
+            <option value="standard">Standard (MISMO 3.4)</option>
+            <option value="strict">Strict (DU Wrapper)</option>
+          </select>
+        </div>
         <Button 
           onClick={runMISMOTest} 
           disabled={!selectedDeal || isLoading}
           className="gap-2"
         >
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-          Generate MISMO 3.4
+          Generate & Validate
         </Button>
       </div>
       
@@ -97,18 +135,98 @@ function MISMOTestPanel() {
         </div>
       )}
       
-      {mismoResult && !mismoResult.error && (
-        <div className="border rounded-lg p-4 bg-green-50 border-green-200">
+      {/* XSD Validation Report */}
+      {validationResult && (
+        <div className={`border rounded-lg p-4 ${
+          validationResult.validation_status === 'PASS' ? 'bg-green-50 border-green-200' :
+          validationResult.validation_status === 'PASS_WITH_WARNINGS' ? 'bg-yellow-50 border-yellow-200' :
+          'bg-red-50 border-red-200'
+        }`}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <span className="font-medium text-green-800">MISMO 3.4 Generated</span>
+              {validationResult.validation_status === 'PASS' ? (
+                <CheckCircle className="h-5 w-5 text-green-600" />
+              ) : validationResult.validation_status === 'PASS_WITH_WARNINGS' ? (
+                <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              ) : (
+                <XCircle className="h-5 w-5 text-red-600" />
+              )}
+              <span className={`font-medium ${
+                validationResult.validation_status === 'PASS' ? 'text-green-800' :
+                validationResult.validation_status === 'PASS_WITH_WARNINGS' ? 'text-yellow-800' :
+                'text-red-800'
+              }`}>
+                XSD Validation: {validationResult.validation_status}
+              </span>
+              <Badge variant="outline" className="text-xs">
+                {validationResult.schema_pack}
+              </Badge>
             </div>
-            <Button variant="outline" size="sm" onClick={downloadXML} className="gap-1">
-              <FileCode className="h-3 w-3" />
-              Download XML
-            </Button>
+            {validationResult.validation_status !== 'FAIL' && (
+              <Button variant="outline" size="sm" onClick={downloadXML} className="gap-1">
+                <FileCode className="h-3 w-3" />
+                Download XML
+              </Button>
+            )}
           </div>
+          
+          {/* Summary */}
+          <div className="grid grid-cols-3 gap-4 text-sm mb-3">
+            <div className="flex items-center gap-1">
+              {validationResult.report?.summary?.well_formed ? 
+                <CheckCircle className="h-3 w-3 text-green-600" /> : 
+                <XCircle className="h-3 w-3 text-red-600" />}
+              <span>Well-formed</span>
+            </div>
+            <div className="flex items-center gap-1">
+              {validationResult.report?.summary?.structure_valid ? 
+                <CheckCircle className="h-3 w-3 text-green-600" /> : 
+                <XCircle className="h-3 w-3 text-red-600" />}
+              <span>Structure</span>
+            </div>
+            <div className="flex items-center gap-1">
+              {validationResult.report?.summary?.data_valid ? 
+                <CheckCircle className="h-3 w-3 text-green-600" /> : 
+                <XCircle className="h-3 w-3 text-red-600" />}
+              <span>Data Types</span>
+            </div>
+          </div>
+
+          {/* Errors */}
+          {validationResult.report?.errors?.length > 0 && (
+            <div className="mt-3 p-2 bg-red-100 rounded text-sm">
+              <p className="font-medium text-red-800 mb-1">Errors ({validationResult.report.errors.length}):</p>
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {validationResult.report.errors.map((e, i) => (
+                  <div key={i} className="text-red-700 font-mono text-xs">
+                    <span className="bg-red-200 px-1 rounded">{e.code}</span> Line {e.line}: {e.message}
+                    {e.xpath && <span className="text-red-500 ml-1">({e.xpath})</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Warnings */}
+          {validationResult.report?.warnings?.length > 0 && (
+            <div className="mt-3 p-2 bg-yellow-100 rounded text-sm">
+              <p className="font-medium text-yellow-800 mb-1">Warnings ({validationResult.report.warnings.length}):</p>
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {validationResult.report.warnings.map((w, i) => (
+                  <div key={i} className="text-yellow-700 font-mono text-xs">
+                    <span className="bg-yellow-200 px-1 rounded">{w.code}</span> Line {w.line}: {w.message}
+                    {w.xpath && <span className="text-yellow-600 ml-1">({w.xpath})</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* File info (only show if we have result and validation passed) */}
+      {mismoResult && !mismoResult.error && validationResult?.validation_status !== 'FAIL' && (
+        <div className="border rounded-lg p-4 bg-gray-50">
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <span className="text-gray-600">Filename:</span> {mismoResult.filename}
@@ -116,34 +234,17 @@ function MISMOTestPanel() {
             <div>
               <span className="text-gray-600">Size:</span> {(mismoResult.byte_size / 1024).toFixed(1)} KB
             </div>
-            <div>
-              <span className="text-gray-600">Validation:</span>{' '}
-              <Badge className={mismoResult.validation_passed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                {mismoResult.validation_passed ? 'Passed' : 'Failed'}
-              </Badge>
-            </div>
             {mismoResult.deal_summary && (
-              <div>
-                <span className="text-gray-600">Borrowers:</span> {mismoResult.deal_summary.borrower_count || 0}
-              </div>
+              <>
+                <div>
+                  <span className="text-gray-600">Borrowers:</span> {mismoResult.deal_summary.borrower_count || 0}
+                </div>
+                <div>
+                  <span className="text-gray-600">Properties:</span> {mismoResult.deal_summary.property_count || 0}
+                </div>
+              </>
             )}
           </div>
-          {mismoResult.validation_errors?.length > 0 && (
-            <div className="mt-3 p-2 bg-red-50 rounded text-sm">
-              <p className="font-medium text-red-800">Validation Errors:</p>
-              <ul className="list-disc list-inside text-red-700">
-                {mismoResult.validation_errors.map((e, i) => <li key={i}>{e.field}: {e.message}</li>)}
-              </ul>
-            </div>
-          )}
-          {mismoResult.validation_warnings?.length > 0 && (
-            <div className="mt-3 p-2 bg-yellow-50 rounded text-sm">
-              <p className="font-medium text-yellow-800">Warnings:</p>
-              <ul className="list-disc list-inside text-yellow-700">
-                {mismoResult.validation_warnings.map((w, i) => <li key={i}>{w.field}: {w.message}</li>)}
-              </ul>
-            </div>
-          )}
         </div>
       )}
       
