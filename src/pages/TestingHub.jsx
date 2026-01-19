@@ -24,6 +24,7 @@ import MISMORelationshipGraph from '@/components/MISMORelationshipGraph';
 import RoundTripTestPanel from '@/components/testing/RoundTripTestPanel.jsx';
 import XMLValidatorPanel from '@/components/testing/XMLValidatorPanel.jsx';
 import MappingCoverageDashboard from '@/components/testing/MappingCoverageDashboard.jsx';
+import SchemaPackManager from '@/components/testing/SchemaPackManager.jsx';
 
 function MISMOTestPanel() {
   const [selectedDeal, setSelectedDeal] = useState(null);
@@ -600,6 +601,10 @@ export default function TestingHub() {
             <Network className="h-4 w-4" />
             Mapping Coverage
           </TabsTrigger>
+          <TabsTrigger value="schemapacks" className="gap-2">
+            <FileCode className="h-4 w-4" />
+            Schema Packs
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="functional" className="space-y-6 mt-6">
@@ -725,6 +730,10 @@ export default function TestingHub() {
 
         <TabsContent value="mapping" className="mt-6">
           <MappingCoverageDashboard />
+        </TabsContent>
+
+        <TabsContent value="schemapacks" className="mt-6">
+          <SchemaPackManager />
         </TabsContent>
       </Tabs>
     </div>
