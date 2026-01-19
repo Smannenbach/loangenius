@@ -577,7 +577,7 @@ function buildMISMOXml(deal, borrowers, properties, fees, originator, organizati
                 </NAME>
               </INDIVIDUAL>
               <ROLES>
-                <ROLE SequenceNumber="1" xlink:label="${roleLabel}">
+                <ROLE SequenceNumber="1" xlink:label="${generateLabel('Borrower', 1, borrowerLabel)}">
                   <BORROWER>
                     <BORROWER_DETAIL>
                       ${b.dob_encrypted || b.dob ? `<BorrowerBirthDate>${escapeXml(b.dob_encrypted || b.dob)}</BorrowerBirthDate>` : ''}
