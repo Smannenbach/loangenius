@@ -26,6 +26,8 @@ import XMLValidatorPanel from '@/components/testing/XMLValidatorPanel.jsx';
 import MappingCoverageDashboard from '@/components/testing/MappingCoverageDashboard.jsx';
 import SchemaPackManager from '@/components/testing/SchemaPackManager.jsx';
 import PreflightValidationPanel from '@/components/testing/PreflightValidationPanel.jsx';
+import GoldenTestPackPanel from '@/components/testing/GoldenTestPackPanel.jsx';
+import AdminXMLValidator from '@/components/testing/AdminXMLValidator.jsx';
 
 function MISMOTestPanel() {
   const [selectedDeal, setSelectedDeal] = useState(null);
@@ -610,6 +612,14 @@ export default function TestingHub() {
             <CheckCircle className="h-4 w-4" />
             Preflight
           </TabsTrigger>
+          <TabsTrigger value="golden" className="gap-2">
+            <CheckCircle className="h-4 w-4" />
+            Golden Tests
+          </TabsTrigger>
+          <TabsTrigger value="adminvalidator" className="gap-2">
+            <FileCode className="h-4 w-4" />
+            Admin Validator
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="functional" className="space-y-6 mt-6">
@@ -743,6 +753,14 @@ export default function TestingHub() {
 
         <TabsContent value="preflight" className="mt-6">
           <PreflightValidationPanel />
+        </TabsContent>
+
+        <TabsContent value="golden" className="mt-6">
+          <GoldenTestPackPanel />
+        </TabsContent>
+
+        <TabsContent value="adminvalidator" className="mt-6">
+          <AdminXMLValidator />
         </TabsContent>
       </Tabs>
     </div>
