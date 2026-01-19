@@ -290,7 +290,7 @@ export default function BorrowerPortal() {
             <PortalConditionsTab sessionId={sessionId} dealId={dealId} />
           )}
           {activeTab === 'messages' && (
-            <PortalSecureMessaging dealId={dealId} borrowerEmail={session?.borrowerEmail} />
+            <PortalSecureMessaging dealId={dealId} borrowerEmail={session?.borrowerEmail} sessionId={sessionId} />
           )}
         </div>
       </div>
