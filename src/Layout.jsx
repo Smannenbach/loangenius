@@ -54,6 +54,22 @@ import {
         Globe,
 } from 'lucide-react';
 
+const scrollbarStyles = `
+  .sidebar-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+  .sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    background-color: #475569;
+    border-radius: 3px;
+  }
+  .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: #64748b;
+  }
+`;
+
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -172,6 +188,7 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col">
+      <style>{scrollbarStyles}</style>
       {/* Mobile Menu Button */}
       <button
         className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 transition-colors"
@@ -211,7 +228,7 @@ export default function Layout({ children, currentPageName }) {
         </div>
 
         {/* Navigation - scrollable */}
-        <nav className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent hover:scrollbar-thumb-slate-500">
+        <nav className="flex-1 overflow-y-auto p-3 space-y-1 sidebar-scroll">
           {/* Main Section */}
           <div className="space-y-1">
             <SectionHeader
