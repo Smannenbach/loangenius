@@ -1,21 +1,21 @@
 /**
  * MISMO Sequence Manager
  * Handles SequenceNumber and xlink:label for repeating containers
+ * Also manages xlink:href and ArcRoles for RELATIONSHIP elements
  * 
  * Best Practices:
  * - Assign SequenceNumber to all repeating elements (1-based, ascending)
  * - Assign stable xlink:label values for cross-referencing
+ * - Use xlink:from/to/arcrole for RELATIONSHIP elements
  * - Export in deterministic order (SequenceNumber ascending)
- * - Import preserves or generates SequenceNumbers
+ * - Import preserves or generates SequenceNumbers and resolves xlinks
  * 
- * Repeating Containers:
- * - ASSET, OWNED_PROPERTY/REO
- * - PARTY (borrowers, originators)
- * - ADDRESS (current, prior, mailing)
- * - RESIDENCE, EMPLOYER
- * - COLLATERAL, SUBJECT_PROPERTY
- * - FEE, SERVICE
- * - RELATIONSHIP
+ * ArcRole URIs (MISMO 3.4):
+ * - urn:fdc:mismo.org:2009:residential/BORROWER_BorrowsOn_LOAN
+ * - urn:fdc:mismo.org:2009:residential/PARTY_IsVerifiedBy_VERIFICATION
+ * - urn:fdc:mismo.org:2009:residential/COLLATERAL_IsCollateralFor_LOAN
+ * - urn:fdc:mismo.org:2009:residential/PROPERTY_IsSubjectPropertyFor_LOAN
+ * - urn:fdc:mismo.org:2009:residential/SERVICE_IsProvidedFor_LOAN
  */
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
