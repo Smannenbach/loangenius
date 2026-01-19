@@ -472,7 +472,10 @@ export default function LenderIntegrations() {
                         size="sm" 
                         variant="outline" 
                         className="flex-1"
-                        onClick={() => setSelectedIntegration(integration)}
+                        onClick={() => {
+                          setSelectedIntegration(integration);
+                          toast.info(`Configuring ${integration.lender_name}`);
+                        }}
                       >
                         <Settings className="h-4 w-4 mr-1" />
                         Configure
