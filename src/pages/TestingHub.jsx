@@ -586,6 +586,10 @@ export default function TestingHub() {
             <Network className="h-4 w-4" />
             Relationship Graph
           </TabsTrigger>
+          <TabsTrigger value="roundtrip" className="gap-2">
+            <Database className="h-4 w-4" />
+            Round-Trip Tests
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="functional" className="space-y-6 mt-6">
@@ -699,6 +703,10 @@ export default function TestingHub() {
               <MISMORelationshipGraph />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="roundtrip" className="mt-6">
+          <RoundTripTestPanel orgId={orgId} />
         </TabsContent>
       </Tabs>
     </div>
