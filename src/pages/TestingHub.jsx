@@ -25,6 +25,7 @@ import RoundTripTestPanel from '@/components/testing/RoundTripTestPanel.jsx';
 import XMLValidatorPanel from '@/components/testing/XMLValidatorPanel.jsx';
 import MappingCoverageDashboard from '@/components/testing/MappingCoverageDashboard.jsx';
 import SchemaPackManager from '@/components/testing/SchemaPackManager.jsx';
+import PreflightValidationPanel from '@/components/testing/PreflightValidationPanel.jsx';
 
 function MISMOTestPanel() {
   const [selectedDeal, setSelectedDeal] = useState(null);
@@ -605,6 +606,10 @@ export default function TestingHub() {
             <FileCode className="h-4 w-4" />
             Schema Packs
           </TabsTrigger>
+          <TabsTrigger value="preflight" className="gap-2">
+            <CheckCircle className="h-4 w-4" />
+            Preflight
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="functional" className="space-y-6 mt-6">
@@ -734,6 +739,10 @@ export default function TestingHub() {
 
         <TabsContent value="schemapacks" className="mt-6">
           <SchemaPackManager />
+        </TabsContent>
+
+        <TabsContent value="preflight" className="mt-6">
+          <PreflightValidationPanel />
         </TabsContent>
       </Tabs>
     </div>
