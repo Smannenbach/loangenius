@@ -28,7 +28,7 @@ import {
   Edit, Trash2, RefreshCw, CheckCircle2, XCircle, Clock, Bot, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
-import AILenderMatcher from '@/components/AILenderMatcher';
+import AILenderMatcher from '@/components/AILenderMatcher.jsx';
 
 export default function LenderIntegrations() {
   const queryClient = useQueryClient();
