@@ -408,7 +408,7 @@ export default function AIAssistant() {
                   <CardTitle className="text-base">Quick Actions</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <Link to={createPageUrl('TestingValidationHub')} className="block">
+                  <Link to={createPageUrl('TestingHub')} className="block">
                     <Button variant="outline" className="w-full justify-start gap-2">
                       <FileText className="h-4 w-4" />
                       Testing & Validation Hub

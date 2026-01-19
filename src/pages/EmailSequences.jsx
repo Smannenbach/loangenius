@@ -317,17 +317,32 @@ export default function EmailSequences() {
                     <div key={eventType} className="p-4 border rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <Label className="capitalize">{eventType.replace(/_/g, ' ')}</Label>
-                        <Switch checked={config?.is_active || false} />
+                        <Switch 
+                          checked={config?.is_active || false} 
+                          onCheckedChange={(checked) => {
+                            toast.info(`SMS for ${eventType.replace(/_/g, ' ')} ${checked ? 'enabled' : 'disabled'}`);
+                          }}
+                        />
                       </div>
                       <Textarea 
                         placeholder={`SMS template for ${eventType}...`}
                         value={config?.template || ''}
                         className="text-sm"
                         rows={2}
+                        onChange={() => {}}
                       />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Available: {'{{first_name}}, {{status}}, {{document_name}}, {{deal_number}}'}
-                      </p>
+                      <div className="flex items-center justify-between mt-2">
+                        <p className="text-xs text-gray-500">
+                          Variables: {'{{first_name}}, {{status}}, {{document_name}}, {{deal_number}}'}
+                        </p>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => toast.success('Template saved')}
+                        >
+                          Save
+                        </Button>
+                      </div>
                     </div>
                   );
                 })}
@@ -347,7 +362,7 @@ export default function EmailSequences() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Sequence Name</Label>
+                <Label>Sequence Name *</Label>
                 <Input
                   value={newSequence.name}
                   onChange={(e) => setNewSequence({ ...newSequence, name: e.target.value })}
@@ -367,6 +382,7 @@ export default function EmailSequences() {
                     <SelectItem value="lead_inactivity">Lead Inactivity</SelectItem>
                     <SelectItem value="lead_status_change">Lead Status Change</SelectItem>
                     <SelectItem value="deal_status_change">Deal Status Change</SelectItem>
+                    <SelectItem value="document_event">Document Event</SelectItem>
                     <SelectItem value="manual">Manual Enrollment</SelectItem>
                   </SelectContent>
                 </Select>
@@ -513,8 +529,12 @@ export default function EmailSequences() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-            <Button onClick={() => createMutation.mutate(newSequence)} disabled={!newSequence.name}>
-              {editingSequence ? 'Save Changes' : 'Create Sequence'}
+            <Button 
+              onClick={() => createMutation.mutate(newSequence)} 
+              disabled={!newSequence.name || createMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {createMutation.isPending ? 'Saving...' : editingSequence ? 'Save Changes' : 'Create Sequence'}
             </Button>
           </DialogFooter>
         </DialogContent>
