@@ -10,6 +10,7 @@ import PortalSecureMessaging from '@/components/portal/PortalSecureMessaging';
 import PortalRequirementsTab from '@/components/portal/PortalRequirementsTab';
 import PortalConditionsTab from '@/components/portal/PortalConditionsTab';
 import PortalLoanSummary from '@/components/portal/PortalLoanSummary';
+import PortalNotificationBell from '@/components/portal/PortalNotificationBell';
 
 export default function BorrowerPortal() {
   const [activeTab, setActiveTab] = useState('summary');
@@ -178,14 +179,21 @@ export default function BorrowerPortal() {
                 <p className="text-xs text-slate-500 mt-0.5">ID: {deal?.deal_number || 'Loading...'}</p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => (window.location.href = '/BorrowerPortalLogin')}
-              className="text-sm"
-            >
-              Sign Out
-            </Button>
-          </div>
+            <div className="flex items-center gap-2">
+              <PortalNotificationBell 
+                sessionId={sessionId} 
+                dealId={dealId}
+                onNavigate={(tab) => setActiveTab(tab)}
+              />
+              <Button
+                variant="outline"
+                onClick={() => (window.location.href = '/BorrowerPortalLogin')}
+                className="text-sm"
+              >
+                Sign Out
+              </Button>
+            </div>
+            </div>
         </div>
       </div>
 
