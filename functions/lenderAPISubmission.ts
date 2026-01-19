@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { deal_id, lender_integration_id, submission_type = 'initial' } = await req.json();
+    const { deal_id, lender_integration_id, submission_type = 'initial', skip_validation = false } = await req.json();
 
     if (!deal_id || !lender_integration_id) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
@@ -40,6 +40,52 @@ Deno.serve(async (req) => {
     }
 
     const xmlContent = exportResponse.data.xml_content;
+
+    // Pre-submission validation (unless explicitly skipped)
+    if (!skip_validation) {
+      const validationResponse = await base44.asServiceRole.functions.invoke('mismoSchemaValidator', {
+        xml_content: xmlContent,
+        schema_pack: lender.api_type === 'MISMO_34' ? 'standard' : 'strict',
+        validation_mode: 'full',
+        context: 'export'
+      });
+
+      const validationResult = validationResponse.data;
+      
+      if (!validationResult.can_proceed) {
+        // Create failed submission record for audit
+        await base44.asServiceRole.entities.LenderSubmission.create({
+          org_id: lender.org_id,
+          deal_id,
+          lender_integration_id,
+          lender_name: lender.lender_name,
+          submission_type,
+          submission_method: lender.api_type,
+          submitted_by: user.email,
+          submitted_at: new Date().toISOString(),
+          status: 'failed',
+          response_code: 'VALIDATION_FAILED',
+          response_message: validationResult.block_reason || 'MISMO validation failed',
+          notes: JSON.stringify({
+            errors: validationResult.report?.errors?.slice(0, 5),
+            warnings_count: validationResult.report?.summary?.total_warnings
+          })
+        });
+
+        return Response.json({
+          success: false,
+          validation_failed: true,
+          validation_status: validationResult.validation_status,
+          block_reason: validationResult.block_reason,
+          errors: validationResult.report?.errors || [],
+          warnings: validationResult.report?.warnings || [],
+          lender_response: {
+            success: false,
+            message: 'Pre-submission MISMO validation failed. Please fix the errors and try again.'
+          }
+        });
+      }
+    }
 
     // Create submission record
     const submission = await base44.asServiceRole.entities.LenderSubmission.create({
