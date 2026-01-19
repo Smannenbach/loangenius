@@ -3,14 +3,16 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Loader2, FileText, MessageSquare, ClipboardList, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { AlertCircle, Loader2, FileText, MessageSquare, ClipboardList, CheckCircle2, Clock, AlertTriangle, Home, ListChecks } from 'lucide-react';
 import PortalProgressBar from '@/components/portal/PortalProgressBar';
 import PortalDocumentsTab from '@/components/portal/PortalDocumentsTab';
 import PortalSecureMessaging from '@/components/portal/PortalSecureMessaging';
 import PortalRequirementsTab from '@/components/portal/PortalRequirementsTab';
+import PortalConditionsTab from '@/components/portal/PortalConditionsTab';
+import PortalLoanSummary from '@/components/portal/PortalLoanSummary';
 
 export default function BorrowerPortal() {
-  const [activeTab, setActiveTab] = useState('status');
+  const [activeTab, setActiveTab] = useState('summary');
   const [sessionId, setSessionId] = useState(null);
   const [dealId, setDealId] = useState(null);
 
@@ -119,9 +121,45 @@ export default function BorrowerPortal() {
   const pendingCount = allRequirements.filter(r => r.status === 'pending' || r.status === 'requested').length;
   const uploadedCount = allRequirements.filter(r => r.status === 'uploaded' || r.status === 'under_review').length;
 
+  // Fetch conditions
+  const { data: conditions = [] } = useQuery({
+    queryKey: ['portalConditions', dealId],
+    queryFn: async () => {
+      if (!dealId) return [];
+      try {
+        return await base44.entities.Condition.filter({ deal_id: dealId });
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!dealId,
+  });
+
+  // Fetch property
+  const { data: property } = useQuery({
+    queryKey: ['portalProperty', dealId],
+    queryFn: async () => {
+      if (!dealId) return null;
+      try {
+        const dealProperties = await base44.entities.DealProperty.filter({ deal_id: dealId });
+        if (dealProperties.length > 0) {
+          const properties = await base44.entities.Property.filter({ id: dealProperties[0].property_id });
+          return properties[0];
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!dealId,
+  });
+
+  const pendingConditionsCount = conditions.filter(c => !c.borrower_acknowledged && c.status === 'pending').length;
+
   const tabs = [
-    { id: 'status', label: 'Status', icon: ClipboardList, count: null, badge: false },
-    { id: 'documents', label: 'Documents', icon: FileText, count: pendingCount, badge: pendingCount > 0 },
+    { id: 'summary', label: 'Summary', icon: Home, count: null, badge: false },
+    { id: 'status', label: 'Documents', icon: FileText, count: pendingCount, badge: pendingCount > 0 },
+    { id: 'conditions', label: 'Conditions', icon: ListChecks, count: pendingConditionsCount, badge: pendingConditionsCount > 0 },
     { id: 'messages', label: 'Messages', icon: MessageSquare, count: messages?.length || 0, badge: messages?.length > 0 },
   ];
 
@@ -242,14 +280,17 @@ export default function BorrowerPortal() {
 
         {/* Tab Content */}
         <div>
+          {activeTab === 'summary' && (
+            <PortalLoanSummary deal={deal} borrower={session?.borrower} property={property} />
+          )}
           {activeTab === 'status' && (
             <PortalRequirementsTab requirements={requirements} sessionId={sessionId} />
           )}
-          {activeTab === 'documents' && (
-            <PortalDocumentsTab sessionId={sessionId} />
+          {activeTab === 'conditions' && (
+            <PortalConditionsTab sessionId={sessionId} dealId={dealId} />
           )}
           {activeTab === 'messages' && (
-            <PortalSecureMessaging sessionId={sessionId} />
+            <PortalSecureMessaging dealId={dealId} borrowerEmail={session?.borrowerEmail} />
           )}
         </div>
       </div>
