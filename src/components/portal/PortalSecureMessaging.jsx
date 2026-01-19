@@ -11,15 +11,28 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function PortalSecureMessaging({ dealId, borrowerEmail }) {
+export default function PortalSecureMessaging({ dealId, borrowerEmail, sessionId }) {
   const queryClient = useQueryClient();
   const [newMessage, setNewMessage] = useState('');
   const [attachmentFile, setAttachmentFile] = useState(null);
   const messagesEndRef = useRef(null);
 
   const { data: messages = [], isLoading } = useQuery({
-    queryKey: ['portalMessages', dealId],
+    queryKey: ['portalMessages', dealId, sessionId],
     queryFn: async () => {
+      // Try session-based fetch first
+      if (sessionId) {
+        try {
+          const response = await base44.functions.invoke('portalMessages', {
+            sessionId,
+            action: 'getMessages',
+          });
+          return response.data?.messages || [];
+        } catch {
+          // Fall back to direct entity query
+        }
+      }
+      
       if (!dealId) return [];
       try {
         return await base44.entities.CommunicationsLog.filter({ 
@@ -29,12 +42,27 @@ export default function PortalSecureMessaging({ dealId, borrowerEmail }) {
         return [];
       }
     },
-    enabled: !!dealId,
+    enabled: !!dealId || !!sessionId,
     refetchInterval: 10000 // Refresh every 10 seconds
   });
 
   const sendMutation = useMutation({
     mutationFn: async ({ message, file_url }) => {
+      // Try session-based send first
+      if (sessionId) {
+        try {
+          const response = await base44.functions.invoke('portalMessages', {
+            sessionId,
+            action: 'sendMessage',
+            message,
+            attachment_url: file_url,
+          });
+          return response.data;
+        } catch {
+          // Fall back to direct entity create
+        }
+      }
+      
       return await base44.entities.CommunicationsLog.create({
         org_id: 'default',
         deal_id: dealId,
