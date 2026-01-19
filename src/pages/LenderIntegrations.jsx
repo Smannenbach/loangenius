@@ -463,14 +463,24 @@ export default function LenderIntegrations() {
                       <p className="text-xs text-gray-500">{integration.contact_email}</p>
                     )}
                     <div className="flex gap-2 pt-2">
-                      <Button size="sm" variant="outline" className="flex-1">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="flex-1"
+                        onClick={() => setSelectedIntegration(integration)}
+                      >
                         <Settings className="h-4 w-4 mr-1" />
                         Configure
                       </Button>
                       <Button 
                         size="sm" 
                         variant="destructive"
-                        onClick={() => deleteMutation.mutate(integration.id)}
+                        onClick={() => {
+                          if (confirm(`Delete ${integration.lender_name}?`)) {
+                            deleteMutation.mutate(integration.id);
+                          }
+                        }}
+                        disabled={deleteMutation.isPending}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -534,6 +544,218 @@ export default function LenderIntegrations() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Configure Integration Dialog */}
+      <Dialog open={!!selectedIntegration} onOpenChange={(open) => !open && setSelectedIntegration(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Configure: {selectedIntegration?.lender_name}</DialogTitle>
+          </DialogHeader>
+          {selectedIntegration && (
+            <ConfigureIntegrationForm 
+              integration={selectedIntegration} 
+              onClose={() => setSelectedIntegration(null)}
+              onSave={() => {
+                queryClient.invalidateQueries({ queryKey: ['lenderIntegrations'] });
+                setSelectedIntegration(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function ConfigureIntegrationForm({ integration, onClose, onSave }) {
+  const [formData, setFormData] = useState({
+    lender_name: integration.lender_name || '',
+    lender_type: integration.lender_type || 'DSCR',
+    api_type: integration.api_type || 'MISMO_34',
+    api_endpoint: integration.api_endpoint || '',
+    submission_email: integration.submission_email || '',
+    contact_name: integration.contact_name || '',
+    contact_email: integration.contact_email || '',
+    contact_phone: integration.contact_phone || '',
+    min_loan_amount: integration.min_loan_amount || '',
+    max_loan_amount: integration.max_loan_amount || '',
+    min_dscr: integration.min_dscr || '',
+    max_ltv: integration.max_ltv || '',
+    status: integration.status || 'active',
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await base44.entities.LenderIntegration.update(integration.id, formData);
+      toast.success('Integration updated');
+      onSave();
+    } catch (error) {
+      toast.error('Failed to update: ' + error.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4 mt-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="col-span-2">
+          <Label>Lender Name</Label>
+          <Input
+            value={formData.lender_name}
+            onChange={(e) => setFormData({ ...formData, lender_name: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label>Lender Type</Label>
+          <Select 
+            value={formData.lender_type} 
+            onValueChange={(v) => setFormData({ ...formData, lender_type: v })}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="DSCR">DSCR</SelectItem>
+              <SelectItem value="Non-QM">Non-QM</SelectItem>
+              <SelectItem value="Hard Money">Hard Money</SelectItem>
+              <SelectItem value="Bridge">Bridge</SelectItem>
+              <SelectItem value="Portfolio">Portfolio</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Status</Label>
+          <Select 
+            value={formData.status} 
+            onValueChange={(v) => setFormData({ ...formData, status: v })}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="pending_approval">Pending Approval</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Integration Type</Label>
+          <Select 
+            value={formData.api_type} 
+            onValueChange={(v) => setFormData({ ...formData, api_type: v })}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="MISMO_34">MISMO 3.4 XML</SelectItem>
+              <SelectItem value="REST_API">REST API</SelectItem>
+              <SelectItem value="SFTP">SFTP Upload</SelectItem>
+              <SelectItem value="EMAIL">Email Submission</SelectItem>
+              <SelectItem value="MANUAL">Manual</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {formData.api_type === 'REST_API' && (
+        <div>
+          <Label>API Endpoint URL</Label>
+          <Input
+            value={formData.api_endpoint}
+            onChange={(e) => setFormData({ ...formData, api_endpoint: e.target.value })}
+            placeholder="https://api.lender.com/submit"
+          />
+        </div>
+      )}
+
+      {formData.api_type === 'EMAIL' && (
+        <div>
+          <Label>Submission Email</Label>
+          <Input
+            type="email"
+            value={formData.submission_email}
+            onChange={(e) => setFormData({ ...formData, submission_email: e.target.value })}
+            placeholder="submissions@lender.com"
+          />
+        </div>
+      )}
+
+      <div className="border-t pt-4">
+        <h4 className="font-semibold mb-3">Contact Information</h4>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Contact Name</Label>
+            <Input
+              value={formData.contact_name}
+              onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Contact Email</Label>
+            <Input
+              type="email"
+              value={formData.contact_email}
+              onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Contact Phone</Label>
+            <Input
+              value={formData.contact_phone}
+              onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t pt-4">
+        <h4 className="font-semibold mb-3">Loan Parameters</h4>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Min Loan Amount</Label>
+            <Input
+              type="number"
+              value={formData.min_loan_amount}
+              onChange={(e) => setFormData({ ...formData, min_loan_amount: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Max Loan Amount</Label>
+            <Input
+              type="number"
+              value={formData.max_loan_amount}
+              onChange={(e) => setFormData({ ...formData, max_loan_amount: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Min DSCR</Label>
+            <Input
+              type="number"
+              step="0.01"
+              value={formData.min_dscr}
+              onChange={(e) => setFormData({ ...formData, min_dscr: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Max LTV (%)</Label>
+            <Input
+              type="number"
+              value={formData.max_ltv}
+              onChange={(e) => setFormData({ ...formData, max_ltv: e.target.value })}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-3 pt-4 border-t">
+        <Button variant="outline" onClick={onClose}>Cancel</Button>
+        <Button
+          className="flex-1 bg-blue-600 hover:bg-blue-700"
+          onClick={handleSave}
+          disabled={isSaving}
+        >
+          {isSaving ? 'Saving...' : 'Save Changes'}
+        </Button>
+      </div>
     </div>
   );
 }
