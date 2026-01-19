@@ -223,6 +223,52 @@ function buildMISMOXml(deal, borrowers, properties, fees, originator, organizati
   const formatMoney = (val) => parseFloat(val || 0).toFixed(2);
   const formatPercent = (val) => parseFloat(val || 0).toFixed(5);
   
+  // Deterministic ordering helper - generates stable xlink:label
+  const generateLabel = (prefix, seq, parentLabel = null) => 
+    parentLabel ? `${parentLabel}_${prefix}_${seq}` : `${prefix}_${seq}`;
+  
+  // Sort and sequence borrowers deterministically (primary first, then by created_date)
+  const sequencedBorrowers = [...borrowers]
+    .sort((a, b) => {
+      const aIsPrimary = a.role === 'primary' || a.role === 'Primary';
+      const bIsPrimary = b.role === 'primary' || b.role === 'Primary';
+      if (aIsPrimary && !bIsPrimary) return -1;
+      if (!aIsPrimary && bIsPrimary) return 1;
+      const seqA = a.mismo_sequence ?? a.sequence_number ?? Infinity;
+      const seqB = b.mismo_sequence ?? b.sequence_number ?? Infinity;
+      if (seqA !== seqB) return seqA - seqB;
+      const dateA = a.created_date ? new Date(a.created_date).getTime() : 0;
+      const dateB = b.created_date ? new Date(b.created_date).getTime() : 0;
+      return dateA - dateB;
+    })
+    .map((b, idx) => ({ ...b, _seq: idx + 1, _label: generateLabel('Party', idx + 1) }));
+  
+  // Sort and sequence properties deterministically
+  const sequencedProperties = [...properties]
+    .sort((a, b) => {
+      const seqA = a.mismo_sequence ?? a.sequence_number ?? Infinity;
+      const seqB = b.mismo_sequence ?? b.sequence_number ?? Infinity;
+      if (seqA !== seqB) return seqA - seqB;
+      const addrA = `${a.address_street || ''} ${a.address_city || ''}`.toLowerCase();
+      const addrB = `${b.address_street || ''} ${b.address_city || ''}`.toLowerCase();
+      return addrA.localeCompare(addrB);
+    })
+    .map((p, idx) => ({ ...p, _seq: idx + 1, _label: generateLabel('Collateral', idx + 1) }));
+  
+  // Sort and sequence fees deterministically by TRID category then name
+  const tridOrder = ['OriginationCharges', 'ServicesYouCannotShopFor', 'ServicesYouCanShopFor', 
+    'TaxesAndOtherGovernmentFees', 'Prepaids', 'InitialEscrowPaymentAtClosing', 'OtherCosts'];
+  const sequencedFees = [...fees]
+    .sort((a, b) => {
+      const catA = mapTRIDSection(a.trid_category || a.fee_type);
+      const catB = mapTRIDSection(b.trid_category || b.fee_type);
+      const orderA = tridOrder.indexOf(catA);
+      const orderB = tridOrder.indexOf(catB);
+      if (orderA !== orderB) return (orderA === -1 ? 999 : orderA) - (orderB === -1 ? 999 : orderB);
+      return (a.fee_name || '').localeCompare(b.fee_name || '');
+    })
+    .map((f, idx) => ({ ...f, _seq: idx + 1, _label: generateLabel('Service', idx + 1) }));
+  
   // Map loan purpose to MISMO enum
   const mapLoanPurpose = (purpose) => {
     const map = {
@@ -531,7 +577,7 @@ function buildMISMOXml(deal, borrowers, properties, fees, originator, organizati
                 </NAME>
               </INDIVIDUAL>
               <ROLES>
-                <ROLE SequenceNumber="1" xlink:label="Borrower_${idx + 1}">
+                <ROLE SequenceNumber="1" xlink:label="${roleLabel}">
                   <BORROWER>
                     <BORROWER_DETAIL>
                       ${b.dob_encrypted || b.dob ? `<BorrowerBirthDate>${escapeXml(b.dob_encrypted || b.dob)}</BorrowerBirthDate>` : ''}
@@ -719,18 +765,20 @@ function buildMISMOXml(deal, borrowers, properties, fees, originator, organizati
           </PARTIES>
           <RELATIONSHIPS>`;
   
-  // Link borrowers to loans
-  borrowers.forEach((b, idx) => {
+  // Link borrowers to loans - deterministic ordering
+  let relSeq = 1;
+  sequencedBorrowers.forEach((b) => {
+    const roleLabel = generateLabel('Borrower', 1, b._label);
     xml += `
-            <RELATIONSHIP SequenceNumber="${idx + 1}" xlink:from="Party_${idx + 1}" xlink:to="Loan_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/PARTY_IsVerifiedBy_VERIFICATION"/>
-            <RELATIONSHIP SequenceNumber="${idx + 100}" xlink:from="Borrower_${idx + 1}" xlink:to="Loan_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/BORROWER_BorrowsOn_LOAN"/>`;
+            <RELATIONSHIP SequenceNumber="${relSeq++}" xlink:from="${b._label}" xlink:to="Loan_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/PARTY_IsVerifiedBy_VERIFICATION"/>
+            <RELATIONSHIP SequenceNumber="${relSeq++}" xlink:from="${roleLabel}" xlink:to="Loan_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/BORROWER_BorrowsOn_LOAN"/>`;
   });
   
-  // Link properties to loans
-  properties.forEach((p, idx) => {
+  // Link properties to loans - deterministic ordering
+  sequencedProperties.forEach((p) => {
     xml += `
-            <RELATIONSHIP SequenceNumber="${borrowers.length + idx + 1}" xlink:from="Collateral_${idx + 1}" xlink:to="Loan_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/COLLATERAL_IsCollateralFor_LOAN"/>
-            <RELATIONSHIP SequenceNumber="${borrowers.length + idx + 200}" xlink:from="Property_${idx + 1}" xlink:to="Loan_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/PROPERTY_IsSubjectPropertyFor_LOAN"/>`;
+            <RELATIONSHIP SequenceNumber="${relSeq++}" xlink:from="${p._label}" xlink:to="Loan_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/COLLATERAL_IsCollateralFor_LOAN"/>
+            <RELATIONSHIP SequenceNumber="${relSeq++}" xlink:from="${generateLabel('Property', p._seq)}" xlink:to="Loan_1" xlink:arcrole="urn:fdc:mismo.org:2009:residential/PROPERTY_IsSubjectPropertyFor_LOAN"/>`;
   });
   
   xml += `
