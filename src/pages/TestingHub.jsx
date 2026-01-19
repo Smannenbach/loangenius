@@ -667,15 +667,20 @@ export default function TestingHub() {
         </TabsContent>
 
         <TabsContent value="mismo" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>MISMO 3.4 Validation</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-600">Test MISMO 3.4 XML export with real deal data</p>
-              <MISMOTestPanel />
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>MISMO 3.4 Validation</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-gray-600">Test MISMO 3.4 XML export with real deal data</p>
+                <MISMOTestPanel />
+              </CardContent>
+            </Card>
+            
+            {/* Relationship Graph Debug */}
+            <MISMORelationshipGraph />
+          </div>
         </TabsContent>
       </Tabs>
     </div>
