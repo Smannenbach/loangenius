@@ -577,7 +577,7 @@ function buildMISMOXml(deal, borrowers, properties, fees, originator, organizati
                 </NAME>
               </INDIVIDUAL>
               <ROLES>
-                <ROLE SequenceNumber="1" xlink:label="${generateLabel('Borrower', 1, borrowerLabel)}">
+                <ROLE SequenceNumber="1" xlink:label="Party_${idx + 1}_Role_1">
                   <BORROWER>
                     <BORROWER_DETAIL>
                       ${b.dob_encrypted || b.dob ? `<BorrowerBirthDate>${escapeXml(b.dob_encrypted || b.dob)}</BorrowerBirthDate>` : ''}
@@ -786,6 +786,12 @@ function buildMISMOXml(deal, borrowers, properties, fees, originator, organizati
   xml += `
           </RELATIONSHIPS>`;
   
+  // Build EXTENSION container per MEG-0025 for DSCR/Business Purpose data
+  const extensionData = buildDealExtensions(deal, sequencedProperties[0], sequencedBorrowers[0]);
+  if (extensionData) {
+    xml += extensionData;
+  }
+  
   // Services/Fees section with comprehensive TRID categories - deterministic ordering
   if (sequencedFees.length > 0) {
     xml += `
@@ -867,6 +873,80 @@ function buildMISMOXml(deal, borrowers, properties, fees, originator, organizati
 </${MISMO_CONFIG.ROOT_ELEMENT}>`;
 
   return xml;
+}
+
+/**
+ * Build EXTENSION container per MEG-0025 guidelines
+ * All non-standard DSCR/business-purpose fields are in EXTENSION containers
+ */
+function buildDealExtensions(deal, property, primaryBorrower) {
+  const escapeXml = (str) => (str || '').toString()
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+  
+  let hasExtensionData = false;
+  let extensionXml = `
+          <EXTENSION>
+            <OTHER xmlns:LG="${MISMO_CONFIG.LG_NAMESPACE}">`;
+
+  // DSCR Data (non-standard MISMO fields)
+  if (deal.loan_product?.includes('DSCR') || deal.dscr) {
+    hasExtensionData = true;
+    const grossRent = property?.gross_rent_monthly || 0;
+    const pitia = deal.monthly_pitia || 0;
+    
+    extensionXml += `
+              <LG:DSCRData>
+                <LG:DebtServiceCoverageRatio>${(deal.dscr || 0).toFixed(4)}</LG:DebtServiceCoverageRatio>
+                <LG:DSCRCalculationMethod>ActualRent</LG:DSCRCalculationMethod>
+                <LG:GrossMonthlyRent>${grossRent.toFixed(2)}</LG:GrossMonthlyRent>
+                <LG:MonthlyPITIA>${pitia.toFixed(2)}</LG:MonthlyPITIA>
+                <LG:VacancyFactorPercent>0.00</LG:VacancyFactorPercent>
+                <LG:ManagementFeePercent>0.00</LG:ManagementFeePercent>
+                <LG:MaintenanceReservePercent>0.00</LG:MaintenanceReservePercent>
+                <LG:NetOperatingIncome>${(grossRent * 12).toFixed(2)}</LG:NetOperatingIncome>
+                <LG:AnnualDebtService>${(pitia * 12).toFixed(2)}</LG:AnnualDebtService>
+              </LG:DSCRData>`;
+  }
+
+  // Business Purpose Data
+  if (deal.occupancy_type === 'Investment' || deal.vesting_type === 'Entity') {
+    hasExtensionData = true;
+    extensionXml += `
+              <LG:BusinessPurposeData>
+                <LG:BusinessPurposeIndicator>true</LG:BusinessPurposeIndicator>
+                <LG:BusinessPurposeType>Investment</LG:BusinessPurposeType>
+                <LG:BorrowerEntityIndicator>${deal.vesting_type === 'Entity' ? 'true' : 'false'}</LG:BorrowerEntityIndicator>
+                ${deal.entity_type ? `<LG:BorrowerEntityType>${escapeXml(deal.entity_type)}</LG:BorrowerEntityType>` : ''}
+              </LG:BusinessPurposeData>`;
+  }
+
+  // Prepayment Details (extended info not in MISMO standard)
+  if (deal.prepay_penalty_type && deal.prepay_penalty_type !== 'None') {
+    hasExtensionData = true;
+    extensionXml += `
+              <LG:PrepaymentPenaltyDetails>
+                <LG:PrepaymentPenaltySchedule>${escapeXml(deal.prepay_penalty_type)}</LG:PrepaymentPenaltySchedule>
+                <LG:PrepaymentCalculationBasis>OriginalBalance</LG:PrepaymentCalculationBasis>
+              </LG:PrepaymentPenaltyDetails>`;
+  }
+
+  // LoanGenius Metadata
+  hasExtensionData = true;
+  extensionXml += `
+              <LG:LoanGeniusMetadata>
+                <LG:LGDealNumber>${escapeXml(deal.deal_number || deal.id)}</LG:LGDealNumber>
+                <LG:LGOrganizationId>${escapeXml(deal.org_id || '')}</LG:LGOrganizationId>
+                <LG:LGExportTimestamp>${new Date().toISOString()}</LG:LGExportTimestamp>
+                <LG:LGExportVersion>1.0.0</LG:LGExportVersion>
+                <LG:LGProductType>${escapeXml(deal.loan_product || 'DSCR')}</LG:LGProductType>
+              </LG:LoanGeniusMetadata>`;
+
+  extensionXml += `
+            </OTHER>
+          </EXTENSION>`;
+
+  return hasExtensionData ? extensionXml : '';
 }
 
 // Map fee types to TRID integrated disclosure sections
