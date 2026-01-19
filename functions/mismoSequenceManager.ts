@@ -313,7 +313,8 @@ function parseRepeatingContainers(xmlContent) {
   const containers = {};
   
   for (const [containerType, config] of Object.entries(SEQUENCED_CONTAINERS)) {
-    const pattern = new RegExp(`<${containerType}([^>]*)>`, 'g');
+    // Match opening tags with attributes, also handle self-closing tags
+    const pattern = new RegExp(`<${containerType}([^>]*?)(?:>|/>)`, 'g');
     const matches = [];
     let match;
     let docOrder = 1;
@@ -327,6 +328,9 @@ function parseRepeatingContainers(xmlContent) {
         documentOrder: docOrder++,
         sequenceNumber: seqInfo.sequenceNumber,
         xlinkLabel: seqInfo.xlinkLabel,
+        xlinkFrom: seqInfo.xlinkFrom,
+        xlinkTo: seqInfo.xlinkTo,
+        xlinkArcrole: seqInfo.xlinkArcrole,
         position: match.index,
       });
     }
