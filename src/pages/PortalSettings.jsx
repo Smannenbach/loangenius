@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Copy, Check } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function PortalSettings() {
   const [copied, setCopied] = useState(false);
@@ -333,8 +334,17 @@ export default function PortalSettings() {
               <CardTitle>Document Checklist Templates</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600 mb-4">Manage document requirement templates here.</p>
-              <Button>Manage Templates</Button>
+              <p className="text-gray-600 mb-4">Configure which documents borrowers need to upload based on loan type and purpose.</p>
+              <div className="space-y-3">
+                {['DSCR Purchase', 'DSCR Refinance', 'Cash-Out Refinance', 'Commercial Loan'].map((template) => (
+                  <div key={template} className="flex items-center justify-between p-3 border rounded-lg">
+                    <span className="font-medium">{template}</span>
+                    <Button size="sm" variant="outline" onClick={() => toast.success(`Template editor for ${template} coming soon`)}>
+                      Edit
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

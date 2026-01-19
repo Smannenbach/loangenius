@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CheckCircle, AlertCircle, Zap, Settings, Eye } from 'lucide-react';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 
 const AGENTS = [
   { id: 'document-intelligence-agent', name: 'Document Intelligence', status: 'active', latency: '320ms' },
@@ -170,10 +172,20 @@ export default function AdminAgents() {
                   </div>
 
                   <div className="pt-4 border-t space-y-2">
-                    <Button className="w-full" variant="outline" size="sm">
+                    <Button 
+                      className="w-full" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => toast.success('Metrics dashboard coming soon')}
+                    >
                       <Eye className="h-4 w-4 mr-2" /> View Metrics
                     </Button>
-                    <Button className="w-full" variant="outline" size="sm">
+                    <Button 
+                      className="w-full" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => toast.success('Agent configuration coming soon')}
+                    >
                       <Settings className="h-4 w-4 mr-2" /> Configure
                     </Button>
                   </div>

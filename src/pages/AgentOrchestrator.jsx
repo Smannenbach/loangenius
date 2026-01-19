@@ -125,9 +125,14 @@ export default function AgentOrchestrator() {
               />
               <Button
                 onClick={handleStartWorkflow}
-                disabled={startWorkflowMutation.isPending || !dealInput.trim()}
+                disabled={startWorkflowMutation.isPending}
+                className="bg-blue-600 hover:bg-blue-700"
               >
-                {startWorkflowMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Launch'}
+                {startWorkflowMutation.isPending ? (
+                  <><Loader2 className="h-4 w-4 animate-spin mr-2" />Starting...</>
+                ) : (
+                  'Launch Workflow'
+                )}
               </Button>
             </div>
             {workflowRunId && (

@@ -306,12 +306,12 @@ function ReportCard({ report }) {
           </Link>
           <Button
             size="sm"
-            className="gap-2"
+            className="gap-2 bg-blue-600 hover:bg-blue-700"
             onClick={() => mutation.mutate()}
             disabled={mutation.isPending}
           >
             <Download className="h-4 w-4" />
-            {mutation.isPending ? 'Running...' : 'Run'}
+            {mutation.isPending ? 'Running...' : 'Generate'}
           </Button>
         </div>
       </CardContent>
