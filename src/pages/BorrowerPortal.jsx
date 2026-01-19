@@ -11,9 +11,10 @@ import PortalRequirementsTab from '@/components/portal/PortalRequirementsTab';
 import PortalConditionsTab from '@/components/portal/PortalConditionsTab';
 import PortalLoanSummary from '@/components/portal/PortalLoanSummary';
 import PortalNotificationBell from '@/components/portal/PortalNotificationBell';
+import PortalDashboard from '@/components/portal/PortalDashboard';
 
 export default function BorrowerPortal() {
-  const [activeTab, setActiveTab] = useState('summary');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [sessionId, setSessionId] = useState(null);
   const [dealId, setDealId] = useState(null);
 
@@ -157,11 +158,15 @@ export default function BorrowerPortal() {
 
   const pendingConditionsCount = conditions.filter(c => !c.borrower_acknowledged && c.status === 'pending').length;
 
+  // Calculate unread messages
+  const unreadMessagesCount = messages?.filter(m => m.direction === 'inbound' && !m.read_by_recipient)?.length || 0;
+
   const tabs = [
-    { id: 'summary', label: 'Summary', icon: Home, count: null, badge: false },
+    { id: 'dashboard', label: 'Dashboard', icon: Home, count: null, badge: false },
+    { id: 'summary', label: 'Loan Details', icon: FileText, count: null, badge: false },
     { id: 'status', label: 'Documents', icon: FileText, count: pendingCount, badge: pendingCount > 0 },
     { id: 'conditions', label: 'Conditions', icon: ListChecks, count: pendingConditionsCount, badge: pendingConditionsCount > 0 },
-    { id: 'messages', label: 'Messages', icon: MessageSquare, count: messages?.length || 0, badge: messages?.length > 0 },
+    { id: 'messages', label: 'Messages', icon: MessageSquare, count: unreadMessagesCount || messages?.length || 0, badge: unreadMessagesCount > 0 },
   ];
 
   return (
@@ -288,6 +293,17 @@ export default function BorrowerPortal() {
 
         {/* Tab Content */}
         <div>
+          {activeTab === 'dashboard' && (
+            <PortalDashboard 
+              deal={deal} 
+              borrower={session?.borrower} 
+              property={property}
+              pendingDocs={pendingCount}
+              pendingConditions={pendingConditionsCount}
+              unreadMessages={unreadMessagesCount}
+              onNavigate={setActiveTab}
+            />
+          )}
           {activeTab === 'summary' && (
             <PortalLoanSummary deal={deal} borrower={session?.borrower} property={property} />
           )}
