@@ -271,10 +271,16 @@ function buildRelationshipGraph(containers) {
     labels: {},
   };
   
+  // Track already added labels to avoid duplicates
+  const addedLabels = new Set();
+  
   // Add nodes for each labeled container
   for (const [containerType, items] of Object.entries(containers)) {
+    if (containerType === 'RELATIONSHIP') continue; // Handle relationships separately
+    
     for (const item of items) {
-      if (item.xlink_label) {
+      if (item.xlink_label && !addedLabels.has(item.xlink_label)) {
+        addedLabels.add(item.xlink_label);
         graph.nodes.push({
           id: item.xlink_label,
           type: containerType,
@@ -288,9 +294,10 @@ function buildRelationshipGraph(containers) {
     }
   }
   
-  // Add edges for relationships
+  // Add edges for relationships - parse from xlink:from/to attributes
   if (containers.RELATIONSHIP) {
     for (const rel of containers.RELATIONSHIP) {
+      // Use the parsed xlink attributes directly
       if (rel.xlinkFrom && rel.xlinkTo) {
         graph.edges.push({
           from: rel.xlinkFrom,
