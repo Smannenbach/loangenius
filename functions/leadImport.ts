@@ -106,6 +106,11 @@ async function resolveOrg(base44) {
     throw new Error('No organization found. Please contact support.');
   }
   
+  // Reject placeholder org_ids
+  if (data.org_id === 'default' || !data.org_id) {
+    throw new Error('Invalid organization. Please refresh and try again.');
+  }
+  
   return data.org_id;
 }
 

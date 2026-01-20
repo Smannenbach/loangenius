@@ -107,7 +107,33 @@ Deno.serve(async (req) => {
     const membershipRole = primaryMembership.role || 'admin';
 
     // Validate org_id is a real ID (not "default" or similar placeholder)
-    const isValidOrgId = orgId && /^[0-9a-f]{24}$/i.test(orgId);
+    const isValidOrgId = orgId && orgId !== 'default' && /^[0-9a-f]{24}$/i.test(orgId);
+    
+    // If org_id is "default" or invalid, and auto_create is on, create a real org
+    if (!isValidOrgId && autoCreate) {
+      // Create new organization
+      const newOrg = await base44.asServiceRole.entities.Organization.create({
+        name: `${user.full_name || user.email}'s Organization`,
+        status: 'active',
+      });
+      
+      // Update the membership to point to real org
+      await base44.asServiceRole.entities.OrgMembership.update(primaryMembership.id, {
+        org_id: newOrg.id,
+      });
+      
+      return Response.json({
+        ok: true,
+        has_org: true,
+        org_id: newOrg.id,
+        org_name: newOrg.name,
+        membership_id: primaryMembership.id,
+        membership_role: membershipRole,
+        user_email: user.email,
+        user_name: user.full_name,
+        migrated_from_default: true,
+      });
+    }
 
     // Get org details only if valid ID
     let orgName = null;
