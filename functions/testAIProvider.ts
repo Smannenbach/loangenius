@@ -58,13 +58,18 @@ Deno.serve(async (req) => {
 
     testResult.latency = Date.now() - startTime;
 
-    // Update provider status
-    await base44.asServiceRole.entities.AIProvider.update(provider_id, {
+    // Update provider status and increment usage_count on success
+    const updateData = {
       status: testResult.success ? 'CONNECTED' : 'ERROR',
       last_tested_at: new Date().toISOString(),
-      last_error: testResult.success ? null : testResult.message,
-      last_latency_ms: testResult.latency
-    });
+      last_error: testResult.success ? null : testResult.message
+    };
+    
+    if (testResult.success) {
+      updateData.usage_count = (provider.usage_count || 0) + 1;
+    }
+    
+    await base44.asServiceRole.entities.AIProvider.update(provider_id, updateData);
 
     return Response.json({
       success: testResult.success,

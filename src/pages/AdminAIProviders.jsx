@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useOrgId } from '@/components/useOrgId';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +16,7 @@ export default function AdminAIProviders() {
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [testingId, setTestingId] = useState(null);
   const queryClient = useQueryClient();
+  const { orgId } = useOrgId();
   
   // Form state for new provider
   const [formData, setFormData] = useState({
@@ -32,6 +34,34 @@ export default function AdminAIProviders() {
     analysis_depth: 'standard',
     confidence_threshold: 80
   });
+  
+  // Load settings from OrgSettings
+  const { data: orgSettings } = useQuery({
+    queryKey: ['orgSettings', orgId, 'ai_settings'],
+    queryFn: async () => {
+      if (!orgId) return null;
+      const results = await base44.entities.OrgSettings.filter({ 
+        org_id: orgId, 
+        setting_key: 'ai_settings' 
+      });
+      return results[0] || null;
+    },
+    enabled: !!orgId
+  });
+  
+  // Initialize settings from saved data
+  useEffect(() => {
+    if (orgSettings?.setting_value) {
+      try {
+        const saved = typeof orgSettings.setting_value === 'string' 
+          ? JSON.parse(orgSettings.setting_value) 
+          : orgSettings.setting_value;
+        setSettings(prev => ({ ...prev, ...saved }));
+      } catch (e) {
+        console.log('Could not parse settings');
+      }
+    }
+  }, [orgSettings]);
 
   const { data: providers = [] } = useQuery({
     queryKey: ['aiProviders'],
@@ -129,9 +159,39 @@ export default function AdminAIProviders() {
     createProviderMutation.mutate(formData);
   };
   
+  // Save settings mutation
+  const saveSettingsMutation = useMutation({
+    mutationFn: async () => {
+      if (!orgId) throw new Error('No organization found');
+      
+      const existingSettings = await base44.entities.OrgSettings.filter({
+        org_id: orgId,
+        setting_key: 'ai_settings'
+      });
+      
+      const settingData = {
+        org_id: orgId,
+        setting_key: 'ai_settings',
+        setting_value: JSON.stringify(settings)
+      };
+      
+      if (existingSettings.length > 0) {
+        return base44.entities.OrgSettings.update(existingSettings[0].id, settingData);
+      } else {
+        return base44.entities.OrgSettings.create(settingData);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orgSettings', orgId, 'ai_settings'] });
+      toast.success('Settings saved');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to save settings');
+    }
+  });
+  
   const handleSaveSettings = () => {
-    // Settings would be saved to org settings in a real implementation
-    toast.success('Settings saved');
+    saveSettingsMutation.mutate();
   };
 
   const getStatusIcon = (status) => {
@@ -286,7 +346,18 @@ export default function AdminAIProviders() {
                 />
                 <p className="text-xs text-gray-600 mt-1">Only accept results with this confidence or higher</p>
               </div>
-              <Button className="bg-blue-600" onClick={handleSaveSettings}>Save Settings</Button>
+              <Button 
+                className="bg-blue-600" 
+                onClick={handleSaveSettings}
+                disabled={saveSettingsMutation.isPending}
+              >
+                {saveSettingsMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : 'Save Settings'}
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
