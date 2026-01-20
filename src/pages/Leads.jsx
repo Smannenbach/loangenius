@@ -163,7 +163,8 @@ export default function Leads() {
       return base44.entities.Lead.create(processedData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      // Invalidate org-scoped query with correct key pattern
+      queryClient.invalidateQueries({ queryKey: ['Lead', 'org'] });
       setIsAddOpen(false);
       setIsQuickAddOpen(false);
       toast.success(editingLead ? 'Lead updated successfully!' : 'Lead created successfully!');
@@ -226,7 +227,8 @@ export default function Leads() {
   const deleteLeadMutation = useMutation({
     mutationFn: (id) => base44.entities.Lead.update(id, { is_deleted: true }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      // Invalidate org-scoped query with correct key pattern
+      queryClient.invalidateQueries({ queryKey: ['Lead', 'org'] });
       toast.success('Lead deleted');
     },
     onError: (error) => {
@@ -1005,7 +1007,7 @@ export default function Leads() {
       <div className="flex flex-wrap gap-2 mb-6">
         <LeadImportWizard 
           trigger={<Button variant="outline" className="gap-2"><Upload className="h-4 w-4" />Import Leads</Button>}
-          onImportComplete={() => queryClient.invalidateQueries({ queryKey: ['leads'] })} 
+          onImportComplete={() => queryClient.invalidateQueries({ queryKey: ['Lead', 'org'] })} 
         />
         <Button 
           variant="outline" 
@@ -1132,7 +1134,7 @@ export default function Leads() {
             </Button>
             <LeadImportWizard 
               trigger={<Button variant="outline" className="gap-2"><Upload className="h-4 w-4" />Import Leads</Button>}
-              onImportComplete={() => queryClient.invalidateQueries({ queryKey: ['leads'] })} 
+              onImportComplete={() => queryClient.invalidateQueries({ queryKey: ['Lead', 'org'] })} 
             />
           </div>
         </Card>
