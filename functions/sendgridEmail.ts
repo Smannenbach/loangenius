@@ -109,35 +109,70 @@ Deno.serve(async (req) => {
   }
 });
 
+// SECURITY FIX: HTML escape function to prevent XSS
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// SECURITY FIX: Validate URL is safe (no javascript: etc)
+function sanitizeUrl(url) {
+  if (!url) return '#';
+  try {
+    const parsed = new URL(url);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return '#';
+    }
+    return url;
+  } catch {
+    return '#';
+  }
+}
+
 function getEmailTemplate(template_name, data = {}) {
+  // Sanitize all user-provided data
+  const safeName = escapeHtml(data.borrower_name) || 'Borrower';
+  const safePortalUrl = sanitizeUrl(data.portal_url);
+  const safeDocuments = data.documents?.map(d => escapeHtml(d)).join('<br>') || 'See portal for details';
+  const safeDueDate = escapeHtml(data.due_date) || 'As soon as possible';
+  const safeRate = escapeHtml(data.rate);
+  const safePoints = escapeHtml(data.points);
+  const safeLockDays = escapeHtml(data.lock_days);
+  const safeExpDate = escapeHtml(data.expiration_date);
+
   const templates = {
     welcome: `
       <h2>Welcome to LoanGenius</h2>
-      <p>Dear ${data.borrower_name || 'Borrower'},</p>
+      <p>Dear ${safeName},</p>
       <p>Your loan application has been created. Use your portal to:</p>
       <ul>
         <li>Upload required documents</li>
         <li>Track your loan status</li>
         <li>Communicate with your loan officer</li>
       </ul>
-      <a href="${data.portal_url}">Access Your Portal</a>
+      <a href="${safePortalUrl}">Access Your Portal</a>
     `,
     document_request: `
       <h2>Documents Required</h2>
-      <p>Dear ${data.borrower_name || 'Borrower'},</p>
+      <p>Dear ${safeName},</p>
       <p>We need the following documents to move forward:</p>
-      <p>${data.documents?.join('<br>') || 'See portal for details'}</p>
-      <p>Due by: ${data.due_date || 'As soon as possible'}</p>
-      <a href="${data.portal_url}">Upload Documents</a>
+      <p>${safeDocuments}</p>
+      <p>Due by: ${safeDueDate}</p>
+      <a href="${safePortalUrl}">Upload Documents</a>
     `,
     rate_lock: `
       <h2>Rate Lock Confirmation</h2>
       <p>Your rate has been locked!</p>
       <table>
-        <tr><td>Rate:</td><td>${data.rate}%</td></tr>
-        <tr><td>Points:</td><td>${data.points}</td></tr>
-        <tr><td>Lock Days:</td><td>${data.lock_days}</td></tr>
-        <tr><td>Expires:</td><td>${data.expiration_date}</td></tr>
+        <tr><td>Rate:</td><td>${safeRate}%</td></tr>
+        <tr><td>Points:</td><td>${safePoints}</td></tr>
+        <tr><td>Lock Days:</td><td>${safeLockDays}</td></tr>
+        <tr><td>Expires:</td><td>${safeExpDate}</td></tr>
       </table>
     `,
     approval: `
@@ -149,7 +184,7 @@ function getEmailTemplate(template_name, data = {}) {
         <li>Review final documents</li>
         <li>Complete e-signature process</li>
       </ol>
-      <a href="${data.portal_url}">View Details</a>
+      <a href="${safePortalUrl}">View Details</a>
     `
   };
 

@@ -95,8 +95,8 @@ export default function ExecutiveDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {deals.slice(0, 5).map((deal, idx) => (
-              <div key={idx} className="flex justify-between items-center p-3 border rounded hover:bg-slate-50">
+            {deals.slice(0, 5).map((deal) => (
+              <div key={deal.id} className="flex justify-between items-center p-3 border rounded hover:bg-slate-50">
                 <div>
                   <p className="font-medium">{deal.deal_number}</p>
                   <p className="text-sm text-gray-600">Status: {deal.stage}</p>
@@ -128,17 +128,33 @@ function KPICard({ title, value, icon, trend }) {
   );
 }
 
+// FIX: Generate actual monthly data from real deals instead of random
 function generateMonthlyData(deals) {
-  const months = [];
+  const monthlyVolumes = {};
+  
+  // Initialize last 12 months with 0
   for (let i = 11; i >= 0; i--) {
     const d = new Date();
     d.setMonth(d.getMonth() - i);
-    months.push({
-      month: d.toLocaleString('default', { month: 'short' }),
-      volume: Math.random() * 5000000
-    });
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    monthlyVolumes[key] = { month: d.toLocaleString('default', { month: 'short' }), volume: 0 };
   }
-  return months;
+  
+  // Aggregate funded deals by month
+  deals.filter(d => d.stage === 'funded' || d.stage === 'FUNDED').forEach(deal => {
+    if (deal.created_date && deal.loan_amount) {
+      const dealDate = new Date(deal.created_date);
+      const key = `${dealDate.getFullYear()}-${String(dealDate.getMonth() + 1).padStart(2, '0')}`;
+      if (monthlyVolumes[key]) {
+        monthlyVolumes[key].volume += deal.loan_amount;
+      }
+    }
+  });
+  
+  // Convert to sorted array
+  return Object.entries(monthlyVolumes)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([, data]) => data);
 }
 
 function getLOLeaderboard(deals) {
