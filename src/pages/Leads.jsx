@@ -350,7 +350,7 @@ export default function Leads() {
         <div className="flex gap-2">
           <Dialog open={isQuickAddOpen} onOpenChange={setIsQuickAddOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="gap-2" data-testid="cta:Leads:QuickAdd">
                 <Plus className="h-4 w-4" />
                 Quick Add
               </Button>
@@ -428,7 +428,7 @@ export default function Leads() {
             if (!open) setEditingLead(null);
           }}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
+              <Button className="bg-blue-600 hover:bg-blue-500 gap-2" data-testid="cta:Leads:AddLead">
                 <Plus className="h-4 w-4" />
                 Full Details
               </Button>
@@ -1007,12 +1007,13 @@ export default function Leads() {
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-2 mb-6">
         <LeadImportWizard 
-          trigger={<Button variant="outline" className="gap-2"><Upload className="h-4 w-4" />Import Leads</Button>}
+          trigger={<Button variant="outline" className="gap-2" data-testid="cta:Leads:Import"><Upload className="h-4 w-4" />Import Leads</Button>}
           onImportComplete={() => queryClient.invalidateQueries({ queryKey: ['Lead', 'org'] })} 
         />
         <Button 
           variant="outline" 
           className="gap-2"
+          data-testid="cta:Leads:ExportCSV"
           onClick={() => {
             const csvContent = [
               ['First Name', 'Last Name', 'Email', 'Phone', 'Status', 'Loan Type', 'Loan Amount', 'Property City', 'Property State'].join(','),
