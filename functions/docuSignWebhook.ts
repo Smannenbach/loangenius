@@ -1,6 +1,22 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import crypto from 'node:crypto';
 
+// DocuSign HMAC signature verification
+function verifyDocuSignSignature(body, signature, secret) {
+  if (!signature || !secret) return false;
+  try {
+    const hmac = crypto.createHmac('sha256', secret);
+    hmac.update(body);
+    const expectedSignature = hmac.digest('base64');
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expectedSignature)
+    );
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method !== 'POST') {
     return Response.json({ error: 'Method not allowed' }, { status: 405 });
@@ -8,6 +24,16 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.text();
+    
+    // SECURITY: Verify DocuSign webhook signature
+    const docusignSecret = Deno.env.get('DOCUSIGN_WEBHOOK_SECRET');
+    const signature = req.headers.get('X-DocuSign-Signature-1');
+    
+    if (docusignSecret && !verifyDocuSignSignature(body, signature, docusignSecret)) {
+      console.error('DocuSign webhook signature verification failed');
+      return Response.json({ error: 'Invalid signature' }, { status: 403 });
+    }
+    
     const event = JSON.parse(body);
 
     const base44 = createClientFromRequest(req);

@@ -1,5 +1,6 @@
 /**
  * Portal Lookup Borrower
+ * SECURITY: Requires org_id to prevent cross-org data access (IDOR)
  */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
@@ -7,15 +8,20 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { email } = body;
+    const { email, org_id } = body;
 
     if (!email) {
       return Response.json({ error: 'Missing email' }, { status: 400 });
     }
 
-    // Look up borrower
+    if (!org_id) {
+      return Response.json({ error: 'Missing org_id - required for security' }, { status: 400 });
+    }
+
+    // SECURITY FIX: Filter by org_id to prevent IDOR vulnerability
     const borrowers = await base44.asServiceRole.entities.Borrower.filter({ 
-      email: email.toLowerCase() 
+      email: email.toLowerCase(),
+      org_id: org_id
     });
 
     if (borrowers.length === 0) {

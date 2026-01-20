@@ -28,7 +28,7 @@ export default function AddressAutocomplete({
           setApiKey(response.data.key);
         }
       } catch (error) {
-        console.error('Error fetching Google Maps API key:', error);
+        // Silent fail - autocomplete will be disabled without API key
       }
     };
     fetchApiKey();
@@ -107,7 +107,7 @@ export default function AddressAutocomplete({
         setIsOpen(false);
       }
     } catch (error) {
-      console.error('Address parsing error:', error);
+      // Silent fail - address parsing is best effort
     } finally {
       setIsLoading(false);
     }
@@ -155,8 +155,7 @@ export default function AddressAutocomplete({
         setIsOpen(false);
       }
     } catch (error) {
-      console.error('Autocomplete error:', error);
-      // Fallback: just use the input value
+      // Silent fail - autocomplete is best effort, user can still type manually
       setSuggestions([]);
       setIsOpen(false);
     } finally {
