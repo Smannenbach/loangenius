@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from './utils';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
+import { useTenant } from '@/components/TenantProvider';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Toaster } from "@/components/ui/sonner";
@@ -86,6 +87,8 @@ export default function Layout({ children, currentPageName }) {
     queryFn: () => base44.auth.me(),
   });
 
+  const { branding, tenant_name, features } = useTenant();
+
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -125,6 +128,8 @@ export default function Layout({ children, currentPageName }) {
   const adminNav = [
     { name: 'Users & Permissions', href: '/Users', icon: Users },
     { name: 'Lender Partners', href: '/LenderIntegrations', icon: Building },
+    { name: 'Custom Domains', href: '/TenantDomains', icon: Globe },
+    { name: 'Branding', href: '/TenantBrandingSettings', icon: Palette },
     { name: 'Borrower Portal', href: '/PortalSettings', icon: Globe },
     { name: 'System Health', href: '/SystemHealth', icon: Zap },
     { name: 'Preflight', href: '/Preflight', icon: Rocket },
@@ -233,15 +238,25 @@ export default function Layout({ children, currentPageName }) {
         <div className={`h-16 flex items-center border-b border-slate-700 ${isSidebarOpen ? 'px-4' : 'justify-center'}`}>
           {isSidebarOpen ? (
             <div className="flex items-center gap-2">
+              {branding?.logo_dark_url ? (
+                <img src={branding.logo_dark_url} alt={branding.app_name || tenant_name} className="h-8 object-contain" />
+              ) : (
+                <>
+                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                    <Building2 className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="font-bold text-lg text-white">{branding?.app_name || tenant_name || 'LoanGenius'}</span>
+                </>
+              )}
+            </div>
+          ) : (
+            branding?.logo_square_url ? (
+              <img src={branding.logo_square_url} alt="Logo" className="h-8 w-8 object-contain" />
+            ) : (
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                 <Building2 className="h-5 w-5 text-white" />
               </div>
-              <span className="font-bold text-lg text-white">LoanGenius</span>
-            </div>
-          ) : (
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-white" />
-            </div>
+            )
           )}
         </div>
 
@@ -410,7 +425,7 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-slate-800 border-b border-slate-700 z-20 flex items-center justify-between px-16">
-        <span className="font-bold text-white">LoanGenius</span>
+        <span className="font-bold text-white">{branding?.app_name || tenant_name || 'LoanGenius'}</span>
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

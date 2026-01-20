@@ -88,6 +88,8 @@ import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
+import TenantDomains from './pages/TenantDomains';
+import TenantBrandingSettings from './pages/TenantBrandingSettings';
 import __Layout from './Layout.jsx';
 
 
@@ -182,6 +184,8 @@ export const PAGES = {
     "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
+    "TenantDomains": TenantDomains,
+    "TenantBrandingSettings": TenantBrandingSettings,
 }
 
 export const pagesConfig = {
