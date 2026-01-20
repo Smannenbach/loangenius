@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useOrgId } from '@/components/useOrgId';
 import { 
   AlertTriangle, 
   CheckCircle, 
@@ -180,13 +181,10 @@ export default function QAAudit() {
   const [searchFilter, setSearchFilter] = useState('');
   const [lastScanTime, setLastScanTime] = useState(new Date());
   
-  // Check if user is admin
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me()
-  });
+  // Check if user is admin using org membership role
+  const { user, userRole, isLoading: orgLoading } = useOrgId();
   
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = ['admin', 'owner', 'manager'].includes(userRole);
   
   // Run analysis
   const auditResults = useMemo(() => {

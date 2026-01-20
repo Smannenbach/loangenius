@@ -43,11 +43,13 @@ export default function UsersPage() {
   // Use canonical org resolver
   const { orgId, user, isLoading: orgLoading } = useOrgId();
 
+  // Use secure backend function to list org members (never query OrgMembership directly)
   const { data: memberships = [], isLoading: membershipsLoading } = useQuery({
-    queryKey: ['orgMemberships', 'all', orgId],
+    queryKey: ['orgMembers', orgId],
     queryFn: async () => {
       if (!orgId) return [];
-      return await base44.entities.OrgMembership.filter({ org_id: orgId });
+      const response = await base44.functions.invoke('listOrgMembers', {});
+      return response.data?.members || [];
     },
     enabled: !!orgId,
   });
@@ -62,12 +64,12 @@ export default function UsersPage() {
       const base44Role = data.role === 'admin' ? 'admin' : 'user';
       await base44.users.inviteUser(data.email, base44Role);
       
-      // Create org membership with custom role
+      // Create org membership with correct role field (not role_id)
       if (orgId) {
         await base44.entities.OrgMembership.create({
           org_id: orgId,
           user_id: data.email,
-          role_id: data.role,
+          role: data.role,  // Use 'role' not 'role_id' for the string role
           status: 'invited'
         });
       }
@@ -75,7 +77,7 @@ export default function UsersPage() {
     onSuccess: () => {
       setIsInviteOpen(false);
       setInviteData({ email: '', role: 'loan_officer' });
-      queryClient.invalidateQueries({ queryKey: ['orgMemberships', 'all', orgId] });
+      queryClient.invalidateQueries({ queryKey: ['orgMembers', orgId] });
       toast.success('Invitation sent successfully!');
     },
     onError: (error) => {
@@ -236,13 +238,13 @@ export default function UsersPage() {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{member.user_id}</p>
-                      <p className="text-sm text-gray-500">{roleDescriptions[member.role_id] || 'Team member'}</p>
+                      <p className="text-sm text-gray-500">{roleDescriptions[member.role] || 'Team member'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Badge className={`border ${getRoleColor(member.role_id)}`}>
+                    <Badge className={`border ${getRoleColor(member.role)}`}>
                       <Shield className="h-3 w-3 mr-1" />
-                      {member.role_id?.replace(/_/g, ' ') || 'user'}
+                      {member.role?.replace(/_/g, ' ') || 'user'}
                     </Badge>
                     <Badge variant={member.status === 'active' ? 'default' : 'secondary'}>
                       {member.status || 'active'}
