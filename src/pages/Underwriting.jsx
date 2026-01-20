@@ -33,21 +33,19 @@ export default function Underwriting() {
     enabled: !!user?.email,
   });
 
-  const orgId = memberships[0]?.org_id || user?.org_id;
+  const orgId = memberships[0]?.org_id;
 
   const { data: deals = [], isLoading } = useQuery({
     queryKey: ['underwritingDeals', orgId],
     queryFn: async () => {
+      if (!orgId) return [];
       try {
-        if (orgId) {
-          return await base44.entities.Deal.filter({ org_id: orgId, is_deleted: false });
-        }
-        const allDeals = await base44.entities.Deal.list();
-        return allDeals.filter(d => !d.is_deleted);
+        return await base44.entities.Deal.filter({ org_id: orgId, is_deleted: false });
       } catch {
         return [];
       }
     },
+    enabled: !!orgId,
   });
 
   const updateDealMutation = useMutation({

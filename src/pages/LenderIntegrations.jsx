@@ -65,32 +65,37 @@ export default function LenderIntegrations() {
     enabled: !!user?.email,
   });
 
-  const orgId = memberships[0]?.org_id || user?.org_id || 'default';
+  const orgId = memberships[0]?.org_id;
 
   const { data: integrations = [], isLoading } = useQuery({
     queryKey: ['lenderIntegrations', orgId],
     queryFn: async () => {
+      if (!orgId) return [];
       try {
         return await base44.entities.LenderIntegration.filter({ org_id: orgId });
       } catch {
         return [];
       }
-    }
+    },
+    enabled: !!orgId,
   });
 
   const { data: recentSubmissions = [] } = useQuery({
     queryKey: ['recentSubmissions', orgId],
     queryFn: async () => {
+      if (!orgId) return [];
       try {
         return await base44.entities.LenderSubmission.filter({ org_id: orgId });
       } catch {
         return [];
       }
-    }
+    },
+    enabled: !!orgId,
   });
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
+      if (!orgId) throw new Error('Organization not found. Please refresh the page.');
       return await base44.entities.LenderIntegration.create({
         ...data,
         org_id: orgId,
@@ -115,6 +120,9 @@ export default function LenderIntegrations() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lenderIntegrations'] });
       toast.success('Integration deleted');
+    },
+    onError: (error) => {
+      toast.error('Failed to delete: ' + error.message);
     }
   });
 
