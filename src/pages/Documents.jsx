@@ -33,7 +33,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { SkeletonCard } from '@/components/ui/skeleton-cards';
+import { SkeletonCardGrid } from '@/components/ui/skeleton-cards';
 import { EmptyDocuments, EmptySearchResults } from '@/components/ui/empty-states';
 
 export default function Documents() {
