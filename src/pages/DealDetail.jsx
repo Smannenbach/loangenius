@@ -154,26 +154,35 @@ export default function DealDetail() {
     },
   });
 
+  // Use production MISMO orchestrator instead of simplified generateMISMO34
   const exportMISMOMutation = useMutation({
     mutationFn: async () => {
-      const response = await base44.functions.invoke('generateMISMO34', { deal_id: dealId });
+      const response = await base44.functions.invoke('mismoExportOrchestrator', { 
+        deal_id: dealId,
+        export_mode: 'GENERIC_MISMO_34',
+        skip_preflight: false
+      });
       return response.data;
     },
     onSuccess: (data) => {
-      if (data?.xml_content) {
+      if (data?.success && data?.xml_content) {
         const blob = new Blob([data.xml_content], { type: 'application/xml' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = data.filename || `MISMO_${dealId}.xml`;
+        a.download = data.filename || `MISMO_34_${dealId}.xml`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        toast.success('MISMO 3.4 XML exported successfully');
-        if (data.validation_warnings?.length > 0) {
-          toast.warning(`${data.validation_warnings.length} warnings found`);
+        
+        if (data.export_run?.status === 'completed') {
+          toast.success('MISMO 3.4 XML exported successfully');
+        } else if (data.export_run?.status === 'completed_with_warnings') {
+          toast.warning('Export completed with warnings');
         }
+      } else if (!data?.success) {
+        toast.error(`Export blocked: ${data?.blocked_reason || 'Validation failed'}`);
       }
     },
     onError: (error) => {

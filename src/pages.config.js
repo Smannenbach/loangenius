@@ -57,10 +57,12 @@ import LoanApplicationWizard from './pages/LoanApplicationWizard';
 import Loans from './pages/Loans';
 import MISMOExportProfiles from './pages/MISMOExportProfiles';
 import MISMOImportExport from './pages/MISMOImportExport';
+import MISMOValidator from './pages/MISMOValidator';
 import NewDeal from './pages/NewDeal';
 import NotFound from './pages/NotFound';
 import Pipeline from './pages/Pipeline';
 import PortalSettings from './pages/PortalSettings';
+import Preflight from './pages/Preflight';
 import Privacy from './pages/Privacy';
 import PrivacyRequest from './pages/PrivacyRequest';
 import QAAudit from './pages/QAAudit';
@@ -85,8 +87,6 @@ import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
-import Preflight from './pages/Preflight';
-import MISMOValidator from './pages/MISMOValidator';
 import __Layout from './Layout.jsx';
 
 
@@ -150,10 +150,12 @@ export const PAGES = {
     "Loans": Loans,
     "MISMOExportProfiles": MISMOExportProfiles,
     "MISMOImportExport": MISMOImportExport,
+    "MISMOValidator": MISMOValidator,
     "NewDeal": NewDeal,
     "NotFound": NotFound,
     "Pipeline": Pipeline,
     "PortalSettings": PortalSettings,
+    "Preflight": Preflight,
     "Privacy": Privacy,
     "PrivacyRequest": PrivacyRequest,
     "QAAudit": QAAudit,
@@ -178,8 +180,6 @@ export const PAGES = {
     "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
-    "Preflight": Preflight,
-    "MISMOValidator": MISMOValidator,
 }
 
 export const pagesConfig = {

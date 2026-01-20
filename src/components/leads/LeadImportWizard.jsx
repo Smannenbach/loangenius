@@ -112,6 +112,9 @@ export default function LeadImportWizard({ trigger, onImportComplete }) {
       }
 
       const response = await base44.functions.invoke('leadImport', payload);
+      if (response.data?.needs_reconnect) {
+        throw new Error('Google Sheets authorization expired. Please re-authorize in Admin → Integrations.');
+      }
       return response.data;
     },
     onSuccess: (data) => {
@@ -161,8 +164,8 @@ export default function LeadImportWizard({ trigger, onImportComplete }) {
     onSuccess: (data) => {
       setImportResult(data);
       setStep(4);
-      // Invalidate leads query with proper org scoping
-      queryClient.invalidateQueries({ queryKey: ['Lead', 'org', orgId] });
+      // Invalidate ALL lead query variants to ensure UI updates
+      queryClient.invalidateQueries({ queryKey: ['Lead'] });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       toast.success(`Successfully imported ${data.imported} leads!`);
     },
