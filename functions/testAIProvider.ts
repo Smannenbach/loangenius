@@ -54,12 +54,15 @@ Deno.serve(async (req) => {
     const startTime = Date.now();
 
     try {
-      if (provider.provider_name === 'OpenAI' || provider.provider_name === 'openai') {
+      const providerName = (provider.provider_name || '').toLowerCase();
+      if (providerName === 'openai') {
         testResult = await testOpenAI(provider);
-      } else if (provider.provider_name === 'Anthropic' || provider.provider_name === 'anthropic') {
+      } else if (providerName === 'anthropic') {
         testResult = await testAnthropic(provider);
-      } else if (provider.provider_name === 'Google' || provider.provider_name === 'google') {
+      } else if (providerName === 'google') {
         testResult = await testGoogle(provider);
+      } else if (providerName === 'azure') {
+        testResult = await testAzure(provider);
       } else {
         // Generic test - just mark as connected if we have an API key
         testResult = {
@@ -68,6 +71,7 @@ Deno.serve(async (req) => {
         };
       }
     } catch (testError) {
+      console.error('Test error:', testError);
       testResult = {
         success: false,
         message: testError.message || 'Test failed'
@@ -194,6 +198,33 @@ async function testGoogle(provider) {
     } else {
       const error = await response.json();
       return { success: false, message: error.error?.message || 'Google API error' };
+    }
+  } catch (e) {
+    return { success: false, message: e.message };
+  }
+}
+
+async function testAzure(provider) {
+  // Azure OpenAI requires a custom endpoint
+  if (!provider.api_base_url) {
+    return { success: false, message: 'Azure requires API Base URL (e.g., https://your-resource.openai.azure.com)' };
+  }
+  
+  if (!provider.api_key_encrypted) {
+    return { success: false, message: 'Azure API key not configured' };
+  }
+
+  try {
+    // Try to list deployments
+    const response = await fetch(`${provider.api_base_url}/openai/models?api-version=2024-02-15-preview`, {
+      headers: { 'api-key': provider.api_key_encrypted }
+    });
+
+    if (response.ok) {
+      return { success: true, message: 'Azure OpenAI connection successful' };
+    } else {
+      const error = await response.json().catch(() => ({}));
+      return { success: false, message: error.error?.message || 'Azure API error' };
     }
   } catch (e) {
     return { success: false, message: e.message };
