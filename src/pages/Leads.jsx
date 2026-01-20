@@ -1073,12 +1073,13 @@ export default function Leads() {
       {/* Filters & Controls */}
       <div className="space-y-4 mb-6">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
           <Input
             placeholder="Search by name, email, phone, city, or state..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 h-10"
+            aria-label="Search leads"
           />
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
@@ -1122,12 +1123,12 @@ export default function Leads() {
               <SelectItem value="amount">Highest Loan Amount</SelectItem>
             </SelectContent>
           </Select>
-          <div className="flex gap-1 border border-gray-200 rounded-lg p-1 bg-white">
-            <Button variant={viewMode === 'table' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('table')}>
-              <List className="h-4 w-4" />
+          <div className="flex gap-1 border border-gray-200 rounded-lg p-1 bg-white" role="group" aria-label="View mode">
+            <Button variant={viewMode === 'table' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('table')} aria-label="Table view" aria-pressed={viewMode === 'table'}>
+              <List className="h-4 w-4" aria-hidden="true" />
             </Button>
-            <Button variant={viewMode === 'cards' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('cards')}>
-              <Grid className="h-4 w-4" />
+            <Button variant={viewMode === 'cards' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('cards')} aria-label="Card view" aria-pressed={viewMode === 'cards'}>
+              <Grid className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </div>
