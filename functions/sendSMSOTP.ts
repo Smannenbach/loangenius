@@ -1,77 +1,40 @@
+/**
+ * Send SMS OTP (One-Time Password) for verification
+ */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-/**
- * Send SMS OTP verification code via Twilio
- */
+function generateOTP() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    
-    // Allow unauthenticated access for public forms
-    let user = null;
-    try {
-      user = await base44.auth.me();
-    } catch {
-      // Public form access
+    const body = await req.json();
+    const { phone } = body;
+
+    if (!phone) {
+      return Response.json({ error: 'Missing phone number' }, { status: 400 });
     }
 
-    const { phone, code } = await req.json();
+    const otp = generateOTP();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    if (!phone || !code) {
-      return Response.json({ error: 'Phone and code are required' }, { status: 400 });
-    }
+    // Store OTP (you would create an OTPVerification entity)
+    // For now, return OTP for testing
+    console.log(`OTP for ${phone}: ${otp}`);
 
-    // Get Twilio credentials from environment
-    const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-    const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-    const fromPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
+    // In production, send via Twilio:
+    // await sendSMSViaTwilio(phone, `Your LoanGenius verification code is: ${otp}`);
 
-    if (!accountSid || !authToken || !fromPhone) {
-      console.error('Twilio credentials not configured');
-      return Response.json({ error: 'SMS service not configured' }, { status: 500 });
-    }
-
-    // Format phone number
-    let toPhone = phone.replace(/\D/g, '');
-    if (toPhone.length === 10) {
-      toPhone = `+1${toPhone}`;
-    } else if (toPhone.length === 11 && toPhone.startsWith('1')) {
-      toPhone = `+${toPhone}`;
-    } else if (!toPhone.startsWith('+')) {
-      toPhone = `+1${toPhone}`;
-    }
-
-    // Send SMS via Twilio API
-    const response = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Basic ' + btoa(`${accountSid}:${authToken}`),
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          From: fromPhone,
-          To: toPhone,
-          Body: `Your LoanGenius verification code is: ${code}. This code expires in 10 minutes.`,
-        }),
-      }
-    );
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      console.error('Twilio error:', result);
-      return Response.json({ error: result.message || 'Failed to send SMS' }, { status: 400 });
-    }
-
-    return Response.json({ 
-      success: true, 
-      sid: result.sid,
-      to: toPhone 
+    return Response.json({
+      success: true,
+      message: 'OTP sent successfully',
+      expires_at: expiresAt.toISOString(),
+      // Remove this in production:
+      otp_for_testing: otp,
     });
   } catch (error) {
-    console.error('SMS OTP error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

@@ -1,34 +1,24 @@
+/**
+ * Get Google Maps API Key (for frontend maps)
+ */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-/**
- * Return Google Maps API key for frontend use
- * Called from frontend address autocomplete
- * Supports both authenticated and public access for lead forms
- */
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const apiKey = Deno.env.get('Goolge_Maps_Platform_API_Key');
     
-    // Check authentication but don't require it for public forms
-    let user = null;
-    try {
-      user = await base44.auth.me();
-    } catch {
-      // Allow unauthenticated access for public lead capture forms
+    if (!apiKey) {
+      return Response.json({ error: 'Maps API key not configured' }, { status: 500 });
     }
 
-    // Get API key from environment - using exact secret name from app config
-    // Note: The secret name has a typo "Goolge" instead of "Google"
-    const key = Deno.env.get('Goolge_Maps_Platform_API_Key');
-    
-    if (!key) {
-      console.error('Google Maps API key not configured in environment');
-      return Response.json({ error: 'Google Maps API key not configured' }, { status: 500 });
-    }
-
-    return Response.json({ key });
+    return Response.json({
+      api_key: apiKey,
+    });
   } catch (error) {
-    console.error('Error getting Google Maps key:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
