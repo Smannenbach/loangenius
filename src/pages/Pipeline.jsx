@@ -49,7 +49,8 @@ export default function Pipeline() {
     mutationFn: ({ dealId, newStage }) => 
       base44.entities.Deal.update(dealId, { stage: newStage }),
     onSuccess: (_, { newStage }) => {
-      queryClient.invalidateQueries({ queryKey: ['deals'] });
+      // Invalidate org-scoped query with correct key pattern
+      queryClient.invalidateQueries({ queryKey: ['Deal', 'org'] });
       toast.success(`Deal moved to ${newStage.replace(/_/g, ' ')}`);
     },
     onError: (error) => {
