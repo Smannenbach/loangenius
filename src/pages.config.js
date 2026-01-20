@@ -91,6 +91,7 @@ import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
 import AdminBilling from './pages/AdminBilling';
+import SystemDiagnostics from './pages/SystemDiagnostics';
 import __Layout from './Layout.jsx';
 
 
@@ -188,6 +189,7 @@ export const PAGES = {
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
     "AdminBilling": AdminBilling,
+    "SystemDiagnostics": SystemDiagnostics,
 }
 
 export const pagesConfig = {

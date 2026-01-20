@@ -114,7 +114,7 @@ export default function Layout({ children, currentPageName }) {
       { name: 'Quote Generator', href: '/QuoteGenerator', icon: FileOutput },
       { name: 'AI Hub', href: '/AIAssistant', icon: Bot },
       { name: 'Doc Intelligence', href: '/DocumentIntelligenceHub', icon: Sparkles },
-      { name: 'Communications', href: '/Communications', icon: Mail },
+      { name: 'Conversations', href: '/Conversations', icon: Mail },
       { name: 'Email Sequences', href: '/EmailSequences', icon: Zap },
       { name: 'Reports', href: '/Reports', icon: FileText },
     ];
@@ -132,9 +132,8 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Custom Domains', href: '/TenantDomains', icon: Globe },
     { name: 'Branding', href: '/TenantBrandingSettings', icon: Palette },
     { name: 'Borrower Portal', href: '/PortalSettings', icon: Globe },
-    { name: 'System Health', href: '/SystemHealth', icon: Zap },
+    { name: 'Diagnostics', href: '/SystemDiagnostics', icon: Zap },
       { name: 'Billing', href: '/AdminBilling', icon: Building },
-    { name: 'Preflight', href: '/Preflight', icon: Rocket },
     { name: 'Underwriting', href: '/Underwriting', icon: Scale },
     { name: 'Compliance', href: '/ComplianceDashboard', icon: CheckCircle },
     { name: 'MISMO Profiles', href: '/MISMOExportProfiles', icon: FileOutput },
@@ -143,11 +142,10 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Integrations', href: '/AdminIntegrations', icon: Zap },
     { name: 'Settings', href: '/Settings', icon: Settings },
     // Internal/testing pages only in dev mode
-    ...(showInternalPages ? [
-      { name: 'Smoke Tests', href: '/SmokeTests', icon: Sparkles },
-      { name: 'Testing Hub', href: '/TestingHub', icon: Sparkles },
-      { name: 'QA Audit', href: '/QAAudit', icon: Search },
-    ] : []),
+        ...(showInternalPages ? [
+          { name: 'Smoke Tests', href: '/SmokeTests', icon: Sparkles },
+          { name: 'Testing Hub', href: '/TestingHub', icon: Sparkles },
+        ] : []),
   ];
 
   const NavItem = ({ item, collapsed = false }) => {
