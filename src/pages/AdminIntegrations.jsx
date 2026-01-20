@@ -150,10 +150,16 @@ export default function AdminIntegrations() {
         return;
       }
       setConnectingId(integrationName);
-      connectMutation.mutate({ integration_name: integrationName, api_key: apiKey });
+      connectMutation.mutate({ 
+        integration_key: integrationName, 
+        auth_payload: { api_key: apiKey }
+      });
     } else {
       setConnectingId(integrationName);
-      connectMutation.mutate({ integration_name: integrationName });
+      // For OAuth integrations, we'd typically redirect to OAuth flow
+      // For now, show a message that OAuth is handled via app connectors
+      toast.info('OAuth integrations use Base44 App Connectors. Check Settings > Connectors.');
+      setConnectingId(null);
     }
   };
 
