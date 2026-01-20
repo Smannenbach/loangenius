@@ -278,13 +278,18 @@ export default function QAAudit() {
     f.function.toLowerCase().includes(searchFilter.toLowerCase())
   );
   
-  const filteredDeadButtons = auditResults.deadButtons.filter(b =>
+  const filteredTrueDeadButtons = auditResults.trueDeadButtons.filter(b =>
+    b.file.toLowerCase().includes(searchFilter.toLowerCase())
+  );
+  
+  const filteredExemptButtons = auditResults.exemptButtons.filter(b =>
     b.file.toLowerCase().includes(searchFilter.toLowerCase())
   );
   
   const stats = {
     missingFunctions: auditResults.missingFunctions.length,
-    deadButtons: auditResults.deadButtons.length,
+    trueDeadButtons: auditResults.trueDeadButtons.length,
+    exemptButtons: auditResults.exemptButtons.length,
     silentMutations: auditResults.silentMutations.length,
     brokenRoutes: auditResults.brokenRoutes.length,
     totalFunctions: auditResults.existingFunctions.length,
