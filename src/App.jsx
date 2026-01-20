@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -39,12 +40,14 @@ const AuthenticatedApp = () => {
     }
   }
 
-  // Render the main app
+  // Render the main app with ErrorBoundary protection
   return (
     <Routes>
       <Route path="/" element={
         <LayoutWrapper currentPageName={mainPageKey}>
-          <MainPage />
+          <ErrorBoundary>
+            <MainPage />
+          </ErrorBoundary>
         </LayoutWrapper>
       } />
       {Object.entries(Pages).map(([path, Page]) => (
@@ -53,7 +56,9 @@ const AuthenticatedApp = () => {
           path={`/${path}`}
           element={
             <LayoutWrapper currentPageName={path}>
-              <Page />
+              <ErrorBoundary>
+                <Page />
+              </ErrorBoundary>
             </LayoutWrapper>
           }
         />

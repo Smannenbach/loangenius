@@ -61,6 +61,7 @@ import { TCPAConsentCompact } from '@/components/TCPAConsent';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 // Simple debounce hook
 function useDebounce(value, delay) {
@@ -144,6 +145,9 @@ export default function Leads() {
 
   // Use canonical org resolver - handles user, org lookup, and auto-creation
   const { orgId, user, isLoading: orgLoading, isReady } = useOrgId();
+
+  // Confirmation dialog for delete actions
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
 
   // Use org-scoped query - automatically filters by org_id, never falls back to list()
   const { data: leads = [], isLoading: leadsLoading, error } = useOrgScopedQuery(
@@ -1223,10 +1227,16 @@ export default function Leads() {
                                 <Phone className="h-3 w-3 mr-2" />Call
                               </a>
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-red-600" 
-                              onClick={() => {
-                                if (window.confirm(`Delete ${lead.first_name} ${lead.last_name}? This action cannot be undone.`)) {
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={async () => {
+                                const confirmed = await confirm({
+                                  title: 'Delete Lead',
+                                  description: `Are you sure you want to delete ${lead.first_name} ${lead.last_name}? This action cannot be undone.`,
+                                  variant: 'delete',
+                                  confirmLabel: 'Delete Lead',
+                                });
+                                if (confirmed) {
                                   deleteLeadMutation.mutate(lead.id);
                                 }
                               }}
@@ -1285,6 +1295,9 @@ export default function Leads() {
           lead={quoteSelectedLead}
         />
       )}
+
+      {/* Confirmation Dialog */}
+      {ConfirmDialogComponent}
     </div>
   );
 }
