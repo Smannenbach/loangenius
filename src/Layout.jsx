@@ -131,6 +131,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Compliance', href: '/ComplianceDashboard', icon: CheckCircle },
     { name: 'MISMO Profiles', href: '/MISMOExportProfiles', icon: FileOutput },
     { name: 'MISMO Import/Export', href: '/MISMOImportExport', icon: FileText },
+    { name: 'MISMO Validator', href: '/MISMOValidator', icon: CheckCircle },
     { name: 'Integrations', href: '/AdminIntegrations', icon: Zap },
     { name: 'Settings', href: '/Settings', icon: Settings },
     // Internal/testing pages only in dev mode
