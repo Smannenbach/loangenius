@@ -258,11 +258,19 @@ export default function BusinessPurposeApplication() {
     },
   });
 
-  // Autosave effect
+  // FIX: Track previous form data to avoid unnecessary autosaves
+  const previousFormDataRef = React.useRef(null);
+  
+  // Autosave effect - only save if data actually changed
   useEffect(() => {
     const interval = setInterval(() => {
       if (orgId && (formData.loan_purpose || formData.applicant.first_name)) {
-        autosaveMutation.mutate(formData);
+        // Only save if form data has changed
+        const currentData = JSON.stringify(formData);
+        if (currentData !== previousFormDataRef.current) {
+          autosaveMutation.mutate(formData);
+          previousFormDataRef.current = currentData;
+        }
       }
     }, 30000);
     return () => clearInterval(interval);

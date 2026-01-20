@@ -178,26 +178,28 @@ export default function Contacts() {
         )}
       </div>
 
-      {/* Pagination */}
-      <div className="flex justify-center gap-4 mt-6">
-        <Button 
-          variant="outline" 
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-        >
-          Previous
-        </Button>
-        <span className="px-4 py-2 text-sm text-gray-600">
-          Page {currentPage}
-        </span>
-        <Button 
-          variant="outline"
-          onClick={() => setCurrentPage(p => p + 1)}
-          disabled={filtered.length < 20}
-        >
-          Next
-        </Button>
-      </div>
+      {/* Pagination - FIX: Proper pagination based on total pages */}
+      {filtered.length > 0 && (
+        <div className="flex justify-center gap-4 mt-6">
+          <Button 
+            variant="outline" 
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+          >
+            Previous
+          </Button>
+          <span className="px-4 py-2 text-sm text-gray-600">
+            Page {currentPage} of {Math.ceil(filtered.length / 20) || 1}
+          </span>
+          <Button 
+            variant="outline"
+            onClick={() => setCurrentPage(p => p + 1)}
+            disabled={currentPage >= Math.ceil(filtered.length / 20)}
+          >
+            Next
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
