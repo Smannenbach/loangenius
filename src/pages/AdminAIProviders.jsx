@@ -8,12 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Brain, Zap, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { Brain, Zap, Check, AlertCircle, Loader2, X } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 
 export default function AdminAIProviders() {
   const [showNewForm, setShowNewForm] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState(null);
+  const [editProvider, setEditProvider] = useState(null);
   const [testingId, setTestingId] = useState(null);
   const queryClient = useQueryClient();
   const { orgId } = useOrgId();
@@ -294,7 +295,7 @@ export default function AdminAIProviders() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => setSelectedProvider(provider)}
+                          onClick={() => setEditProvider(provider)}
                         >
                           Edit
                         </Button>
@@ -479,6 +480,170 @@ export default function AdminAIProviders() {
           </Card>
         </div>
       )}
+      {/* Edit Provider Modal */}
+      {editProvider && (
+        <EditProviderModal
+          provider={editProvider}
+          orgId={orgId}
+          onClose={() => setEditProvider(null)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['aiProviders', orgId] });
+            setEditProvider(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function EditProviderModal({ provider, orgId, onClose, onSuccess }) {
+  const [formData, setFormData] = useState({
+    provider_name: provider.provider_name || 'OpenAI',
+    model_name: provider.model_name || '',
+    api_key: '',
+    api_base_url: provider.api_base_url || '',
+    max_tokens: provider.max_tokens || 2000,
+    temperature: provider.temperature || 0.7,
+    is_active: provider.is_active !== false
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (data) => {
+      const updateData = {
+        provider_name: data.provider_name,
+        model_name: data.model_name,
+        api_base_url: data.api_base_url || null,
+        max_tokens: parseInt(data.max_tokens) || 2000,
+        temperature: parseFloat(data.temperature) || 0.7,
+        is_active: data.is_active
+      };
+      // Only update API key if provided
+      if (data.api_key) {
+        updateData.api_key_encrypted = data.api_key;
+      }
+      return base44.entities.AIProvider.update(provider.id, updateData);
+    },
+    onSuccess: () => {
+      toast.success('Provider updated successfully');
+      onSuccess();
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to update provider');
+    }
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.model_name) {
+      toast.error('Model name is required');
+      return;
+    }
+    updateMutation.mutate(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-40" onClick={onClose}>
+      <Card className="fixed inset-4 max-w-2xl mx-auto z-50 overflow-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
+        <CardHeader className="flex flex-row justify-between items-center">
+          <CardTitle>Edit AI Provider</CardTitle>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <X className="h-5 w-5" />
+          </button>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label>Provider</Label>
+              <select 
+                className="w-full px-3 py-2 border rounded-md mt-1"
+                value={formData.provider_name}
+                onChange={(e) => setFormData({...formData, provider_name: e.target.value})}
+              >
+                <option value="OpenAI">OpenAI</option>
+                <option value="Anthropic">Anthropic</option>
+                <option value="Google">Google</option>
+                <option value="Azure">Azure</option>
+              </select>
+            </div>
+            <div>
+              <Label>Model</Label>
+              <Input 
+                placeholder="e.g., gpt-4-turbo, claude-3-opus" 
+                value={formData.model_name}
+                onChange={(e) => setFormData({...formData, model_name: e.target.value})}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>API Key (leave blank to keep existing)</Label>
+              <Input 
+                type="password" 
+                placeholder="Enter new API key to change" 
+                value={formData.api_key}
+                onChange={(e) => setFormData({...formData, api_key: e.target.value})}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>API Base URL (Optional)</Label>
+              <Input 
+                placeholder="https://api.example.com" 
+                value={formData.api_base_url}
+                onChange={(e) => setFormData({...formData, api_base_url: e.target.value})}
+                className="mt-1"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Max Tokens</Label>
+                <Input 
+                  type="number" 
+                  value={formData.max_tokens}
+                  onChange={(e) => setFormData({...formData, max_tokens: parseInt(e.target.value) || 2000})}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Temperature</Label>
+                <Input 
+                  type="number" 
+                  min="0" 
+                  max="2" 
+                  step="0.1" 
+                  value={formData.temperature}
+                  onChange={(e) => setFormData({...formData, temperature: parseFloat(e.target.value) || 0.7})}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input 
+                type="checkbox" 
+                id="is_active"
+                checked={formData.is_active}
+                onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
+                className="h-4 w-4"
+              />
+              <Label htmlFor="is_active">Active</Label>
+            </div>
+            <div className="flex gap-2 pt-4">
+              <Button 
+                type="submit"
+                className="bg-blue-600 flex-1" 
+                disabled={updateMutation.isPending}
+              >
+                {updateMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : 'Save Changes'}
+              </Button>
+              <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
