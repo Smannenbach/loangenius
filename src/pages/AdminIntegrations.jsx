@@ -126,15 +126,19 @@ export default function AdminIntegrations() {
   });
 
   const disconnectMutation = useMutation({
-    mutationFn: async (integrationId) => {
-      return await base44.entities.IntegrationConfig.delete(integrationId);
+    mutationFn: async (integrationName) => {
+      const response = await base44.functions.invoke('connectIntegration', {
+        integration_key: integrationName,
+        action: 'disconnect'
+      });
+      return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['integrations', orgId] });
-      toast.success('Integration disconnected');
+      toast.success(data.message || 'Integration disconnected');
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to disconnect');
+      toast.error(error.response?.data?.error || 'Failed to disconnect');
     }
   });
 
