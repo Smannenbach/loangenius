@@ -9,19 +9,7 @@ import { CheckCircle2, AlertCircle, Clock, FileText, User, Lock } from 'lucide-r
 export default function ComplianceDashboard() {
   const [activeTab, setActiveTab] = useState('audit');
 
-  const { data: auditLogs } = useQuery({
-    queryKey: ['auditLogs', orgId],
-    queryFn: async () => {
-      if (!orgId) return { data: { logs: [], total_logs: 0 } };
-      try {
-        return await base44.functions.invoke('getAuditLog', { org_id: orgId });
-      } catch {
-        return { data: { logs: [], total_logs: 0 } };
-      }
-    },
-    enabled: !!orgId,
-  });
-
+  // Get user and org first
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
@@ -37,6 +25,20 @@ export default function ComplianceDashboard() {
   });
 
   const orgId = memberships[0]?.org_id;
+
+  // Now use orgId in dependent queries
+  const { data: auditLogs } = useQuery({
+    queryKey: ['auditLogs', orgId],
+    queryFn: async () => {
+      if (!orgId) return { data: { logs: [], total_logs: 0 } };
+      try {
+        return await base44.functions.invoke('getAuditLog', { org_id: orgId });
+      } catch {
+        return { data: { logs: [], total_logs: 0 } };
+      }
+    },
+    enabled: !!orgId,
+  });
 
   const { data: loginHistory } = useQuery({
     queryKey: ['loginHistory', orgId],

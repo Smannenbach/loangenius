@@ -80,6 +80,7 @@ import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
 import SmokeTests from './pages/SmokeTests';
+import SystemHealth from './pages/SystemHealth';
 import __Layout from './Layout.jsx';
 
 
@@ -166,6 +167,7 @@ export const PAGES = {
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
     "SmokeTests": SmokeTests,
+    "SystemHealth": SystemHealth,
 }
 
 export const pagesConfig = {
