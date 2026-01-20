@@ -148,9 +148,9 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
       toast.success('Lead converted to Loan Application!');
       setIsOpen(false);
-      // Navigate to deal if we have the ID
+      // Redirect to deal detail page
       if (data?.data?.deal_id) {
-        window.location.href = `/DealDetail?id=${data.data.deal_id}`;
+        window.location.assign(`/DealDetail?id=${data.data.deal_id}`);
       }
     },
     onError: (error) => {
@@ -166,7 +166,7 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
       value: lead.mobile_phone,
       verified: lead.mobile_phone_verified,
       type: 'phone',
-      action: () => window.location.href = `tel:${lead.mobile_phone}`,
+      action: () => { window.open(`tel:${lead.mobile_phone}`, '_self'); },
     },
     {
       icon: Mail,
@@ -174,7 +174,7 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
       value: lead.home_email,
       verified: lead.home_email_verified,
       type: 'email',
-      action: () => window.location.href = `mailto:${lead.home_email}`,
+      action: () => { window.open(`mailto:${lead.home_email}`, '_self'); },
     },
     {
       icon: Mail,
@@ -182,7 +182,7 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
       value: lead.work_email,
       verified: lead.work_email_verified,
       type: 'email',
-      action: () => window.location.href = `mailto:${lead.work_email}`,
+      action: () => { window.open(`mailto:${lead.work_email}`, '_self'); },
     },
     {
       icon: Phone,
@@ -190,7 +190,7 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
       value: lead.home_phone,
       verified: lead.home_phone_verified,
       type: 'phone',
-      action: () => window.location.href = `tel:${lead.home_phone}`,
+      action: () => { window.open(`tel:${lead.home_phone}`, '_self'); },
     },
     {
       icon: Phone,
@@ -198,7 +198,7 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
       value: lead.work_phone,
       verified: lead.work_phone_verified,
       type: 'phone',
-      action: () => window.location.href = `tel:${lead.work_phone}`,
+      action: () => { window.open(`tel:${lead.work_phone}`, '_self'); },
     },
   ].filter(m => m.value);
 
@@ -451,36 +451,30 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
                 <Edit className="h-4 w-4" />
                 Edit Lead
               </Button>
-              <Button 
-                onClick={() => {
-                  const email = lead.home_email || lead.work_email;
-                  if (email) {
-                    window.location.href = `mailto:${email}?subject=Regarding your loan inquiry`;
-                  } else {
-                    toast.error('No email address available for this lead');
-                  }
-                }}
-                variant="outline"
-                className="w-full gap-2"
-              >
-                <MessageCircle className="h-4 w-4" />
-                Send Email
-              </Button>
-              <Button 
-                onClick={() => {
-                  const phone = lead.mobile_phone || lead.home_phone || lead.work_phone;
-                  if (phone) {
-                    window.location.href = `sms:${phone}`;
-                  } else {
-                    toast.error('No phone number available for this lead');
-                  }
-                }}
-                variant="outline"
-                className="w-full gap-2"
-              >
-                <MessageSquare className="h-4 w-4" />
-                Send SMS
-              </Button>
+              {(lead.home_email || lead.work_email) && (
+                <Button 
+                  variant="outline"
+                  className="w-full gap-2"
+                  asChild
+                >
+                  <a href={`mailto:${lead.home_email || lead.work_email}?subject=Regarding your loan inquiry`}>
+                    <MessageCircle className="h-4 w-4" />
+                    Send Email
+                  </a>
+                </Button>
+              )}
+              {(lead.mobile_phone || lead.home_phone || lead.work_phone) && (
+                <Button 
+                  variant="outline"
+                  className="w-full gap-2"
+                  asChild
+                >
+                  <a href={`sms:${lead.mobile_phone || lead.home_phone || lead.work_phone}`}>
+                    <MessageSquare className="h-4 w-4" />
+                    Send SMS
+                  </a>
+                </Button>
+              )}
             </TabsContent>
           </Tabs>
         </DialogContent>
