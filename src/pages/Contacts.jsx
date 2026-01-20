@@ -6,10 +6,12 @@ import { Input } from '@/components/ui/input';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
-import { Users, Plus, Search, Filter, Loader2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Users, Plus, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { SkeletonTable } from '@/components/ui/skeleton-cards';
+import { EmptyContacts, EmptySearchResults } from '@/components/ui/empty-states';
 
 export default function Contacts() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -146,13 +148,10 @@ export default function Contacts() {
       </div>
 
       {/* Contacts Table */}
+      {isLoading ? (
+        <SkeletonTable rows={8} cols={6} />
+      ) : (
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        {isLoading ? (
-          <div className="p-8 flex flex-col items-center justify-center text-gray-500">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-2" />
-            <span>Loading contacts...</span>
-          </div>
-        ) : (
         <table className="w-full">
           <thead>
             <tr className="bg-gray-50 border-b">
@@ -186,10 +185,16 @@ export default function Contacts() {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {filtered.length === 0 ? (
+            {filtered.length === 0 && searchTerm ? (
               <tr>
-                <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                  No contacts found. <Link to={createPageUrl('ContactCreate')} className="text-blue-600 hover:underline">Add your first contact</Link>
+                <td colSpan="6" className="px-6 py-4">
+                  <EmptySearchResults query={searchTerm} onClear={() => setSearchTerm('')} />
+                </td>
+              </tr>
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="px-6 py-4">
+                  <EmptyContacts onAction={() => window.location.href = createPageUrl('ContactCreate')} />
                 </td>
               </tr>
             ) : (
@@ -237,8 +242,8 @@ export default function Contacts() {
             )}
           </tbody>
         </table>
-        )}
       </div>
+      )}
 
       {/* Pagination - FIX: Proper pagination based on total pages */}
       {filtered.length > 0 && (

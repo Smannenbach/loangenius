@@ -253,8 +253,25 @@ export default function DealDetail() {
     return (
       <div className="p-6 lg:p-8">
         <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded w-64" />
-          <div className="h-48 bg-gray-200 rounded" />
+          <div className="flex items-center gap-2 mb-4">
+            <div className="h-4 w-4 bg-gray-200 rounded" />
+            <div className="h-4 bg-gray-200 rounded w-24" />
+          </div>
+          <div className="flex justify-between items-start">
+            <div>
+              <div className="h-8 bg-gray-200 rounded w-48 mb-2" />
+              <div className="h-4 bg-gray-200 rounded w-32" />
+            </div>
+            <div className="flex gap-2">
+              <div className="h-10 bg-gray-200 rounded w-24" />
+              <div className="h-10 bg-gray-200 rounded w-24" />
+              <div className="h-10 bg-gray-200 rounded w-32" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="h-48 bg-gray-200 rounded-lg" />
+            <div className="h-48 bg-gray-200 rounded-lg" />
+          </div>
         </div>
       </div>
     );

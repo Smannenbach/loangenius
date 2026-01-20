@@ -81,6 +81,8 @@ import SubmissionPrep from './pages/SubmissionPrep';
 import Subprocessors from './pages/Subprocessors';
 import SuperAdmin from './pages/SuperAdmin';
 import SystemHealth from './pages/SystemHealth';
+import TenantBrandingSettings from './pages/TenantBrandingSettings';
+import TenantDomains from './pages/TenantDomains';
 import TestingHub from './pages/TestingHub';
 import TestingValidationHub from './pages/TestingValidationHub';
 import Trust from './pages/Trust';
@@ -88,8 +90,6 @@ import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
-import TenantDomains from './pages/TenantDomains';
-import TenantBrandingSettings from './pages/TenantBrandingSettings';
 import __Layout from './Layout.jsx';
 
 
@@ -177,6 +177,8 @@ export const PAGES = {
     "Subprocessors": Subprocessors,
     "SuperAdmin": SuperAdmin,
     "SystemHealth": SystemHealth,
+    "TenantBrandingSettings": TenantBrandingSettings,
+    "TenantDomains": TenantDomains,
     "TestingHub": TestingHub,
     "TestingValidationHub": TestingValidationHub,
     "Trust": Trust,
@@ -184,8 +186,6 @@ export const PAGES = {
     "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
-    "TenantDomains": TenantDomains,
-    "TenantBrandingSettings": TenantBrandingSettings,
 }
 
 export const pagesConfig = {
