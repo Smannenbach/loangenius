@@ -103,17 +103,18 @@ export default function AdminIntegrations() {
 
   const testMutation = useMutation({
     mutationFn: async (integrationName) => {
-      const response = await base44.functions.invoke('connectIntegration', { 
-        integration_name: integrationName, 
-        action: 'test' 
+      const response = await base44.functions.invoke('testIntegration', { 
+        integration_key: integrationName
       });
       return response.data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['integrations', orgId] });
       setTestingId(null);
-      if (data.success) {
-        toast.success('Connection test successful');
+      if (data.ok) {
+        toast.success(data.message || 'Connection test successful');
+      } else if (data.status === 'needs_reconnect') {
+        toast.warning(data.message || 'Integration needs to be reconnected');
       } else {
         toast.error(data.message || 'Connection test failed');
       }
