@@ -81,6 +81,8 @@ import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
 import SmokeTests from './pages/SmokeTests';
 import SystemHealth from './pages/SystemHealth';
+import PrivacyRequest from './pages/PrivacyRequest';
+import BillingSuccess from './pages/BillingSuccess';
 import __Layout from './Layout.jsx';
 
 
@@ -168,6 +170,8 @@ export const PAGES = {
     "ValidationDashboard": ValidationDashboard,
     "SmokeTests": SmokeTests,
     "SystemHealth": SystemHealth,
+    "PrivacyRequest": PrivacyRequest,
+    "BillingSuccess": BillingSuccess,
 }
 
 export const pagesConfig = {
