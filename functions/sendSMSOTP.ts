@@ -33,12 +33,11 @@ Deno.serve(async (req) => {
     // In production, send via Twilio:
     // await sendSMSViaTwilio(phone, `Your LoanGenius verification code is: ${otp}`);
 
+    // SECURITY FIX: Never expose OTP in response - removed otp_for_testing
     return Response.json({
       success: true,
       message: 'OTP sent successfully',
       expires_at: expiresAt.toISOString(),
-      // Remove this in production:
-      otp_for_testing: otp,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
