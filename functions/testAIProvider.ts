@@ -132,7 +132,8 @@ async function testAnthropic(provider) {
   }
 
   try {
-    // Anthropic doesn't have a simple test endpoint, so we'll do a minimal completion
+    // Use a minimal completion to test the API key
+    const modelToTest = provider.model_name || 'claude-3-haiku-20240307';
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -141,7 +142,7 @@ async function testAnthropic(provider) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: provider.model_name || 'claude-3-haiku-20240307',
+        model: modelToTest,
         max_tokens: 10,
         messages: [{ role: 'user', content: 'Hi' }]
       })
@@ -151,6 +152,26 @@ async function testAnthropic(provider) {
       return { success: true, message: 'Anthropic connection successful' };
     } else {
       const error = await response.json();
+      // If the error is about the model, try with a valid model name to at least verify the API key
+      if (error.error?.type === 'invalid_request_error' && error.error?.message?.includes('model')) {
+        // Try a generic test with claude-3-haiku which is widely available
+        const fallbackResponse = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'claude-3-haiku-20240307',
+            max_tokens: 10,
+            messages: [{ role: 'user', content: 'Hi' }]
+          })
+        });
+        if (fallbackResponse.ok) {
+          return { success: true, message: `Anthropic API key valid (note: model "${modelToTest}" may need adjustment)` };
+        }
+      }
       return { success: false, message: error.error?.message || 'Anthropic API error' };
     }
   } catch (e) {
