@@ -1187,11 +1187,15 @@ export default function Leads() {
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => handleEditLead(lead)}>Edit Lead</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => window.location.href = `mailto:${lead.home_email || lead.work_email}`} disabled={!lead.home_email && !lead.work_email}>
-                              <Mail className="h-3 w-3 mr-2" />Send Email
+                            <DropdownMenuItem asChild disabled={!lead.home_email && !lead.work_email}>
+                              <a href={`mailto:${lead.home_email || lead.work_email}`}>
+                                <Mail className="h-3 w-3 mr-2" />Send Email
+                              </a>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => window.location.href = `tel:${lead.mobile_phone || lead.home_phone}`} disabled={!lead.mobile_phone && !lead.home_phone}>
-                              <Phone className="h-3 w-3 mr-2" />Call
+                            <DropdownMenuItem asChild disabled={!lead.mobile_phone && !lead.home_phone}>
+                              <a href={`tel:${lead.mobile_phone || lead.home_phone}`}>
+                                <Phone className="h-3 w-3 mr-2" />Call
+                              </a>
                             </DropdownMenuItem>
                             <DropdownMenuItem className="text-red-600" onClick={() => deleteLeadMutation.mutate(lead.id)}>Delete</DropdownMenuItem>
                           </DropdownMenuContent>

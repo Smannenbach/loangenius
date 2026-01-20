@@ -206,9 +206,16 @@ export default function DealDetail() {
     return (
       <div className="p-6 lg:p-8">
         <div className="text-center py-12">
-          <p className="text-gray-500">No deal ID provided</p>
-          <Link to={createPageUrl('Pipeline')} className="text-blue-600 hover:underline mt-2 inline-block">
-            Back to Pipeline
+          <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
+            <AlertCircle className="h-8 w-8 text-amber-600" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">No Deal Selected</h2>
+          <p className="text-gray-500 mb-4">Please select a deal from the pipeline to view details.</p>
+          <Link to={createPageUrl('Pipeline')}>
+            <Button className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Pipeline
+            </Button>
           </Link>
         </div>
       </div>
@@ -230,9 +237,16 @@ export default function DealDetail() {
     return (
       <div className="p-6 lg:p-8">
         <div className="text-center py-12">
-          <p className="text-red-600 mb-2">Failed to load deal</p>
-          <Link to={createPageUrl('Pipeline')} className="text-blue-600 hover:underline">
-            Back to Pipeline
+          <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+            <AlertCircle className="h-8 w-8 text-red-600" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Deal Not Found</h2>
+          <p className="text-gray-500 mb-4">The deal you're looking for doesn't exist or couldn't be loaded.</p>
+          <Link to={createPageUrl('Pipeline')}>
+            <Button className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Pipeline
+            </Button>
           </Link>
         </div>
       </div>
