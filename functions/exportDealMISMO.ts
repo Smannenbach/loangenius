@@ -54,38 +54,74 @@ Deno.serve(async (req) => {
       base44.asServiceRole.entities.ApplicationSignature.filter({ deal_id }),
     ]);
 
-    // Fetch full borrower records
-    const borrowersData = [];
-    for (const db of dealBorrowers) {
-      const borrowers = await base44.asServiceRole.entities.Borrower.filter({ id: db.borrower_id });
-      if (borrowers.length > 0) {
-        const borrower = borrowers[0];
-        const [assets, reoProps, declarations, demographics] = await Promise.all([
-          base44.asServiceRole.entities.BorrowerAsset.filter({ borrower_id: db.borrower_id, deal_id }),
-          base44.asServiceRole.entities.REOProperty.filter({ borrower_id: db.borrower_id, deal_id }),
-          base44.asServiceRole.entities.BorrowerDeclaration.filter({ borrower_id: db.borrower_id, deal_id }),
-          base44.asServiceRole.entities.BorrowerDemographic.filter({ borrower_id: db.borrower_id, deal_id }),
-        ]);
-        
-        borrowersData.push({
-          ...borrower,
-          role: db.role,
-          assets,
-          reo_properties: reoProps,
-          declarations: declarations[0] || {},
-          demographics: demographics[0] || {},
-        });
-      }
-    }
+    // FIX: Batch fetch all related data upfront to avoid N+1 queries
+    const borrowerIds = dealBorrowers.map(db => db.borrower_id).filter(Boolean);
+    const propertyIds = dealProperties.map(dp => dp.property_id).filter(Boolean);
+    
+    // Batch fetch all entities in parallel
+    const [
+      allBorrowers,
+      allAssets,
+      allReoProps,
+      allDeclarations,
+      allDemographics,
+      allProperties
+    ] = await Promise.all([
+      borrowerIds.length > 0 
+        ? base44.asServiceRole.entities.Borrower.filter({ id: { $in: borrowerIds } })
+        : [],
+      borrowerIds.length > 0 
+        ? base44.asServiceRole.entities.BorrowerAsset.filter({ deal_id, borrower_id: { $in: borrowerIds } })
+        : [],
+      borrowerIds.length > 0 
+        ? base44.asServiceRole.entities.REOProperty.filter({ deal_id, borrower_id: { $in: borrowerIds } })
+        : [],
+      borrowerIds.length > 0 
+        ? base44.asServiceRole.entities.BorrowerDeclaration.filter({ deal_id, borrower_id: { $in: borrowerIds } })
+        : [],
+      borrowerIds.length > 0 
+        ? base44.asServiceRole.entities.BorrowerDemographic.filter({ deal_id, borrower_id: { $in: borrowerIds } })
+        : [],
+      propertyIds.length > 0 
+        ? base44.asServiceRole.entities.Property.filter({ id: { $in: propertyIds } })
+        : [],
+    ]);
 
-    // Fetch properties
-    const propertiesData = [];
-    for (const dp of dealProperties) {
-      const props = await base44.asServiceRole.entities.Property.filter({ id: dp.property_id });
-      if (props.length > 0) {
-        propertiesData.push({ ...props[0], is_subject: dp.is_subject });
-      }
-    }
+    // Map data locally instead of N+1 queries
+    const borrowerMap = Object.fromEntries(allBorrowers.map(b => [b.id, b]));
+    const assetsMap = {};
+    const reoMap = {};
+    const declMap = {};
+    const demoMap = {};
+    
+    allAssets.forEach(a => {
+      if (!assetsMap[a.borrower_id]) assetsMap[a.borrower_id] = [];
+      assetsMap[a.borrower_id].push(a);
+    });
+    allReoProps.forEach(r => {
+      if (!reoMap[r.borrower_id]) reoMap[r.borrower_id] = [];
+      reoMap[r.borrower_id].push(r);
+    });
+    allDeclarations.forEach(d => { declMap[d.borrower_id] = d; });
+    allDemographics.forEach(d => { demoMap[d.borrower_id] = d; });
+    
+    // Build borrowers data
+    const borrowersData = dealBorrowers
+      .filter(db => borrowerMap[db.borrower_id])
+      .map(db => ({
+        ...borrowerMap[db.borrower_id],
+        role: db.role,
+        assets: assetsMap[db.borrower_id] || [],
+        reo_properties: reoMap[db.borrower_id] || [],
+        declarations: declMap[db.borrower_id] || {},
+        demographics: demoMap[db.borrower_id] || {},
+      }));
+
+    // Build properties data
+    const propertyMap = Object.fromEntries(allProperties.map(p => [p.id, p]));
+    const propertiesData = dealProperties
+      .filter(dp => propertyMap[dp.property_id])
+      .map(dp => ({ ...propertyMap[dp.property_id], is_subject: dp.is_subject }));
 
     // Validation
     const errors = [];
