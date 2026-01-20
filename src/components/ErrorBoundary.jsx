@@ -1,7 +1,44 @@
 import React from 'react';
-import { AlertCircle, RotateCw, Copy, CheckCircle } from 'lucide-react';
+import { AlertCircle, RotateCw, Copy, CheckCircle, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
+
+// Safe error logging - redacts PII patterns
+function safeLogError(error, errorInfo, context = {}) {
+  // Patterns to redact
+  const piiPatterns = [
+    /\b\d{3}-\d{2}-\d{4}\b/g, // SSN
+    /\b\d{9}\b/g, // SSN without dashes
+    /\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b/g, // Credit card
+    /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, // Email
+    /\b\d{10}\b/g, // Phone
+    /\b\d{3}[-.)]?\d{3}[-.)]?\d{4}\b/g, // Phone with formatting
+  ];
+  
+  const redact = (str) => {
+    if (typeof str !== 'string') return str;
+    let result = str;
+    piiPatterns.forEach(pattern => {
+      result = result.replace(pattern, '[REDACTED]');
+    });
+    return result;
+  };
+  
+  const safeError = {
+    message: redact(error?.message || 'Unknown error'),
+    name: error?.name,
+    route: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
+    timestamp: new Date().toISOString(),
+    // Redact stack trace
+    stack: redact(error?.stack || '').split('\n').slice(0, 5).join('\n'),
+  };
+  
+  // Log safely - no PII
+  console.error('[ErrorBoundary]', safeError);
+  
+  // In production, could send to Sentry here with safeError
+}
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -14,7 +51,8 @@ export default class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('Error caught:', error, errorInfo);
+    // Safe logging - no PII exposure
+    safeLogError(error, errorInfo);
     this.setState({ errorInfo });
   }
 
