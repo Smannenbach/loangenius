@@ -13,7 +13,7 @@ const KEY_LENGTH = 32;
 async function getEncryptionKey() {
   const rawKey = Deno.env.get('INTEGRATION_ENCRYPTION_KEY');
   if (!rawKey) {
-    throw new Error('INTEGRATION_ENCRYPTION_KEY not configured in Secrets.');
+    throw new Error('Missing required secret: INTEGRATION_ENCRYPTION_KEY');
   }
   
   let keyBytes;
@@ -177,7 +177,8 @@ Deno.serve(async (req) => {
       message: `${integrationKey.replace(/_/g, ' ')} connected successfully`
     });
   } catch (error) {
-    console.error('Error in connectIntegration:', error.message);
+    // Safe log - no sensitive data
+    console.error('[connectIntegration] Error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
