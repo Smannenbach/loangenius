@@ -12,6 +12,7 @@ import {
   FileText, Upload, CheckCircle, XCircle, AlertTriangle, 
   Info, RefreshCw, Download, FileCode, Shield, Zap, Hash
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function MISMOValidator() {
   const [xmlContent, setXmlContent] = useState('');
@@ -77,7 +78,6 @@ export default function MISMOValidator() {
       setConformanceReport(reportResponse.data?.report);
 
     } catch (error) {
-      console.error('Validation error:', error);
       setValidationResult({
         success: false,
         error: error.message
@@ -98,10 +98,13 @@ export default function MISMOValidator() {
       });
       
       if (response.data?.success) {
-        alert(`Content Hash: ${response.data.hash}\n\nLength: ${response.data.content_length} bytes`);
+        toast.info(`Content Hash: ${response.data.hash.substring(0, 32)}...`, {
+          description: `Length: ${response.data.content_length} bytes`,
+          duration: 5000
+        });
       }
     } catch (error) {
-      console.error('Hash computation error:', error);
+      toast.error('Hash computation failed');
     }
   };
 

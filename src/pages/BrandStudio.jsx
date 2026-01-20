@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,9 +84,9 @@ export default function BrandStudio() {
         });
       }
       queryClient.invalidateQueries({ queryKey: ['branding'] });
-      alert('Brand settings saved successfully!');
+      toast.success('Brand settings saved successfully!');
     } catch (error) {
-      alert('Error saving branding: ' + error.message);
+      toast.error('Error saving branding: ' + error.message);
     } finally {
       setIsSaving(false);
     }
@@ -113,7 +114,7 @@ export default function BrandStudio() {
         [type === 'light' ? 'logo_light_url' : 'logo_dark_url']: url,
       });
     } catch (error) {
-      alert('Error uploading logo: ' + error.message);
+      toast.error('Error uploading logo: ' + error.message);
     }
   };
 
