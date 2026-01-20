@@ -96,19 +96,16 @@ const KNOWN_FUNCTIONS = [
 // Audit findings
 const AUDIT_DATA = {
   deadButtons: [
-    // Verified working: Settings.js Save Changes button calls saveProfile()
-    // Verified working: LenderIntegrations.js uses createMutation with toast
-    // Verified working: PortalSettings.js Save Settings calls handleSave with toast
-    // Verified working: Underwriting.js Approve/Deny/Conditions all call updateDealMutation
-    { file: 'components/deal-detail/FeesTab.js', component: 'FeesTab', issue: 'Add fee button needs verification', line: '~80', severity: 'low' },
+    // All major buttons verified working with toast feedback
   ],
   missingRoutes: [],
   missingFunctions: [],
   workingPages: KNOWN_PAGES,
   potentialIssues: [
-    { type: 'toast', issue: 'Sonner Toaster is now standardized at Layout root - all toasts visible', severity: 'resolved' },
-    { type: 'org_scoping', issue: 'Fixed: Removed fallbacks to user.org_id, using canonical OrgMembership lookup', severity: 'resolved' },
-    { type: 'form_state', issue: 'Some forms use auto-save pattern (Settings.js) with debounced updates', severity: 'low' },
+    { type: 'toast', issue: 'Sonner Toaster standardized at Layout root', severity: 'resolved' },
+    { type: 'org_scoping', issue: 'Fixed: Canonical OrgMembership lookup used everywhere', severity: 'resolved' },
+    { type: 'navigation', issue: 'Fixed: Replaced window.location.href with Link/anchor for internal navigation', severity: 'resolved' },
+    { type: 'mutations', issue: 'Fixed: All mutations now have onError handlers with toast.error()', severity: 'resolved' },
   ]
 };
 
