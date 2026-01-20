@@ -20,8 +20,15 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing integration_name' }, { status: 400 });
     }
 
-    const org = await base44.auth.getOrgId(); // Placeholder
-    const org_id = org || 'org_default';
+    // Get org from user's membership
+    const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+      user_id: user.email
+    });
+    const org_id = memberships.length > 0 ? memberships[0].org_id : null;
+    
+    if (!org_id) {
+      return Response.json({ error: 'User not associated with an organization' }, { status: 400 });
+    }
 
     // Validate credentials based on integration type
     const isValid = await validateIntegrationCredentials(integration_name, api_key, oauth_token);
@@ -84,6 +91,33 @@ async function validateIntegrationCredentials(name, apiKey, oauthToken) {
 }
 
 async function encryptData(data) {
-  // Placeholder - would use actual AES-256-GCM encryption
-  return Buffer.from(data).toString('base64');
+  // Use Web Crypto API for proper encryption
+  const encoder = new TextEncoder();
+  const dataBytes = encoder.encode(data);
+  
+  // Generate a key from environment secret or use a derived key
+  const keyMaterial = encoder.encode(Deno.env.get('BASE44_APP_ID') || 'default-key-material');
+  const keyHash = await crypto.subtle.digest('SHA-256', keyMaterial);
+  
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyHash,
+    { name: 'AES-GCM' },
+    false,
+    ['encrypt']
+  );
+  
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    dataBytes
+  );
+  
+  // Combine IV + encrypted data and base64 encode
+  const combined = new Uint8Array(iv.length + encrypted.byteLength);
+  combined.set(iv);
+  combined.set(new Uint8Array(encrypted), iv.length);
+  
+  return btoa(String.fromCharCode(...combined));
 }

@@ -56,26 +56,26 @@ import MISMOImportExport from './pages/MISMOImportExport';
 import NewDeal from './pages/NewDeal';
 import Pipeline from './pages/Pipeline';
 import PortalSettings from './pages/PortalSettings';
+import Privacy from './pages/Privacy';
 import QuoteGenerator from './pages/QuoteGenerator';
 import ReportBuilder from './pages/ReportBuilder';
 import ReportViewer from './pages/ReportViewer';
 import Reports from './pages/Reports';
 import Roadmap from './pages/Roadmap';
 import smokeTestResults from './pages/SMOKE_TEST_RESULTS';
+import Security from './pages/Security';
 import Settings from './pages/Settings';
+import Status from './pages/Status';
 import SubmissionPrep from './pages/SubmissionPrep';
+import Subprocessors from './pages/Subprocessors';
 import SuperAdmin from './pages/SuperAdmin';
 import TestingHub from './pages/TestingHub';
 import TestingValidationHub from './pages/TestingValidationHub';
+import Trust from './pages/Trust';
 import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
-import Trust from './pages/Trust';
-import Security from './pages/Security';
-import Subprocessors from './pages/Subprocessors';
-import Privacy from './pages/Privacy';
-import Status from './pages/Status';
 import __Layout from './Layout.jsx';
 
 
@@ -138,26 +138,26 @@ export const PAGES = {
     "NewDeal": NewDeal,
     "Pipeline": Pipeline,
     "PortalSettings": PortalSettings,
+    "Privacy": Privacy,
     "QuoteGenerator": QuoteGenerator,
     "ReportBuilder": ReportBuilder,
     "ReportViewer": ReportViewer,
     "Reports": Reports,
     "Roadmap": Roadmap,
     "SMOKE_TEST_RESULTS": smokeTestResults,
+    "Security": Security,
     "Settings": Settings,
+    "Status": Status,
     "SubmissionPrep": SubmissionPrep,
+    "Subprocessors": Subprocessors,
     "SuperAdmin": SuperAdmin,
     "TestingHub": TestingHub,
     "TestingValidationHub": TestingValidationHub,
+    "Trust": Trust,
     "Underwriting": Underwriting,
     "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
-    "Trust": Trust,
-    "Security": Security,
-    "Subprocessors": Subprocessors,
-    "Privacy": Privacy,
-    "Status": Status,
 }
 
 export const pagesConfig = {
