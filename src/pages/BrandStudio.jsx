@@ -20,6 +20,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Palette, Image, Type, FileText, RotateCcw } from 'lucide-react';
+import { toast } from 'sonner';
 import BrandingPreview from '@/components/BrandingPreview';
 
 const FONT_OPTIONS = ['Inter', 'Roboto', 'Open Sans', 'Lato', 'Poppins'];
@@ -83,9 +84,9 @@ export default function BrandStudio() {
         });
       }
       queryClient.invalidateQueries({ queryKey: ['branding'] });
-      alert('Brand settings saved successfully!');
+      toast.success('Brand settings saved successfully!');
     } catch (error) {
-      alert('Error saving branding: ' + error.message);
+      toast.error('Error saving branding: ' + error.message);
     } finally {
       setIsSaving(false);
     }
@@ -113,7 +114,7 @@ export default function BrandStudio() {
         [type === 'light' ? 'logo_light_url' : 'logo_dark_url']: url,
       });
     } catch (error) {
-      alert('Error uploading logo: ' + error.message);
+      toast.error('Error uploading logo: ' + error.message);
     }
   };
 

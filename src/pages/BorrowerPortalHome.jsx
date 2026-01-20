@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, AlertCircle, Clock, Upload, MessageSquare, FileText } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function BorrowerPortalHome() {
   const [selectedTab, setSelectedTab] = useState('overview');
@@ -254,7 +255,7 @@ export default function BorrowerPortalHome() {
                       const messageInput = document.getElementById('message-input');
                       const message = messageInput.value.trim();
                       if (!message) {
-                        alert('Please enter a message');
+                        toast.warning('Please enter a message');
                         return;
                       }
                       try {
@@ -264,9 +265,9 @@ export default function BorrowerPortalHome() {
                           message: message
                         });
                         messageInput.value = '';
-                        alert('Message sent successfully!');
+                        toast.success('Message sent successfully!');
                       } catch (error) {
-                        alert('Error sending message: ' + error.message);
+                        toast.error('Error sending message: ' + error.message);
                       }
                     }}
                   >
