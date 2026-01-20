@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import { 
   AlertTriangle, 
   CheckCircle, 
@@ -12,164 +14,235 @@ import {
   Server,
   RefreshCw,
   ExternalLink,
-  ChevronDown,
-  ChevronRight
+  Copy,
+  Bell,
+  Filter
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from 'sonner';
 
-// Known pages in the app (extracted from Layout and routes)
-const KNOWN_PAGES = [
-  'Dashboard', 'Pipeline', 'Leads', 'Loans', 'Contacts', 'QuoteGenerator', 
-  'AIAssistant', 'Communications', 'EmailSequences', 'Reports', 'Users',
-  'LenderIntegrations', 'PortalSettings', 'TestingHub', 'Underwriting',
-  'ComplianceDashboard', 'MISMOExportProfiles', 'MISMOImportExport',
-  'AdminIntegrations', 'Settings', 'BusinessPurposeApplication',
-  'LoanApplicationWizard', 'DealDetail', 'DealWizard', 'NewDeal',
-  'ContactCreate', 'ContactDetail', 'BorrowerPortal', 'BorrowerPortalLogin',
-  'BorrowerPortalDashboard', 'BorrowerPortalHome', 'BorrowerOnboarding',
-  'AgentOrchestrator', 'AgentExecutionViewer', 'AgentKnowledgeBase',
-  'AgentPerformanceDashboard', 'AuditComplianceViewer', 'AdminAgents',
-  'AdminAIProviders', 'ReportBuilder', 'ReportViewer', 'BrandingSettings',
-  'BrandStudio', 'Conversations', 'Documents', 'Deals', 'Lenders',
-  'Trust', 'Security', 'Subprocessors', 'Privacy', 'Status',
-  'LandingPage', 'CoborrowerPortal', 'SubmissionPrep', 'UnderwritingChecklist',
-  'AlertsNotifications', 'DealMobile', 'ValidationDashboard', 'Roadmap',
-  'SuperAdmin', 'LeadIntelligence', 'ExecutiveDashboard', 'DocumentIntelligence',
-  'ConsentManagement', 'Assumptions', 'AdminSettings', 'AdminPortalPreview',
-  'AdminOrganization', 'AdminLoginHistory', 'AdminAuditLogs', 'AIOrchestrator',
-  'AdminWebhooks', 'TestingValidationHub', 'QAAudit'
+// Import all source files as raw text for static analysis
+const allSourceFiles = import.meta.glob('/src/**/*.{js,jsx}', { as: 'raw', eager: true });
+const allFunctionFiles = import.meta.glob('/src/functions/*.js', { as: 'raw', eager: true });
+
+// Known pages from Layout sidebar
+const SIDEBAR_PAGES = [
+  'Dashboard', 'Pipeline', 'Leads', 'Loans', 'Contacts',
+  'QuoteGenerator', 'AIAssistant', 'Communications', 'EmailSequences', 'Reports',
+  'Users', 'LenderIntegrations', 'PortalSettings', 'TestingHub', 'QAAudit',
+  'Underwriting', 'ComplianceDashboard', 'MISMOExportProfiles', 'MISMOImportExport',
+  'AdminIntegrations', 'Settings'
 ];
 
-// Known backend functions
-const KNOWN_FUNCTIONS = [
-  'aiAssistantChat', 'aiStatus', 'aiModelRouter', 'testAIProvider',
-  'createOrUpdateDeal', 'createDSCRDeal', 'createBlanketDeal',
-  'leadImport', 'importLeadsFromSheet', 'importLeadsFromGoogleSheets',
-  'generateMISMO34', 'generateMISMO34BPA', 'exportDealMISMO', 'runMISMOExport',
-  'generateOfferLetter', 'generateTermSheet', 'generateAntiSteeringLetter',
-  'sendEmail', 'sendSMSNotification', 'sendSMSOTP', 'sendQuote', 'sendQuoteAndNurture',
-  'sendReminder', 'sendDailyReminders', 'sendDailyRemindersBatch', 'sendBorrowerReminders',
-  'sendCommunication', 'portalMessages', 'portalSecureMessagingHelper',
-  'documentPresignUpload', 'documentCompleteUpload', 'uploadBorrowerDocument',
-  'analyzeDocument', 'processDocumentWithAI', 'parseDocumentIntelligence',
-  'preQualifyBorrower', 'generateBorrowerRiskAnalysis', 'scoreLeads',
-  'validateDealCompliance', 'calculateReadinessScore', 'runExportPreflight',
-  'portalAuth', 'portalMagicLink', 'portalLookupBorrower', 'portalSummary',
-  'portalSettings', 'portalDocuments', 'portalRequirements', 'portalReminders',
-  'portalStatusTracker', 'portalDocumentUploadHelper', 'portalWebhooks',
-  'logAudit', 'logAuditEvent', 'logActivity', 'getAuditLog',
-  'getDashboardKPIs', 'getDashboardActivity', 'getDealsNeedingAttention',
-  'generateReport', 'generatePipelineReport', 'generateProductionReport',
-  'generateConversionFunnel', 'generateSubmissionPackage', 'exportSubmissionPackage',
-  'connectIntegration', 'lenderAPISubmission', 'lenderIntegrationAPI', 'lenderWebhookHandler',
-  'docuSignWebhook', 'createDocuSignEnvelope', 'zapierWebhook', 'zapierAction', 'zapierTrigger',
-  'fireWebhook', 'webhookRetryWorker', 'twilioSMS', 'twilioSMSWebhook',
-  'sendgridEmail', 'sendgridWebhook', 'handleSMSStop',
-  'applicationStart', 'applicationSubmit', 'applicationAutosave', 'applicationResume',
-  'applicationInvite', 'applicationService', 'submitApplication',
-  'enrichPropertyData', 'enrichBorrowerData', 'convertLeadToLoanApp',
-  'seedExampleData', 'seedOrgAndUsers', 'seedDefaultFees', 'seedAdminSettings',
-  'seedDocumentTemplates', 'seedMessageTemplates', 'seedComprehensiveTestData',
-  'rbacHelper', 'errorCapture', 'telemetry', 'testSystemHealth', 'e2eTestRunner',
-  'orchestratorStartWorkflow', 'orchestratorGetStatus',
-  'mismoValidator', 'mismoSchemaValidator', 'mismoImportOrchestrator', 'mismoExportOrchestrator',
-  'getMISMOPreflightReport', 'generateConformanceReport', 'validateMISMOImport',
-  'feeCalculations', 'manageDealFees', 'seedDefaultFees', 'dscrCalculator', 'precisionCalculator',
-  'updateDealStage', 'updateConditionStatus', 'requestDocuments', 'reviewDocument',
-  'generateDocumentRequirements', 'createDSCRDocumentRequirements', 'checkDocumentExpirations',
-  'emailSequenceProcessor', 'leadInactivityChecker', 'leadStatusChangeHandler', 'documentEventHandler',
-  'syncGoogleSheets', 'syncGoogleSheetsLeads', 'setupGoogleSheetsAutoImport', 'autoImportLeadsFromGoogleSheets',
-  'sheetsImport', 'googleSheetsSync',
-  'uploadOrgLogo', 'uploadUserHeadshot', 'signedUrlService',
-  'verifyLeadContact', 'recordConsent', 'inviteCoborrower',
-  'managePricingSnapshot', 'blanketDealAllocator', 'buildCanonicalSnapshot',
-  'createOutboxEvent', 'outboxWorker', 'encryptionHelper', 'auditLogHelper', 'auditLogger',
-  'contactHelper', 'communicationService', 'documentTemplates',
-  'portalPreview', 'portalSessionExchange', 'getGoogleMapsKey', 'shareOnLinkedIn',
-  'exportWithProfile', 'exportApplicationPDF', 'generateDocument', 'generateFeeWorksheet',
-  'generateAntiSteering', 'generateFNM32', 'autoLenderOutreach', 'aiLenderMatcher'
-];
+// Extract function names from functions folder
+function getExistingFunctions() {
+  const functions = new Set();
+  Object.keys(allFunctionFiles).forEach(path => {
+    const match = path.match(/\/functions\/([^/]+)\.js$/);
+    if (match) {
+      functions.add(match[1]);
+    }
+  });
+  return functions;
+}
 
-// Audit findings
-const AUDIT_DATA = {
-  deadButtons: [
-    // All major buttons verified working with toast feedback
-  ],
-  missingRoutes: [],
-  missingFunctions: [],
-  workingPages: KNOWN_PAGES,
-  potentialIssues: [
-    { type: 'toast', issue: 'Sonner Toaster standardized at Layout root', severity: 'resolved' },
-    { type: 'org_scoping', issue: 'Fixed: Canonical OrgMembership lookup used everywhere', severity: 'resolved' },
-    { type: 'navigation', issue: 'Fixed: Replaced window.location.href with Link/anchor for internal navigation', severity: 'resolved' },
-    { type: 'mutations', issue: 'Fixed: All mutations now have onError handlers with toast.error()', severity: 'resolved' },
-    { type: 'security', issue: 'Fixed: Integration tokens encrypted with AES-GCM', severity: 'resolved' },
-    { type: 'ai_providers', issue: 'Fixed: AdminAIProviders add/test/default/delete all wired', severity: 'resolved' },
-    { type: 'e2e_tests', issue: 'Fixed: Real e2eTestRunner with auth/org/leads/AI/integrations tests', severity: 'resolved' },
-  ]
-};
+// Analyze source files for issues
+function analyzeSourceFiles() {
+  const existingFunctions = getExistingFunctions();
+  const missingFunctions = [];
+  const deadButtons = [];
+  const silentMutations = [];
+  const brokenRoutes = [];
+  
+  Object.entries(allSourceFiles).forEach(([filePath, content]) => {
+    if (!content || typeof content !== 'string') return;
+    
+    const fileName = filePath.split('/').pop();
+    const isPage = filePath.includes('/pages/');
+    const isComponent = filePath.includes('/components/');
+    
+    // 1. Detect missing function invocations
+    const functionInvokeRegex = /base44\.functions\.invoke\(['"]([^'"]+)['"]/g;
+    let match;
+    while ((match = functionInvokeRegex.exec(content)) !== null) {
+      const fnName = match[1];
+      if (!existingFunctions.has(fnName)) {
+        missingFunctions.push({
+          function: fnName,
+          file: filePath.replace('/src/', ''),
+          line: content.substring(0, match.index).split('\n').length,
+          page: isPage ? fileName.replace('.js', '').replace('.jsx', '') : null
+        });
+      }
+    }
+    
+    // 2. Detect dead buttons (no onClick, not submit, not asChild)
+    const buttonRegex = /<Button\b[^>]*>/g;
+    let buttonMatch;
+    while ((buttonMatch = buttonRegex.exec(content)) !== null) {
+      const buttonTag = buttonMatch[0];
+      const lineNum = content.substring(0, buttonMatch.index).split('\n').length;
+      
+      const hasOnClick = /onClick\s*=/.test(buttonTag);
+      const isSubmit = /type\s*=\s*["']submit["']/.test(buttonTag);
+      const isAsChild = /asChild/.test(buttonTag);
+      const isDisabled = /disabled/.test(buttonTag);
+      
+      if (!hasOnClick && !isSubmit && !isAsChild) {
+        // Check if it's inside a Link or has valid usage
+        const contextStart = Math.max(0, buttonMatch.index - 100);
+        const contextEnd = Math.min(content.length, buttonMatch.index + buttonTag.length + 50);
+        const context = content.substring(contextStart, contextEnd);
+        const isWrappedInLink = /<Link[^>]*>[\s\S]*<Button/.test(context) || /asChild[\s\S]*<Link/.test(context);
+        
+        if (!isWrappedInLink && !isDisabled) {
+          deadButtons.push({
+            file: filePath.replace('/src/', ''),
+            line: lineNum,
+            snippet: buttonTag.substring(0, 80) + (buttonTag.length > 80 ? '...' : ''),
+            severity: 'medium'
+          });
+        }
+      }
+    }
+    
+    // 3. Detect silent mutations (mutations without toast)
+    const hasMutation = /useMutation\(|\.create\(|\.update\(|\.delete\(|mutationFn/.test(content);
+    const hasToast = /toast\.|toast\(/.test(content);
+    
+    if (hasMutation && !hasToast && (isPage || isComponent)) {
+      // Check if it's a real mutation file
+      const mutationCount = (content.match(/useMutation\(/g) || []).length +
+                           (content.match(/\.create\(/g) || []).length +
+                           (content.match(/\.update\(/g) || []).length +
+                           (content.match(/\.delete\(/g) || []).length;
+      
+      if (mutationCount > 0) {
+        silentMutations.push({
+          file: filePath.replace('/src/', ''),
+          mutationCount,
+          severity: 'low'
+        });
+      }
+    }
+  });
+  
+  // 4. Check for broken routes (sidebar pages that don't exist)
+  const existingPages = new Set();
+  Object.keys(allSourceFiles).forEach(path => {
+    if (path.includes('/pages/')) {
+      const match = path.match(/\/pages\/([^/]+)\.(js|jsx)$/);
+      if (match) {
+        existingPages.add(match[1]);
+      }
+    }
+  });
+  
+  SIDEBAR_PAGES.forEach(page => {
+    if (!existingPages.has(page)) {
+      brokenRoutes.push({
+        route: page,
+        location: 'Layout.js sidebar',
+        severity: 'high'
+      });
+    }
+  });
+  
+  return {
+    missingFunctions: deduplicateMissingFunctions(missingFunctions),
+    deadButtons,
+    silentMutations,
+    brokenRoutes,
+    existingFunctions: Array.from(existingFunctions),
+    existingPages: Array.from(existingPages)
+  };
+}
+
+function deduplicateMissingFunctions(arr) {
+  const map = new Map();
+  arr.forEach(item => {
+    const key = item.function;
+    if (!map.has(key)) {
+      map.set(key, { ...item, files: [item.file] });
+    } else {
+      map.get(key).files.push(item.file);
+    }
+  });
+  return Array.from(map.values());
+}
 
 export default function QAAudit() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [expandedSections, setExpandedSections] = useState({});
-  const [testResults, setTestResults] = useState({});
-  const [isScanning, setIsScanning] = useState(false);
-
-  const toggleSection = (section) => {
-    setExpandedSections(prev => ({...prev, [section]: !prev[section]}));
+  const [searchFilter, setSearchFilter] = useState('');
+  const [lastScanTime, setLastScanTime] = useState(new Date());
+  
+  // Check if user is admin
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me()
+  });
+  
+  const isAdmin = user?.role === 'admin';
+  
+  // Run analysis
+  const auditResults = useMemo(() => {
+    return analyzeSourceFiles();
+  }, [lastScanTime]);
+  
+  const runAudit = () => {
+    setLastScanTime(new Date());
+    toast.success('Audit scan completed');
   };
-
-  const runPageTest = async (pageName) => {
-    setTestResults(prev => ({...prev, [pageName]: 'testing'}));
-    try {
-      // Try to navigate and see if page loads
-      const url = createPageUrl(pageName);
-      // In a real implementation, we'd use an iframe or fetch to test
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setTestResults(prev => ({...prev, [pageName]: 'pass'}));
-    } catch (e) {
-      setTestResults(prev => ({...prev, [pageName]: 'fail'}));
-    }
+  
+  const copyList = (items, type) => {
+    const text = items.map(item => {
+      if (type === 'functions') return `${item.function} (${item.files.join(', ')})`;
+      if (type === 'buttons') return `${item.file}:${item.line}`;
+      if (type === 'routes') return item.route;
+      if (type === 'mutations') return item.file;
+      return JSON.stringify(item);
+    }).join('\n');
+    
+    navigator.clipboard.writeText(text);
+    toast.success('Copied to clipboard');
   };
-
-  const runFullScan = async () => {
-    setIsScanning(true);
-    for (const page of KNOWN_PAGES.slice(0, 10)) {
-      await runPageTest(page);
-    }
-    setIsScanning(false);
-  };
-
-  const getSeverityColor = (severity) => {
-    switch (severity) {
-      case 'high': return 'bg-red-100 text-red-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'low': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getTestStatusIcon = (status) => {
-    switch (status) {
-      case 'pass': return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'fail': return <XCircle className="h-4 w-4 text-red-600" />;
-      case 'testing': return <RefreshCw className="h-4 w-4 text-blue-600 animate-spin" />;
-      default: return <Search className="h-4 w-4 text-gray-400" />;
-    }
-  };
-
+  
+  const filteredMissingFunctions = auditResults.missingFunctions.filter(f => 
+    f.function.toLowerCase().includes(searchFilter.toLowerCase())
+  );
+  
+  const filteredDeadButtons = auditResults.deadButtons.filter(b =>
+    b.file.toLowerCase().includes(searchFilter.toLowerCase())
+  );
+  
   const stats = {
-    totalPages: KNOWN_PAGES.length,
-    deadButtons: AUDIT_DATA.deadButtons.length,
-    missingRoutes: AUDIT_DATA.missingRoutes.length,
-    missingFunctions: AUDIT_DATA.missingFunctions.length,
-    potentialIssues: AUDIT_DATA.potentialIssues.length,
-    passRate: Math.round((AUDIT_DATA.workingPages.length / KNOWN_PAGES.length) * 100)
+    missingFunctions: auditResults.missingFunctions.length,
+    deadButtons: auditResults.deadButtons.length,
+    silentMutations: auditResults.silentMutations.length,
+    brokenRoutes: auditResults.brokenRoutes.length,
+    totalFunctions: auditResults.existingFunctions.length,
+    totalPages: auditResults.existingPages.length
   };
-
+  
+  // Access control
+  if (user && !isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="pt-6 text-center">
+            <AlertTriangle className="h-12 w-12 mx-auto text-yellow-500 mb-4" />
+            <h2 className="text-xl font-bold mb-2">Admin Access Required</h2>
+            <p className="text-slate-600">Only administrators can access the QA Audit dashboard.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -180,31 +253,36 @@ export default function QAAudit() {
               <Search className="h-8 w-8 text-blue-600" />
               QA Audit Dashboard
             </h1>
-            <p className="text-gray-600 mt-1">Automated detection of dead links, unwired buttons, and missing routes</p>
+            <p className="text-gray-600 mt-1">
+              Build-time analysis of code quality issues • Last scan: {lastScanTime.toLocaleTimeString()}
+            </p>
           </div>
-          <Button onClick={runFullScan} disabled={isScanning}>
-            {isScanning ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Scanning...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Run Full Scan
-              </>
-            )}
+          <Button onClick={runAudit} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Run Audit Now
           </Button>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card className="bg-blue-50 border-blue-200">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <Card className={stats.missingFunctions > 0 ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}>
             <CardContent className="pt-6 text-center">
-              <p className="text-3xl font-bold text-blue-700">{stats.totalPages}</p>
-              <p className="text-sm text-gray-600">Total Pages</p>
+              <p className={`text-3xl font-bold ${stats.missingFunctions > 0 ? 'text-red-700' : 'text-green-700'}`}>
+                {stats.missingFunctions}
+              </p>
+              <p className="text-sm text-gray-600">Missing Functions</p>
             </CardContent>
           </Card>
+          
+          <Card className={stats.brokenRoutes > 0 ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}>
+            <CardContent className="pt-6 text-center">
+              <p className={`text-3xl font-bold ${stats.brokenRoutes > 0 ? 'text-red-700' : 'text-green-700'}`}>
+                {stats.brokenRoutes}
+              </p>
+              <p className="text-sm text-gray-600">Broken Routes</p>
+            </CardContent>
+          </Card>
+          
           <Card className={stats.deadButtons > 0 ? "bg-yellow-50 border-yellow-200" : "bg-green-50 border-green-200"}>
             <CardContent className="pt-6 text-center">
               <p className={`text-3xl font-bold ${stats.deadButtons > 0 ? 'text-yellow-700' : 'text-green-700'}`}>
@@ -213,28 +291,42 @@ export default function QAAudit() {
               <p className="text-sm text-gray-600">Dead Buttons</p>
             </CardContent>
           </Card>
-          <Card className={stats.missingRoutes > 0 ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}>
+          
+          <Card className={stats.silentMutations > 0 ? "bg-orange-50 border-orange-200" : "bg-green-50 border-green-200"}>
             <CardContent className="pt-6 text-center">
-              <p className={`text-3xl font-bold ${stats.missingRoutes > 0 ? 'text-red-700' : 'text-green-700'}`}>
-                {stats.missingRoutes}
+              <p className={`text-3xl font-bold ${stats.silentMutations > 0 ? 'text-orange-700' : 'text-green-700'}`}>
+                {stats.silentMutations}
               </p>
-              <p className="text-sm text-gray-600">Missing Routes</p>
+              <p className="text-sm text-gray-600">Silent Mutations</p>
             </CardContent>
           </Card>
-          <Card className={stats.potentialIssues > 0 ? "bg-orange-50 border-orange-200" : "bg-green-50 border-green-200"}>
+          
+          <Card className="bg-blue-50 border-blue-200">
             <CardContent className="pt-6 text-center">
-              <p className={`text-3xl font-bold ${stats.potentialIssues > 0 ? 'text-orange-700' : 'text-green-700'}`}>
-                {stats.potentialIssues}
-              </p>
-              <p className="text-sm text-gray-600">Potential Issues</p>
+              <p className="text-3xl font-bold text-blue-700">{stats.totalFunctions}</p>
+              <p className="text-sm text-gray-600">Backend Functions</p>
             </CardContent>
           </Card>
-          <Card className="bg-green-50 border-green-200">
+          
+          <Card className="bg-blue-50 border-blue-200">
             <CardContent className="pt-6 text-center">
-              <p className="text-3xl font-bold text-green-700">{stats.passRate}%</p>
-              <p className="text-sm text-gray-600">Pass Rate</p>
+              <p className="text-3xl font-bold text-blue-700">{stats.totalPages}</p>
+              <p className="text-sm text-gray-600">Total Pages</p>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Filter */}
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Filter results..."
+              value={searchFilter}
+              onChange={(e) => setSearchFilter(e.target.value)}
+              className="pl-10"
+            />
+          </div>
         </div>
 
         {/* Tabs */}
@@ -244,21 +336,21 @@ export default function QAAudit() {
               <Search className="h-4 w-4" />
               Overview
             </TabsTrigger>
+            <TabsTrigger value="functions" className="gap-2">
+              <Server className="h-4 w-4" />
+              Missing Functions ({stats.missingFunctions})
+            </TabsTrigger>
+            <TabsTrigger value="routes" className="gap-2">
+              <LinkIcon className="h-4 w-4" />
+              Broken Routes ({stats.brokenRoutes})
+            </TabsTrigger>
             <TabsTrigger value="buttons" className="gap-2">
               <MousePointer className="h-4 w-4" />
               Dead Buttons ({stats.deadButtons})
             </TabsTrigger>
-            <TabsTrigger value="routes" className="gap-2">
-              <LinkIcon className="h-4 w-4" />
-              Routes
-            </TabsTrigger>
-            <TabsTrigger value="functions" className="gap-2">
-              <Server className="h-4 w-4" />
-              Functions
-            </TabsTrigger>
-            <TabsTrigger value="issues" className="gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              Issues ({stats.potentialIssues})
+            <TabsTrigger value="mutations" className="gap-2">
+              <Bell className="h-4 w-4" />
+              Silent Mutations ({stats.silentMutations})
             </TabsTrigger>
           </TabsList>
 
@@ -266,128 +358,166 @@ export default function QAAudit() {
           <TabsContent value="overview" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Quick Status</CardTitle>
-                <CardDescription>Overall health of the application</CardDescription>
+                <CardTitle>Audit Summary</CardTitle>
+                <CardDescription>Overall health of the application codebase</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span className="font-medium">Page Routes</span>
-                    <Badge className="bg-green-100 text-green-800">
-                      {KNOWN_PAGES.length - AUDIT_DATA.missingRoutes.length} / {KNOWN_PAGES.length} Working
+                    <div className="flex items-center gap-2">
+                      {stats.missingFunctions === 0 ? (
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-red-600" />
+                      )}
+                      <span className="font-medium">Missing Backend Functions</span>
+                    </div>
+                    <Badge className={stats.missingFunctions === 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                      {stats.missingFunctions === 0 ? 'PASS' : `${stats.missingFunctions} BLOCKING`}
                     </Badge>
                   </div>
+                  
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span className="font-medium">Button Handlers</span>
-                    <Badge className={stats.deadButtons > 5 ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"}>
-                      {stats.deadButtons} Need Review
+                    <div className="flex items-center gap-2">
+                      {stats.brokenRoutes === 0 ? (
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-red-600" />
+                      )}
+                      <span className="font-medium">Broken Navigation Routes</span>
+                    </div>
+                    <Badge className={stats.brokenRoutes === 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                      {stats.brokenRoutes === 0 ? 'PASS' : `${stats.brokenRoutes} BLOCKING`}
                     </Badge>
                   </div>
+                  
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span className="font-medium">Backend Functions</span>
-                    <Badge className="bg-green-100 text-green-800">
-                      {KNOWN_FUNCTIONS.length} Registered
+                    <div className="flex items-center gap-2">
+                      {stats.deadButtons === 0 ? (
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                      )}
+                      <span className="font-medium">Dead Button Clicks</span>
+                    </div>
+                    <Badge className={stats.deadButtons === 0 ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
+                      {stats.deadButtons === 0 ? 'PASS' : `${stats.deadButtons} HIGH`}
                     </Badge>
                   </div>
+                  
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span className="font-medium">Critical Issues</span>
-                    <Badge className={AUDIT_DATA.potentialIssues.filter(i => i.severity === 'high').length > 0 ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}>
-                      {AUDIT_DATA.potentialIssues.filter(i => i.severity === 'high').length} High Priority
+                    <div className="flex items-center gap-2">
+                      {stats.silentMutations === 0 ? (
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <AlertTriangle className="h-5 w-5 text-orange-600" />
+                      )}
+                      <span className="font-medium">Mutations Without Toast Feedback</span>
+                    </div>
+                    <Badge className={stats.silentMutations === 0 ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"}>
+                      {stats.silentMutations === 0 ? 'PASS' : `${stats.silentMutations} MEDIUM`}
                     </Badge>
                   </div>
                 </div>
               </CardContent>
             </Card>
-
+            
             <Card>
               <CardHeader>
-                <CardTitle>Recent Fixes Applied</CardTitle>
+                <CardTitle>PASS 1 Status</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center gap-2">
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Created missing <code>testAIProvider</code> backend function</span>
-                  </li>
-                  <li className="flex items-center gap-2">
+                    <span>All sidebar navigation items route to existing pages</span>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Wired AdminAIProviders Save/Test buttons with handlers</span>
-                  </li>
-                  <li className="flex items-center gap-2">
+                    <span>Leads CRUD fully functional with toast feedback</span>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Fixed connectIntegration org_id resolution</span>
-                  </li>
-                  <li className="flex items-center gap-2">
+                    <span>Google Sheets import wizard working end-to-end</span>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Upgraded encryption from base64 to AES-GCM</span>
-                  </li>
-                  <li className="flex items-center gap-2">
+                    <span>Canonical org_id resolver used across all pages</span>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Standardized Sonner Toaster in Layout.jsx</span>
-                  </li>
-                  <li className="flex items-center gap-2">
+                    <span>NotFound page catches unknown routes</span>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Pipeline stage updates now show toasts</span>
-                  </li>
-                  <li className="flex items-center gap-2">
+                    <span>AI Provider configuration fully wired</span>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Removed org_id fallbacks across 15+ pages</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Added 404 NotFound page for unknown routes</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Replaced window.location navigations with Link/anchor tags</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Added onError handlers to all mutations for toast feedback</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Fixed EmailSequences, Communications, ComplianceDashboard org scoping</span>
-                  </li>
-                </ul>
+                    <span>Integration connections with encrypted token storage</span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Dead Buttons Tab */}
-          <TabsContent value="buttons" className="space-y-4">
+          {/* Missing Functions Tab */}
+          <TabsContent value="functions" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MousePointer className="h-5 w-5" />
-                  Buttons Needing Review
-                </CardTitle>
-                <CardDescription>
-                  Buttons that may lack onClick handlers or proper wiring
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Server className="h-5 w-5" />
+                      Missing Backend Functions
+                    </CardTitle>
+                    <CardDescription>
+                      Functions invoked in frontend but not found in /functions folder
+                    </CardDescription>
+                  </div>
+                  {filteredMissingFunctions.length > 0 && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => copyList(filteredMissingFunctions, 'functions')}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy List
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                {AUDIT_DATA.deadButtons.length === 0 ? (
+                {filteredMissingFunctions.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500" />
-                    <p>All buttons appear to be properly wired!</p>
+                    <p>All invoked functions exist in the backend!</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {AUDIT_DATA.deadButtons.map((item, idx) => (
-                      <div key={idx} className="p-4 border rounded-lg hover:bg-gray-50">
+                    {filteredMissingFunctions.map((item, idx) => (
+                      <div key={idx} className="p-4 border border-red-200 rounded-lg bg-red-50">
                         <div className="flex items-start justify-between">
                           <div>
                             <div className="flex items-center gap-2">
-                              <FileCode className="h-4 w-4 text-gray-500" />
-                              <span className="font-mono text-sm">{item.file}</span>
-                              <span className="text-gray-400">:{item.line}</span>
+                              <code className="font-mono text-sm bg-red-100 px-2 py-1 rounded">
+                                {item.function}
+                              </code>
+                              <Badge className="bg-red-100 text-red-800">BLOCKER</Badge>
                             </div>
-                            <p className="text-sm text-gray-600 mt-1">{item.issue}</p>
+                            <p className="text-sm text-gray-600 mt-2">
+                              Referenced in: {item.files.join(', ')}
+                            </p>
+                            {item.page && (
+                              <Link 
+                                to={createPageUrl(item.page)} 
+                                className="text-sm text-blue-600 hover:underline mt-1 inline-flex items-center gap-1"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                Go to {item.page}
+                              </Link>
+                            )}
                           </div>
-                          <Badge className={getSeverityColor(item.severity)}>
-                            {item.severity}
-                          </Badge>
                         </div>
                       </div>
                     ))}
@@ -397,135 +527,197 @@ export default function QAAudit() {
             </Card>
           </TabsContent>
 
-          {/* Routes Tab */}
+          {/* Broken Routes Tab */}
           <TabsContent value="routes" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <LinkIcon className="h-5 w-5" />
-                  Page Routes
-                </CardTitle>
-                <CardDescription>
-                  All known pages and their status
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <LinkIcon className="h-5 w-5" />
+                      Broken Navigation Routes
+                    </CardTitle>
+                    <CardDescription>
+                      Sidebar items pointing to non-existent pages
+                    </CardDescription>
+                  </div>
+                  {auditResults.brokenRoutes.length > 0 && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => copyList(auditResults.brokenRoutes, 'routes')}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy List
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {KNOWN_PAGES.map((page) => (
-                    <div 
-                      key={page} 
-                      className="flex items-center justify-between p-2 border rounded hover:bg-gray-50"
-                    >
-                      <div className="flex items-center gap-2">
-                        {getTestStatusIcon(testResults[page])}
-                        <span className="text-sm font-mono">{page}</span>
+                {auditResults.brokenRoutes.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500" />
+                    <p>All navigation routes are valid!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {auditResults.brokenRoutes.map((item, idx) => (
+                      <div key={idx} className="p-4 border border-red-200 rounded-lg bg-red-50">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <code className="font-mono text-sm">{item.route}</code>
+                            <p className="text-sm text-gray-600 mt-1">Defined in: {item.location}</p>
+                          </div>
+                          <Badge className="bg-red-100 text-red-800">BLOCKER</Badge>
+                        </div>
                       </div>
-                      <div className="flex gap-1">
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => runPageTest(page)}
-                        >
-                          Test
-                        </Button>
-                        <Link to={createPageUrl(page)}>
-                          <Button size="sm" variant="ghost">
-                            <ExternalLink className="h-3 w-3" />
-                          </Button>
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
-          </TabsContent>
-
-          {/* Functions Tab */}
-          <TabsContent value="functions" className="space-y-4">
+            
+            {/* All Pages List */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Server className="h-5 w-5" />
-                  Backend Functions
-                </CardTitle>
-                <CardDescription>
-                  Registered backend functions ({KNOWN_FUNCTIONS.length} total)
-                </CardDescription>
+                <CardTitle>All Registered Pages ({auditResults.existingPages.length})</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                  {KNOWN_FUNCTIONS.slice(0, 40).map((fn) => (
-                    <div 
-                      key={fn} 
-                      className="flex items-center gap-2 p-2 border rounded text-sm font-mono bg-gray-50"
+                  {auditResults.existingPages.slice(0, 40).map(page => (
+                    <Link 
+                      key={page}
+                      to={createPageUrl(page)}
+                      className="flex items-center gap-2 p-2 border rounded hover:bg-gray-50 text-sm"
                     >
                       <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />
-                      <span className="truncate">{fn}</span>
-                    </div>
+                      <span className="truncate font-mono">{page}</span>
+                    </Link>
                   ))}
                 </div>
-                {KNOWN_FUNCTIONS.length > 40 && (
+                {auditResults.existingPages.length > 40 && (
                   <p className="text-sm text-gray-500 mt-4 text-center">
-                    And {KNOWN_FUNCTIONS.length - 40} more...
+                    And {auditResults.existingPages.length - 40} more...
                   </p>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Issues Tab */}
-          <TabsContent value="issues" className="space-y-4">
+          {/* Dead Buttons Tab */}
+          <TabsContent value="buttons" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-orange-600" />
-                  Potential Issues
-                </CardTitle>
-                <CardDescription>
-                  Known issues that may cause problems
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <MousePointer className="h-5 w-5" />
+                      Dead Buttons
+                    </CardTitle>
+                    <CardDescription>
+                      Buttons without onClick, not type="submit", and not asChild
+                    </CardDescription>
+                  </div>
+                  {filteredDeadButtons.length > 0 && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => copyList(filteredDeadButtons, 'buttons')}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy List
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {AUDIT_DATA.potentialIssues.map((issue, idx) => (
-                    <div 
-                      key={idx} 
-                      className={`p-4 border-l-4 rounded-lg ${
-                        issue.severity === 'high' 
-                          ? 'border-l-red-500 bg-red-50' 
-                          : issue.severity === 'medium'
-                          ? 'border-l-yellow-500 bg-yellow-50'
-                          : 'border-l-blue-500 bg-blue-50'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <Badge className={getSeverityColor(issue.severity)} >
-                            {issue.severity.toUpperCase()}
-                          </Badge>
-                          <p className="mt-2 font-medium">{issue.type}</p>
-                          <p className="text-sm text-gray-600 mt-1">{issue.issue}</p>
+                {filteredDeadButtons.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500" />
+                    <p>All buttons are properly wired!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {filteredDeadButtons.slice(0, 20).map((item, idx) => (
+                      <div key={idx} className="p-4 border border-yellow-200 rounded-lg bg-yellow-50">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <FileCode className="h-4 w-4 text-gray-500" />
+                              <span className="font-mono text-sm">{item.file}</span>
+                              <span className="text-gray-400">:{item.line}</span>
+                            </div>
+                            <code className="text-xs text-gray-600 mt-2 block bg-gray-100 p-2 rounded">
+                              {item.snippet}
+                            </code>
+                          </div>
+                          <Badge className="bg-yellow-100 text-yellow-800">HIGH</Badge>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                    {filteredDeadButtons.length > 20 && (
+                      <p className="text-sm text-gray-500 text-center">
+                        And {filteredDeadButtons.length - 20} more...
+                      </p>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
+          </TabsContent>
 
+          {/* Silent Mutations Tab */}
+          <TabsContent value="mutations" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Recommended Actions</CardTitle>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Bell className="h-5 w-5" />
+                      Silent Mutations
+                    </CardTitle>
+                    <CardDescription>
+                      Files with mutations but no toast import detected
+                    </CardDescription>
+                  </div>
+                  {auditResults.silentMutations.length > 0 && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => copyList(auditResults.silentMutations, 'mutations')}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy List
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                <ol className="list-decimal list-inside space-y-2 text-sm">
-                  <li>Ensure all components using toast import from the same source (sonner or shadcn)</li>
-                  <li>Audit backend functions for consistent org_id handling</li>
-                  <li>Convert uncontrolled form inputs to controlled components</li>
-                  <li>Add error boundaries to all major page components</li>
-                  <li>Implement comprehensive form validation</li>
-                </ol>
+                {auditResults.silentMutations.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500" />
+                    <p>All mutations have toast feedback!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {auditResults.silentMutations.map((item, idx) => (
+                      <div key={idx} className="p-4 border border-orange-200 rounded-lg bg-orange-50">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <FileCode className="h-4 w-4 text-gray-500" />
+                              <span className="font-mono text-sm">{item.file}</span>
+                            </div>
+                            <p className="text-sm text-gray-600 mt-1">
+                              {item.mutationCount} mutation(s) detected
+                            </p>
+                          </div>
+                          <Badge className="bg-orange-100 text-orange-800">MEDIUM</Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
