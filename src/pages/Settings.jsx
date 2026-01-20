@@ -41,7 +41,7 @@ function OrgLogoUpload() {
     enabled: !!user?.email,
   });
 
-  const orgId = memberships[0]?.org_id || user?.org_id;
+  const orgId = memberships[0]?.org_id;
 
   const { data: orgSettings, refetch: refetchOrgSettings } = useQuery({
     queryKey: ['orgSettings', orgId],

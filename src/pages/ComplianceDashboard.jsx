@@ -10,38 +10,52 @@ export default function ComplianceDashboard() {
   const [activeTab, setActiveTab] = useState('audit');
 
   const { data: auditLogs } = useQuery({
-    queryKey: ['auditLogs'],
+    queryKey: ['auditLogs', orgId],
     queryFn: async () => {
+      if (!orgId) return { data: { logs: [], total_logs: 0 } };
       try {
-        return await base44.functions.invoke('getAuditLog', {});
+        return await base44.functions.invoke('getAuditLog', { org_id: orgId });
       } catch {
         return { data: { logs: [], total_logs: 0 } };
       }
-    }
+    },
+    enabled: !!orgId,
   });
 
-  const { data: loginHistory } = useQuery({
-    queryKey: ['loginHistory'],
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: memberships = [] } = useQuery({
+    queryKey: ['userMembership', user?.email],
     queryFn: async () => {
-      try {
-        const history = await base44.entities.LoginHistory.filter({});
-        return history.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 50);
-      } catch {
-        return [];
-      }
-    }
+      if (!user?.email) return [];
+      return await base44.entities.OrgMembership.filter({ user_id: user.email });
+    },
+    enabled: !!user?.email,
+  });
+
+  const orgId = memberships[0]?.org_id;
+
+  const { data: loginHistory } = useQuery({
+    queryKey: ['loginHistory', orgId],
+    queryFn: async () => {
+      if (!orgId) return [];
+      const history = await base44.entities.LoginHistory.filter({ org_id: orgId });
+      return history.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 50);
+    },
+    enabled: !!orgId,
   });
 
   const { data: dataAccessLogs } = useQuery({
-    queryKey: ['dataAccessLogs'],
+    queryKey: ['dataAccessLogs', orgId],
     queryFn: async () => {
-      try {
-        const logs = await base44.entities.DataAccessLog.filter({});
-        return logs.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 50);
-      } catch {
-        return [];
-      }
-    }
+      if (!orgId) return [];
+      const logs = await base44.entities.DataAccessLog.filter({ org_id: orgId });
+      return logs.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 50);
+    },
+    enabled: !!orgId,
   });
 
   return (
