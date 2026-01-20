@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
       isPortalSession = true;
     }
 
-    const { requirement_id, file_key, file_name, mime_type, size_bytes, hash_sha256, sessionId } = await req.json();
+    const { requirement_id, file_key, file_name, mime_type, size_bytes, hash_sha256, sessionId, conditionId } = await req.json();
 
     if (!requirement_id || !file_key || !file_name) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
@@ -75,6 +75,17 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.Condition.update(conditions[0].id, {
         status: 'received'
       });
+    }
+
+    // If a specific condition ID was provided, update it directly
+    if (conditionId) {
+      try {
+        await base44.asServiceRole.entities.Condition.update(conditionId, {
+          status: 'received'
+        });
+      } catch (e) {
+        console.log('Direct condition update skipped:', e.message);
+      }
     }
 
     // Also check for conditions that match by required_documents array
