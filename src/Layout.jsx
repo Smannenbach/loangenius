@@ -118,6 +118,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Lender Partners', href: '/LenderIntegrations', icon: Building },
     { name: 'Borrower Portal', href: '/PortalSettings', icon: Globe },
     { name: 'Testing Hub', href: '/TestingHub', icon: Sparkles },
+    { name: 'QA Audit', href: '/QAAudit', icon: Search },
     { name: 'Underwriting', href: '/Underwriting', icon: Scale },
     { name: 'Compliance', href: '/ComplianceDashboard', icon: CheckCircle },
     { name: 'MISMO Profiles', href: '/MISMOExportProfiles', icon: FileOutput },
