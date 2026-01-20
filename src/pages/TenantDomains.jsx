@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useTenant } from '@/components/TenantProvider';
+import { useTenantSafe } from '@/components/useBranding';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,7 +25,7 @@ import {
 import { toast } from 'sonner';
 
 export default function TenantDomains() {
-  const { tenant_id, role, tenant_name } = useTenant();
+  const { tenant_id, role, tenant_name } = useTenantSafe();
   const queryClient = useQueryClient();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newHostname, setNewHostname] = useState('');

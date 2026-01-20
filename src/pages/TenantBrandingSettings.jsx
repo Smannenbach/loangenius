@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useTenant } from '@/components/TenantProvider';
+import { useTenantSafe } from '@/components/useBranding';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,7 @@ import { Palette, Image, Type, Eye, Loader2, Upload, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function TenantBrandingSettings() {
-  const { tenant_id, role, branding: currentBranding } = useTenant();
+  const { tenant_id, role, branding: currentBranding } = useTenantSafe();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     app_name: 'LoanGenius',
