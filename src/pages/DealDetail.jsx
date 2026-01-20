@@ -48,6 +48,7 @@ import DocumentGenerator from '@/components/documents/DocumentGenerator';
 import SmartDocumentReview from '@/components/documents/SmartDocumentReview';
 import LenderSyncPanel from '@/components/lender/LenderSyncPanel';
 import LenderOutreachPanel from '@/components/deal-detail/LenderOutreachPanel';
+import LenderSubmissionsPanel from '@/components/deal-detail/LenderSubmissionsPanel';
 import OfferLetterGenerator from '@/components/deal-detail/OfferLetterGenerator';
 import ExportDealPDFModal from '@/components/deal-detail/ExportDealPDFModal';
 import UploadDocumentModal from '@/components/deal-detail/UploadDocumentModal';
@@ -737,8 +738,9 @@ export default function DealDetail() {
 
         <TabsContent value="lenders">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-6">
               <LenderOutreachPanel dealId={dealId} deal={deal} />
+              <LenderSubmissionsPanel dealId={dealId} orgId={deal?.org_id} />
             </div>
             <LenderSyncPanel dealId={dealId} orgId={deal?.org_id} />
           </div>
