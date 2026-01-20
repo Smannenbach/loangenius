@@ -1,28 +1,27 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useEffect } from 'react';
 
 /**
  * Canonical organization resolver hook
  * Used across all pages to ensure consistent org_id handling
  * 
- * Returns:
- * - orgId: The user's organization ID (null if not found)
- * - org: The full organization object
- * - membership: The user's membership record
- * - memberships: All memberships for the user
- * - userRole: The user's role in the org
- * - isLoading: Loading state
- * - error: Any error
- * - ensureOrg: Function to create org if needed
+ * USAGE: Import this hook in any page that needs org-scoped data.
+ * It handles:
+ * - Getting current user
+ * - Looking up OrgMembership
+ * - Auto-creating org if none exists (for new users)
+ * - Caching to prevent duplicate queries
  */
 export function useOrgId() {
   const queryClient = useQueryClient();
 
-  // Get current user - cached globally
+  // Get current user - cached globally with long stale time
   const { data: user, isLoading: userLoading, error: userError } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes - user doesn't change often
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
     retry: 1
   });
 
@@ -42,7 +41,8 @@ export function useOrgId() {
       return results || [];
     },
     enabled: !!user?.email,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes - memberships rarely change
+    gcTime: 30 * 60 * 1000,
     retry: 1
   });
 
@@ -63,17 +63,17 @@ export function useOrgId() {
       }
     },
     enabled: !!orgId,
-    staleTime: 10 * 60 * 1000 // 10 minutes
+    staleTime: 10 * 60 * 1000
   });
 
   // Mutation to ensure org exists (creates if needed)
   const ensureOrgMutation = useMutation({
     mutationFn: async () => {
-      // Try to seed org and users
+      // Try to seed org and users via backend function
       try {
         await base44.functions.invoke('seedOrgAndUsers', {});
       } catch (e) {
-        console.log('seedOrgAndUsers not available or failed:', e.message);
+        console.log('seedOrgAndUsers not available, creating manually:', e.message);
         // Create a default org manually as fallback
         const newOrg = await base44.entities.Organization.create({
           name: `${user?.full_name || 'My'} Organization`,
@@ -97,7 +97,15 @@ export function useOrgId() {
     }
   });
 
-  const isLoading = userLoading || membershipLoading || orgLoading;
+  // Auto-ensure org exists for new users (only once)
+  useEffect(() => {
+    if (user?.email && !membershipLoading && memberships.length === 0 && !ensureOrgMutation.isPending) {
+      // User exists but has no org - create one
+      ensureOrgMutation.mutate();
+    }
+  }, [user?.email, membershipLoading, memberships.length]);
+
+  const isLoading = userLoading || membershipLoading || orgLoading || ensureOrgMutation.isPending;
   const error = userError || membershipError;
 
   return {
@@ -111,6 +119,7 @@ export function useOrgId() {
     
     // Status
     isLoading,
+    isReady: !!orgId && !isLoading,
     error,
     hasOrg: !!orgId,
     
@@ -124,13 +133,15 @@ export function useOrgId() {
 /**
  * Hook for org-scoped entity queries
  * Automatically adds org_id filter and handles loading states
+ * NEVER falls back to list() - returns empty array if no org
  */
 export function useOrgScopedQuery(entityName, additionalFilters = {}, options = {}) {
-  const { orgId, isLoading: orgLoading, hasOrg } = useOrgId();
+  const { orgId, isLoading: orgLoading } = useOrgId();
 
   return useQuery({
-    queryKey: [entityName, 'org', orgId, additionalFilters],
+    queryKey: [entityName, 'org', orgId, JSON.stringify(additionalFilters)],
     queryFn: async () => {
+      // SECURITY: Never query without org_id
       if (!orgId) return [];
       
       const filters = {
@@ -138,9 +149,9 @@ export function useOrgScopedQuery(entityName, additionalFilters = {}, options = 
         ...additionalFilters
       };
       
-      // Remove undefined filters
+      // Remove undefined/null filters
       Object.keys(filters).forEach(key => {
-        if (filters[key] === undefined) delete filters[key];
+        if (filters[key] === undefined || filters[key] === null) delete filters[key];
       });
 
       const results = await base44.entities[entityName].filter(filters);
@@ -148,6 +159,7 @@ export function useOrgScopedQuery(entityName, additionalFilters = {}, options = 
     },
     enabled: !!orgId && !orgLoading,
     staleTime: options.staleTime || 30000, // 30 seconds default
+    retry: 2,
     ...options
   });
 }
@@ -162,7 +174,7 @@ export function useOrgScopedMutation(entityName, options = {}) {
 
   return useMutation({
     mutationFn: async (data) => {
-      if (!orgId) throw new Error('No organization found');
+      if (!orgId) throw new Error('No organization found. Please refresh the page.');
       
       const dataWithOrg = {
         ...data,

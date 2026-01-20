@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useOrgId, useOrgScopedQuery } from '@/components/useOrgId';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -122,45 +123,24 @@ export default function Leads() {
     lead_received_date: '',
   });
 
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-  });
+  // Use canonical org resolver - handles user, org lookup, and auto-creation
+  const { orgId, user, isLoading: orgLoading, isReady } = useOrgId();
 
-  // Get user's org membership
-  const { data: memberships = [] } = useQuery({
-    queryKey: ['userMembership', user?.email],
-    queryFn: async () => {
-      if (!user?.email) return [];
-      return await base44.entities.OrgMembership.filter({ user_id: user.email });
-    },
-    enabled: !!user?.email,
-  });
+  // Use org-scoped query - automatically filters by org_id, never falls back to list()
+  const { data: leads = [], isLoading: leadsLoading, error } = useOrgScopedQuery(
+    'Lead', 
+    { is_deleted: false },
+    { staleTime: 30000 }
+  );
 
-  const orgId = memberships[0]?.org_id || user?.org_id;
-
-  const { data: leads = [], isLoading, error } = useQuery({
-    queryKey: ['leads', orgId],
-    queryFn: async () => {
-      // SECURITY: Only query with org_id - never fall back to listing all
-      if (!orgId) {
-        console.warn('No org_id available for leads query');
-        return [];
-      }
-      const orgLeads = await base44.entities.Lead.filter({ org_id: orgId, is_deleted: false });
-      return orgLeads;
-    },
-    enabled: !!orgId, // Only run when org_id is available
-    retry: 2,
-    staleTime: 30000,
-  });
+  const isLoading = orgLoading || leadsLoading;
 
   const createLeadMutation = useMutation({
     mutationFn: async (data) => {
-      const effectiveOrgId = orgId || 'default';
+      if (!orgId) throw new Error('No organization found. Please refresh the page.');
       const processedData = {
         ...data,
-        org_id: effectiveOrgId,
+        org_id: orgId,
         estimated_value: data.estimated_value ? parseFloat(data.estimated_value) : null,
         loan_amount: data.loan_amount ? parseFloat(data.loan_amount) : null,
         current_balance: data.current_balance ? parseFloat(data.current_balance) : null,

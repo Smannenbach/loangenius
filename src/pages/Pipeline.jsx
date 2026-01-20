@@ -1,6 +1,7 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useMemo } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useOrgId, useOrgScopedQuery } from '@/components/useOrgId';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,47 +32,17 @@ export default function Pipeline() {
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
 
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-  });
+  // Use canonical org resolver
+  const { orgId, isLoading: orgLoading } = useOrgId();
 
-  // Get user's org membership
-  const { data: memberships = [] } = useQuery({
-    queryKey: ['userMembership', user?.email],
-    queryFn: async () => {
-      if (!user?.email) return [];
-      return await base44.entities.OrgMembership.filter({ user_id: user.email });
-    },
-    enabled: !!user?.email,
-  });
+  // Use org-scoped query - NEVER falls back to list()
+  const { data: deals = [], isLoading: dealsLoading, error } = useOrgScopedQuery(
+    'Deal',
+    { is_deleted: false },
+    { staleTime: 5 * 60 * 1000 }
+  );
 
-  const orgId = memberships[0]?.org_id || user?.org_id;
-  
-  const { data: deals = [], isLoading, error } = useQuery({
-    queryKey: ['deals', orgId],
-    queryFn: async () => {
-      try {
-        if (orgId) {
-          return await base44.entities.Deal.filter({ org_id: orgId, is_deleted: false });
-        }
-        // Fallback: get all deals if no org_id
-        const allDeals = await base44.entities.Deal.list();
-        return allDeals.filter(d => !d.is_deleted);
-      } catch (e) {
-        // Fallback: get all deals if org_id filter fails
-        try {
-          const allDeals = await base44.entities.Deal.list();
-          return allDeals.filter(d => !d.is_deleted);
-        } catch {
-          return [];
-        }
-      }
-    },
-    enabled: true,
-    retry: 2,
-    staleTime: 5 * 60 * 1000,
-  });
+  const isLoading = orgLoading || dealsLoading;
 
   const updateStage = useMutation({
     mutationFn: ({ dealId, newStage }) => 
