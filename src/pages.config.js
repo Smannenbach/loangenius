@@ -54,9 +54,11 @@ import Loans from './pages/Loans';
 import MISMOExportProfiles from './pages/MISMOExportProfiles';
 import MISMOImportExport from './pages/MISMOImportExport';
 import NewDeal from './pages/NewDeal';
+import NotFound from './pages/NotFound';
 import Pipeline from './pages/Pipeline';
 import PortalSettings from './pages/PortalSettings';
 import Privacy from './pages/Privacy';
+import QAAudit from './pages/QAAudit';
 import QuoteGenerator from './pages/QuoteGenerator';
 import ReportBuilder from './pages/ReportBuilder';
 import ReportViewer from './pages/ReportViewer';
@@ -76,8 +78,7 @@ import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
-import QAAudit from './pages/QAAudit';
-import NotFound from './pages/NotFound';
+import ErrorTest from './pages/ErrorTest';
 import __Layout from './Layout.jsx';
 
 
@@ -138,9 +139,11 @@ export const PAGES = {
     "MISMOExportProfiles": MISMOExportProfiles,
     "MISMOImportExport": MISMOImportExport,
     "NewDeal": NewDeal,
+    "NotFound": NotFound,
     "Pipeline": Pipeline,
     "PortalSettings": PortalSettings,
     "Privacy": Privacy,
+    "QAAudit": QAAudit,
     "QuoteGenerator": QuoteGenerator,
     "ReportBuilder": ReportBuilder,
     "ReportViewer": ReportViewer,
@@ -160,8 +163,7 @@ export const PAGES = {
     "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
-    "QAAudit": QAAudit,
-    "NotFound": NotFound,
+    "ErrorTest": ErrorTest,
 }
 
 export const pagesConfig = {
