@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useOrgId, useOrgScopedQuery } from '@/components/useOrgId';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, TrendingUp, Users, FileText, DollarSign, ArrowRight } from 'lucide-react';
@@ -14,54 +15,12 @@ import AttentionDeals from '../components/dashboard/AttentionDeals';
 import MyTasksWidget from '@/components/dashboard/MyTasksWidget';
 
 export default function Dashboard() {
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-  });
+  // Use canonical org resolver - handles user, memberships, and auto-creation
+  const { orgId, user, isLoading: orgLoading } = useOrgId();
 
-  // Get user's org membership
-  const { data: memberships = [] } = useQuery({
-    queryKey: ['userMembership', user?.email],
-    queryFn: async () => {
-      if (!user?.email) return [];
-      return await base44.entities.OrgMembership.filter({ user_id: user.email });
-    },
-    enabled: !!user?.email,
-  });
-
-  const orgId = memberships[0]?.org_id || user?.org_id;
-
-  // Fetch deals directly for reliable KPIs
-  const { data: deals = [] } = useQuery({
-    queryKey: ['dashboardDeals', orgId],
-    queryFn: async () => {
-      try {
-        if (orgId) {
-          return await base44.entities.Deal.filter({ org_id: orgId });
-        }
-        return await base44.entities.Deal.list();
-      } catch {
-        return [];
-      }
-    },
-    enabled: true,
-  });
-
-  // Fetch leads directly
-  const { data: leads = [] } = useQuery({
-    queryKey: ['dashboardLeads', orgId],
-    queryFn: async () => {
-      try {
-        if (orgId) {
-          return await base44.entities.Lead.filter({ org_id: orgId });
-        }
-        return await base44.entities.Lead.list();
-      } catch {
-        return [];
-      }
-    },
-    enabled: true,
-  });
+  // Use org-scoped queries - NEVER fall back to list()
+  const { data: deals = [] } = useOrgScopedQuery('Deal', { is_deleted: false });
+  const { data: leads = [] } = useOrgScopedQuery('Lead', { is_deleted: false });
 
   const { data: kpiData, isLoading: kpisLoading, error: kpiError } = useQuery({
     queryKey: ['dashboardKPIs', orgId],

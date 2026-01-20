@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useOrgId, useOrgScopedQuery } from '@/components/useOrgId';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -17,42 +17,13 @@ export default function Contacts() {
   const [filterType, setFilterType] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-  });
+  // Use canonical org resolver
+  const { isLoading: orgLoading } = useOrgId();
 
-  // Get user's org membership
-  const { data: memberships = [] } = useQuery({
-    queryKey: ['userMembership', user?.email],
-    queryFn: async () => {
-      if (!user?.email) return [];
-      return await base44.entities.OrgMembership.filter({ user_id: user.email });
-    },
-    enabled: !!user?.email,
-  });
+  // Use org-scoped query - NEVER falls back to list()
+  const { data: contacts = [], isLoading: contactsLoading } = useOrgScopedQuery('Contact');
 
-  const orgId = memberships[0]?.org_id || user?.org_id;
-
-  const { data: contacts = [], isLoading } = useQuery({
-    queryKey: ['contacts', orgId],
-    queryFn: async () => {
-      try {
-        if (orgId) {
-          return await base44.entities.Contact.filter({ org_id: orgId });
-        }
-        return await base44.entities.Contact.list();
-      } catch (e) {
-        // Fallback: get all contacts if org_id filter fails
-        try {
-          return await base44.entities.Contact.list();
-        } catch {
-          return [];
-        }
-      }
-    },
-    enabled: true,
-  });
+  const isLoading = orgLoading || contactsLoading;
 
   // Filter contacts
   const filtered = contacts.filter(c => {
