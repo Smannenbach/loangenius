@@ -47,6 +47,10 @@ export default function PortalSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['portalSettings'] });
+      toast.success('Portal settings saved!');
+    },
+    onError: (error) => {
+      toast.error('Failed to save settings: ' + error.message);
     },
   });
 
@@ -351,7 +355,7 @@ export default function PortalSettings() {
       </Tabs>
 
       <div className="flex gap-3 mt-8">
-        <Button variant="outline" onClick={() => window.history.back()}>
+        <Button variant="outline" onClick={() => window.history.back()} type="button">
           Cancel
         </Button>
         <Button

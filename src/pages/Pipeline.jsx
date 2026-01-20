@@ -21,6 +21,7 @@ import {
   ChevronRight,
   MoreVertical,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,8 +48,12 @@ export default function Pipeline() {
   const updateStage = useMutation({
     mutationFn: ({ dealId, newStage }) => 
       base44.entities.Deal.update(dealId, { stage: newStage }),
-    onSuccess: () => {
+    onSuccess: (_, { newStage }) => {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
+      toast.success(`Deal moved to ${newStage.replace(/_/g, ' ')}`);
+    },
+    onError: (error) => {
+      toast.error('Failed to update deal: ' + error.message);
     }
   });
 
