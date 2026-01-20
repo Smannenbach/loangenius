@@ -92,8 +92,9 @@ Deno.serve(async (req) => {
     }
   };
 
+  let base44;
   try {
-    const base44 = createClientFromRequest(req);
+    base44 = createClientFromRequest(req);
     
     // ========== TEST 1: Auth Test ==========
     let user = null;
