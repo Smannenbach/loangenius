@@ -30,13 +30,18 @@ import { toast } from 'sonner';
 const allSourceFiles = import.meta.glob('/src/**/*.{js,jsx}', { as: 'raw', eager: true });
 const allFunctionFiles = import.meta.glob('/src/functions/*.js', { as: 'raw', eager: true });
 
-// Known pages from Layout sidebar
+// Known pages from Layout sidebar - must match Layout.jsx navigation
 const SIDEBAR_PAGES = [
+  // Main
   'Dashboard', 'Pipeline', 'Leads', 'Loans', 'Contacts',
+  // Tools
   'QuoteGenerator', 'AIAssistant', 'Communications', 'EmailSequences', 'Reports',
-  'Users', 'LenderIntegrations', 'PortalSettings', 'SystemHealth', 'SmokeTests', 'TestingHub', 'QAAudit',
-  'Underwriting', 'ComplianceDashboard', 'MISMOExportProfiles', 'MISMOImportExport',
-  'AdminIntegrations', 'Settings'
+  // Admin
+  'Users', 'LenderIntegrations', 'PortalSettings', 'SystemHealth', 'Preflight',
+  'Underwriting', 'ComplianceDashboard', 'MISMOExportProfiles', 'MISMOImportExport', 'MISMOValidator',
+  'AdminIntegrations', 'Settings',
+  // Internal (dev only)
+  'SmokeTests', 'TestingHub', 'QAAudit',
 ];
 
 // Extract function names from functions folder
