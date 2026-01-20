@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from './utils';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { useTenant } from '@/components/TenantProvider';
+import { useTenantSafe } from '@/components/useBranding';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Toaster } from "@/components/ui/sonner";
@@ -87,7 +87,7 @@ export default function Layout({ children, currentPageName }) {
     queryFn: () => base44.auth.me(),
   });
 
-  const { branding, tenant_name, features } = useTenant();
+  const { branding, tenant_name, features } = useTenantSafe();
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
