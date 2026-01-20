@@ -414,7 +414,7 @@ export default function Layout({ children, currentPageName }) {
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white relative" data-testid="cta:Layout:MobileNotifications">
+              <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white hover:bg-slate-700 relative" data-testid="cta:Layout:MobileNotifications">
                 <Bell className="h-5 w-5" />
                 <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
               </Button>
