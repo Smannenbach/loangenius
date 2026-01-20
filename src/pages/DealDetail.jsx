@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,7 @@ import OfferLetterGenerator from '@/components/deal-detail/OfferLetterGenerator'
 export default function DealDetail() {
   const urlParams = new URLSearchParams(window.location.search);
   const dealId = urlParams.get('id');
+  const navigate = useNavigate();
   const [showPortalInviteModal, setShowPortalInviteModal] = useState(false);
   const [showSubmitToLenderModal, setShowSubmitToLenderModal] = useState(false);
   const [selectedBorrower, setSelectedBorrower] = useState(null);
@@ -211,12 +212,15 @@ export default function DealDetail() {
           </div>
           <h2 className="text-xl font-semibold text-gray-800 mb-2">No Deal Selected</h2>
           <p className="text-gray-500 mb-4">Please select a deal from the pipeline to view details.</p>
-          <Link to={createPageUrl('Pipeline')}>
-            <Button className="gap-2">
+          <div className="flex gap-3 justify-center">
+            <Button variant="outline" onClick={() => navigate(-1)} className="gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Back to Pipeline
+              Go Back
             </Button>
-          </Link>
+            <Link to={createPageUrl('Pipeline')}>
+              <Button>Go to Pipeline</Button>
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -242,12 +246,15 @@ export default function DealDetail() {
           </div>
           <h2 className="text-xl font-semibold text-gray-800 mb-2">Deal Not Found</h2>
           <p className="text-gray-500 mb-4">The deal you're looking for doesn't exist or couldn't be loaded.</p>
-          <Link to={createPageUrl('Pipeline')}>
-            <Button className="gap-2">
+          <div className="flex gap-3 justify-center">
+            <Button variant="outline" onClick={() => navigate(-1)} className="gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Back to Pipeline
+              Go Back
             </Button>
-          </Link>
+            <Link to={createPageUrl('Pipeline')}>
+              <Button>Go to Pipeline</Button>
+            </Link>
+          </div>
         </div>
       </div>
     );
