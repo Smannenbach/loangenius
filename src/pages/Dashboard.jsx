@@ -96,14 +96,12 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold text-gray-900">Welcome, {user?.full_name || 'User'}!</h1>
           <p className="text-sm text-gray-500 mt-1">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
         </div>
-        <Link 
-          to={createPageUrl('LoanApplicationWizard')}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors"
-          data-testid="cta:Dashboard:NewDeal"
-        >
-          <Plus className="h-5 w-5" />
-          New Deal
-        </Link>
+        <Button asChild data-testid="cta:Dashboard:NewDeal">
+          <Link to={createPageUrl('LoanApplicationWizard')} className="gap-2">
+            <Plus className="h-5 w-5" />
+            New Deal
+          </Link>
+        </Button>
       </div>
 
       {/* KPI Cards */}
