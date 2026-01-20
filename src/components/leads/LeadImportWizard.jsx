@@ -128,7 +128,9 @@ export default function LeadImportWizard({ trigger, onImportComplete }) {
       const errorMsg = error.response?.data?.error || error.message;
       // Check for connector errors
       if (errorMsg.includes('not authorized') || errorMsg.includes('Google Sheets')) {
-        setConnectorError(errorMsg);
+          setConnectorError(errorMsg);
+      } else if (errorMsg.includes('401') || errorMsg.includes('403') || errorMsg.includes('expired')) {
+        setConnectorError('Google Sheets authorization expired. Please re-authorize in Admin → Integrations.');
       }
       toast.error('Preview failed: ' + errorMsg);
     }

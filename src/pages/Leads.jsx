@@ -1199,7 +1199,14 @@ export default function Leads() {
                                 <Phone className="h-3 w-3 mr-2" />Call
                               </a>
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600" onClick={() => deleteLeadMutation.mutate(lead.id)}>Delete</DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="text-red-600" 
+                              onClick={() => {
+                                if (window.confirm(`Delete ${lead.first_name} ${lead.last_name}? This action cannot be undone.`)) {
+                                  deleteLeadMutation.mutate(lead.id);
+                                }
+                              }}
+                            >Delete</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
