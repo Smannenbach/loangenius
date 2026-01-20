@@ -5,6 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Toaster } from "@/components/ui/sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -404,6 +405,9 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav />
-    </div>
-  );
-}
+
+      {/* Toast Notifications */}
+      <Toaster />
+      </div>
+      );
+      }
