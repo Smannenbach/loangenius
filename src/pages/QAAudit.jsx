@@ -331,7 +331,7 @@ export default function QAAudit() {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Removed org_id fallbacks across all pages</span>
+                    <span>Removed org_id fallbacks across 15+ pages</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
@@ -340,6 +340,14 @@ export default function QAAudit() {
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
                     <span>Replaced window.location navigations with Link/anchor tags</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span>Added onError handlers to all mutations for toast feedback</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span>Fixed EmailSequences, Communications, ComplianceDashboard org scoping</span>
                   </li>
                 </ul>
               </CardContent>
