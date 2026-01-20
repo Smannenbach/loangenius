@@ -83,6 +83,8 @@ import SmokeTests from './pages/SmokeTests';
 import SystemHealth from './pages/SystemHealth';
 import PrivacyRequest from './pages/PrivacyRequest';
 import BillingSuccess from './pages/BillingSuccess';
+import AdminPrivacyRequests from './pages/AdminPrivacyRequests';
+import BillingSettings from './pages/BillingSettings';
 import __Layout from './Layout.jsx';
 
 
@@ -172,6 +174,8 @@ export const PAGES = {
     "SystemHealth": SystemHealth,
     "PrivacyRequest": PrivacyRequest,
     "BillingSuccess": BillingSuccess,
+    "AdminPrivacyRequests": AdminPrivacyRequests,
+    "BillingSettings": BillingSettings,
 }
 
 export const pagesConfig = {
