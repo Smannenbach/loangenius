@@ -188,8 +188,23 @@ Deno.serve(async (req) => {
       let csvText = '';
 
       if (source_type === 'csv' && data) {
-        // Direct CSV data passed
-        csvText = data;
+        // Direct CSV data passed - can be string (raw CSV) or array (pre-parsed rows)
+        if (typeof data === 'string') {
+          csvText = data;
+        } else if (Array.isArray(data)) {
+          // Pre-parsed row array - convert back to CSV format
+          if (data.length === 0) {
+            return Response.json({ headers: [], rows: [], suggested_mapping: {} });
+          }
+          const headers = Object.keys(data[0]).filter(k => k !== '_rowIndex');
+          const csvRows = [headers.join(',')];
+          for (const row of data) {
+            csvRows.push(headers.map(h => `"${(row[h] || '').toString().replace(/"/g, '""')}"`).join(','));
+          }
+          csvText = csvRows.join('\n');
+        } else {
+          return Response.json({ error: 'Invalid data format - expected string or array' }, { status: 400 });
+        }
       } else if (source_type === 'google_sheets' && spreadsheet_id) {
         // Fetch from Google Sheets API
         let accessToken;
@@ -274,7 +289,23 @@ Deno.serve(async (req) => {
       let csvText = '';
 
       if (source_type === 'csv' && data) {
-        csvText = data;
+        // Direct CSV data passed - can be string (raw CSV) or array (pre-parsed rows)
+        if (typeof data === 'string') {
+          csvText = data;
+        } else if (Array.isArray(data)) {
+          // Pre-parsed row array - convert back to CSV format
+          if (data.length === 0) {
+            return Response.json({ error: 'No data to import' }, { status: 400 });
+          }
+          const headers = Object.keys(data[0]).filter(k => k !== '_rowIndex');
+          const csvRows = [headers.join(',')];
+          for (const row of data) {
+            csvRows.push(headers.map(h => `"${(row[h] || '').toString().replace(/"/g, '""')}"`).join(','));
+          }
+          csvText = csvRows.join('\n');
+        } else {
+          return Response.json({ error: 'Invalid data format - expected string or array' }, { status: 400 });
+        }
       } else if (source_type === 'google_sheets' && spreadsheet_id) {
         let accessToken;
         try {
