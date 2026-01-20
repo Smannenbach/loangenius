@@ -330,7 +330,7 @@ export default function QAAudit() {
               Build-time analysis of code quality issues • Last scan: {lastScanTime.toLocaleTimeString()}
             </p>
           </div>
-          <Button onClick={runAudit} className="gap-2">
+          <Button onClick={runAudit} className="gap-2" data-testid="cta:QAAudit:RunAudit">
             <RefreshCw className="h-4 w-4" />
             Run Audit Now
           </Button>
