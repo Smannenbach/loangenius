@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useOrgId } from '@/components/useOrgId';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,9 +19,13 @@ import {
   Check,
   AlertCircle,
   Trash2,
-  Lock
+  Lock,
+  Loader2,
+  RefreshCw,
+  Shield
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { toast } from 'sonner';
 
 const INTEGRATION_CATEGORIES = {
   'AI Models': [
@@ -57,26 +62,66 @@ const INTEGRATION_CATEGORIES = {
 export default function AdminIntegrations() {
   const [selectedCategory, setSelectedCategory] = useState('AI Models');
   const [apiKeyInputs, setApiKeyInputs] = useState({});
+  const [testingId, setTestingId] = useState(null);
+  const [connectingId, setConnectingId] = useState(null);
   const queryClient = useQueryClient();
+  const { orgId, isLoading: orgLoading } = useOrgId();
 
-  const { data: integrations = [] } = useQuery({
-    queryKey: ['integrations'],
+  // Check if user is admin
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me()
+  });
+
+  const isAdmin = user?.role === 'admin';
+
+  const { data: integrations = [], isLoading } = useQuery({
+    queryKey: ['integrations', orgId],
     queryFn: async () => {
-      try {
-        return await base44.entities.IntegrationConfig.filter({});
-      } catch (e) {
-        return [];
-      }
-    }
+      if (!orgId) return [];
+      return await base44.entities.IntegrationConfig.filter({ org_id: orgId });
+    },
+    enabled: !!orgId
   });
 
   const connectMutation = useMutation({
     mutationFn: async (data) => {
-      return await base44.functions.invoke('connectIntegration', data);
+      const response = await base44.functions.invoke('connectIntegration', data);
+      return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['integrations'] });
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['integrations', orgId] });
       setApiKeyInputs({});
+      setConnectingId(null);
+      toast.success(data.message || 'Integration connected successfully');
+    },
+    onError: (error) => {
+      setConnectingId(null);
+      const msg = error.response?.data?.error || error.message || 'Connection failed';
+      toast.error(msg);
+    }
+  });
+
+  const testMutation = useMutation({
+    mutationFn: async (integrationName) => {
+      const response = await base44.functions.invoke('connectIntegration', { 
+        integration_name: integrationName, 
+        action: 'test' 
+      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['integrations', orgId] });
+      setTestingId(null);
+      if (data.success) {
+        toast.success('Connection test successful');
+      } else {
+        toast.error(data.message || 'Connection test failed');
+      }
+    },
+    onError: (error) => {
+      setTestingId(null);
+      toast.error(error.response?.data?.error || 'Test failed');
     }
   });
 
@@ -85,7 +130,11 @@ export default function AdminIntegrations() {
       return await base44.entities.IntegrationConfig.delete(integrationId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['integrations'] });
+      queryClient.invalidateQueries({ queryKey: ['integrations', orgId] });
+      toast.success('Integration disconnected');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to disconnect');
     }
   });
 
@@ -93,15 +142,36 @@ export default function AdminIntegrations() {
     if (requiresApiKey) {
       const apiKey = apiKeyInputs[integrationName];
       if (!apiKey) {
-        alert('Please enter API key');
+        toast.error('Please enter an API key');
         return;
       }
+      setConnectingId(integrationName);
       connectMutation.mutate({ integration_name: integrationName, api_key: apiKey });
     } else {
-      // OAuth flow would trigger here
+      setConnectingId(integrationName);
       connectMutation.mutate({ integration_name: integrationName });
     }
   };
+
+  const handleTest = (integrationName) => {
+    setTestingId(integrationName);
+    testMutation.mutate(integrationName);
+  };
+
+  // Show access denied for non-admins
+  if (!orgLoading && user && !isAdmin) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Card className="max-w-md">
+          <CardContent className="pt-6 text-center">
+            <Shield className="h-12 w-12 mx-auto text-red-500 mb-4" />
+            <h2 className="text-xl font-bold mb-2">Access Denied</h2>
+            <p className="text-slate-600">Only administrators can manage integrations.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const categories = Object.keys(INTEGRATION_CATEGORIES);
 
@@ -180,25 +250,44 @@ export default function AdminIntegrations() {
                     <CardContent>
                       {connected ? (
                         <div className="space-y-3">
-                          {config?.last_tested_at && (
-                            <p className="text-xs text-slate-500">
-                              Last tested: {new Date(config.last_tested_at).toLocaleString()}
-                            </p>
-                          )}
+                          <div className="text-xs text-slate-500 space-y-1">
+                            {config?.connected_at && (
+                              <p>Connected: {new Date(config.connected_at).toLocaleDateString()}</p>
+                            )}
+                            {config?.last_tested_at && (
+                              <p>Last tested: {new Date(config.last_tested_at).toLocaleString()}</p>
+                            )}
+                            {config?.last_error && (
+                              <p className="text-red-600 flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3" />
+                                {config.last_error}
+                              </p>
+                            )}
+                          </div>
                           <div className="flex gap-2">
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => {
-                                // Test connection
-                              }}
+                              onClick={() => handleTest(integration.name)}
+                              disabled={testingId === integration.name}
                             >
-                              Test
+                              {testingId === integration.name ? (
+                                <>
+                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                  Testing...
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCw className="h-3 w-3 mr-1" />
+                                  Test
+                                </>
+                              )}
                             </Button>
                             <Button
                               size="sm"
                               variant="destructive"
                               onClick={() => disconnectMutation.mutate(config.id)}
+                              disabled={disconnectMutation.isPending}
                             >
                               <Trash2 className="h-3 w-3 mr-1" />
                               Disconnect
@@ -210,7 +299,7 @@ export default function AdminIntegrations() {
                           {integration.requiresApiKey && (
                             <Input
                               type="password"
-                              placeholder="API Key"
+                              placeholder="Enter API Key"
                               value={apiKeyInputs[integration.name] || ''}
                               onChange={(e) =>
                                 setApiKeyInputs(prev => ({
@@ -220,21 +309,23 @@ export default function AdminIntegrations() {
                               }
                             />
                           )}
-                          <TooltipProvider>
-                             <Tooltip>
-                               <TooltipTrigger asChild>
-                                 <Button
-                                   size="sm"
-                                   className="w-full bg-gray-300 text-gray-600 cursor-not-allowed"
-                                   disabled
-                                 >
-                                   {integration.requiresApiKey ? 'Connect' : 'Authorize'}
-                                   <Lock className="h-3 w-3 ml-2" />
-                                 </Button>
-                               </TooltipTrigger>
-                               <TooltipContent>Coming soon - use dashboard integrations instead</TooltipContent>
-                             </Tooltip>
-                           </TooltipProvider>
+                          <Button
+                            size="sm"
+                            className="w-full"
+                            onClick={() => handleConnect(integration.name, integration.requiresApiKey)}
+                            disabled={connectingId === integration.name || (integration.requiresApiKey && !apiKeyInputs[integration.name])}
+                          >
+                            {connectingId === integration.name ? (
+                              <>
+                                <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                                Connecting...
+                              </>
+                            ) : (
+                              <>
+                                {integration.requiresApiKey ? 'Connect' : 'Authorize'}
+                              </>
+                            )}
+                          </Button>
                         </div>
                       )}
                     </CardContent>
