@@ -421,7 +421,11 @@ export default function QAAudit() {
             </TabsTrigger>
             <TabsTrigger value="buttons" className="gap-2">
               <MousePointer className="h-4 w-4" />
-              Dead Buttons ({stats.deadButtons})
+              Dead Buttons ({stats.trueDeadButtons})
+            </TabsTrigger>
+            <TabsTrigger value="exempt" className="gap-2">
+              <CheckCircle className="h-4 w-4" />
+              Exempt ({stats.exemptButtons})
             </TabsTrigger>
             <TabsTrigger value="mutations" className="gap-2">
               <Bell className="h-4 w-4" />
