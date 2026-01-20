@@ -96,23 +96,19 @@ const KNOWN_FUNCTIONS = [
 // Audit findings
 const AUDIT_DATA = {
   deadButtons: [
-    { file: 'pages/Settings.js', component: 'Settings', issue: 'Save buttons may lack handlers', line: '~150', severity: 'medium' },
-    { file: 'pages/LenderIntegrations.js', component: 'LenderIntegrations', issue: 'Connect buttons need verification', line: '~200', severity: 'medium' },
-    { file: 'pages/PortalSettings.js', component: 'PortalSettings', issue: 'Save branding button handler', line: '~180', severity: 'medium' },
-    { file: 'pages/Underwriting.js', component: 'Underwriting', issue: 'Action buttons may be unwired', line: '~100', severity: 'medium' },
-    { file: 'components/deal-detail/FeesTab.js', component: 'FeesTab', issue: 'Add fee button needs handler', line: '~80', severity: 'low' },
+    // Verified working: Settings.js Save Changes button calls saveProfile()
+    // Verified working: LenderIntegrations.js uses createMutation with toast
+    // Verified working: PortalSettings.js Save Settings calls handleSave with toast
+    // Verified working: Underwriting.js Approve/Deny/Conditions all call updateDealMutation
+    { file: 'components/deal-detail/FeesTab.js', component: 'FeesTab', issue: 'Add fee button needs verification', line: '~80', severity: 'low' },
   ],
-  missingRoutes: [
-    { file: 'Layout.js', target: 'TestingValidationHub', exists: false, severity: 'low' },
-  ],
-  missingFunctions: [
-    // These would be detected by scanning invoke calls
-  ],
-  workingPages: KNOWN_PAGES.filter(p => !['TestingValidationHub'].includes(p)),
+  missingRoutes: [],
+  missingFunctions: [],
+  workingPages: KNOWN_PAGES,
   potentialIssues: [
-    { type: 'toast', issue: 'Some components use sonner toast, app uses shadcn Toaster - may cause silent failures', severity: 'high' },
-    { type: 'org_scoping', issue: 'Inconsistent org_id handling in some backend functions', severity: 'high' },
-    { type: 'form_state', issue: 'Some forms lack controlled state (using defaultValue without state)', severity: 'medium' },
+    { type: 'toast', issue: 'Sonner Toaster is now standardized at Layout root - all toasts visible', severity: 'resolved' },
+    { type: 'org_scoping', issue: 'Fixed: Removed fallbacks to user.org_id, using canonical OrgMembership lookup', severity: 'resolved' },
+    { type: 'form_state', issue: 'Some forms use auto-save pattern (Settings.js) with debounced updates', severity: 'low' },
   ]
 };
 
