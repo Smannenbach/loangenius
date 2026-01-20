@@ -191,13 +191,14 @@ export async function getTenantContext(req) {
 
 /**
  * Middleware: Deny request if no tenant context
+ * @param {object} context - Result from getTenantContext
+ * @returns {Response|null} - Response if denied, null if allowed
  */
-export async function denyIfMissingTenant(req) {
-  const context = await getTenantContext(req);
+export function denyIfMissingTenant(context) {
   if (!context.ok) {
     return Response.json(
       { error: context.error },
-      { status: context.status }
+      { status: context.status || 403 }
     );
   }
   return null; // Continue
