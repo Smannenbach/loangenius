@@ -61,6 +61,17 @@ import { TCPAConsentCompact } from '@/components/TCPAConsent';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2 } from 'lucide-react';
 
 export default function Leads() {
   const queryClient = useQueryClient();
@@ -75,6 +86,7 @@ export default function Leads() {
   const [quoteModalOpen, setQuoteModalOpen] = useState(false);
   const [quoteSelectedLead, setQuoteSelectedLead] = useState(null);
   const [selectedLeads, setSelectedLeads] = useState(new Set());
+  const [deleteConfirmLead, setDeleteConfirmLead] = useState(null);
   const [newLead, setNewLead] = useState({
     first_name: '',
     last_name: '',
@@ -1207,11 +1219,7 @@ export default function Leads() {
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               className="text-red-600" 
-                              onClick={() => {
-                                if (window.confirm(`Delete ${lead.first_name} ${lead.last_name}? This action cannot be undone.`)) {
-                                  deleteLeadMutation.mutate(lead.id);
-                                }
-                              }}
+                              onClick={() => setDeleteConfirmLead(lead)}
                             >Delete</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -1267,6 +1275,29 @@ export default function Leads() {
           lead={quoteSelectedLead}
         />
       )}
+
+      <AlertDialog open={!!deleteConfirmLead} onOpenChange={() => setDeleteConfirmLead(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Lead</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {deleteConfirmLead?.first_name} {deleteConfirmLead?.last_name}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                deleteLeadMutation.mutate(deleteConfirmLead.id);
+                setDeleteConfirmLead(null);
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
