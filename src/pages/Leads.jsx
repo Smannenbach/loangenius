@@ -142,27 +142,15 @@ export default function Leads() {
   const { data: leads = [], isLoading, error } = useQuery({
     queryKey: ['leads', orgId],
     queryFn: async () => {
-      try {
-        // Try with org_id first
-        if (orgId) {
-          const orgLeads = await base44.entities.Lead.filter({ org_id: orgId });
-          return orgLeads.filter(l => !l.is_deleted);
-        }
-        // Fallback: get all leads if no org_id
-        const allLeads = await base44.entities.Lead.list();
-        return allLeads.filter(l => !l.is_deleted);
-      } catch (e) {
-        console.error('Error fetching leads:', e);
-        // Final fallback: get all leads
-        try {
-          const allLeads = await base44.entities.Lead.list();
-          return allLeads.filter(l => !l.is_deleted);
-        } catch {
-          return [];
-        }
+      // SECURITY: Only query with org_id - never fall back to listing all
+      if (!orgId) {
+        console.warn('No org_id available for leads query');
+        return [];
       }
+      const orgLeads = await base44.entities.Lead.filter({ org_id: orgId, is_deleted: false });
+      return orgLeads;
     },
-    enabled: true,
+    enabled: !!orgId, // Only run when org_id is available
     retry: 2,
     staleTime: 30000,
   });

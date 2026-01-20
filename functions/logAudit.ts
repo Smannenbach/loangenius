@@ -19,11 +19,28 @@ Deno.serve(async (req) => {
       old_values,
       new_values,
       severity,
-      org_id
+      org_id: requestedOrgId
     } = await req.json();
 
     if (!action_type || !entity_type || !description) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // SECURITY: Verify org_id from user's membership, not from request
+    let org_id = 'default';
+    if (user) {
+      const memberships = await base44.asServiceRole.entities.OrgMembership.filter({ user_id: user.email });
+      if (memberships.length > 0) {
+        org_id = memberships[0].org_id;
+        // If requestedOrgId provided, verify user has access
+        if (requestedOrgId && requestedOrgId !== org_id) {
+          const hasAccess = memberships.some(m => m.org_id === requestedOrgId);
+          if (!hasAccess) {
+            return Response.json({ error: 'Forbidden: Cannot log to different org' }, { status: 403 });
+          }
+          org_id = requestedOrgId;
+        }
+      }
     }
 
     // Calculate changed fields

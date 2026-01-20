@@ -169,13 +169,18 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { action, source_type, data, sheet_url, spreadsheet_id, sheet_name, mapping, skip_validation } = body;
 
-    // Determine org_id
-    let org_id = user.org_id || 'default';
-    try {
-      const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
-      if (memberships.length > 0) org_id = memberships[0].org_id;
-    } catch (e) {
-      console.log('Membership lookup failed:', e.message);
+    // Determine org_id - MUST be from verified membership
+    const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
+    if (memberships.length === 0) {
+      return Response.json({ error: 'User not part of any organization' }, { status: 403 });
+    }
+    const org_id = memberships[0].org_id;
+    const userRole = memberships[0].role || 'user';
+    
+    // RBAC: Only admin and loan_officer can import leads
+    const allowedImportRoles = ['admin', 'owner', 'loan_officer', 'super_admin'];
+    if (!allowedImportRoles.includes(userRole)) {
+      return Response.json({ error: 'Forbidden: Insufficient permissions to import leads' }, { status: 403 });
     }
 
     // ACTION: preview - Parse and return preview data
