@@ -22,13 +22,12 @@ export default function Dashboard() {
   const { data: deals = [] } = useOrgScopedQuery('Deal', { is_deleted: false });
   const { data: leads = [] } = useOrgScopedQuery('Lead', { is_deleted: false });
 
-  const { data: kpiData, isLoading: kpisLoading, error: kpiError } = useQuery({
+  const { data: kpiData, isLoading: kpisLoading } = useQuery({
     queryKey: ['dashboardKPIs', orgId],
     queryFn: async () => {
       try {
         return await base44.functions.invoke('getDashboardKPIs', { org_id: orgId, period: 'month' });
       } catch (e) {
-        // Return empty data if function fails
         return { data: { kpis: { deals: {}, leads: {} } } };
       }
     },
@@ -59,12 +58,11 @@ export default function Dashboard() {
     enabled: !!orgId,
   });
 
-  const kpis = kpiData?.data?.kpis || {};
   const activities = kpiData?.data?.recentActivities || activityData?.data?.activities || [];
   const attentionDeals = attentionData?.data?.deals || [];
   
   // Calculate KPIs from actual data
-  const activeDeals = deals.filter(d => !d.is_deleted && d.status !== 'closed');
+  const activeDeals = deals.filter(d => d.status !== 'closed');
   const fundedDeals = deals.filter(d => d.stage === 'funded');
   const totalPipelineValue = activeDeals.reduce((sum, d) => sum + (d.loan_amount || 0), 0);
   
@@ -77,8 +75,8 @@ export default function Dashboard() {
   }, {});
   const pipelineStages = Object.entries(stageGroups).map(([stage, count]) => ({ stage, count }));
 
-  // Show loading state only when everything is loading
-  const isLoading = kpisLoading && deals.length === 0 && leads.length === 0;
+  // Show loading state
+  const isLoading = orgLoading || (kpisLoading && deals.length === 0 && leads.length === 0);
   if (isLoading) {
     return (
       <div className="p-6 bg-gray-50 min-h-screen flex items-center justify-center">
