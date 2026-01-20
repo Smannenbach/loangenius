@@ -64,8 +64,9 @@ export default function AdminAIProviders() {
   }, [orgSettings]);
 
   const { data: providers = [] } = useQuery({
-    queryKey: ['aiProviders'],
-    queryFn: () => base44.entities.AIProvider.filter({})
+    queryKey: ['aiProviders', orgId],
+    queryFn: () => base44.entities.AIProvider.filter({ org_id: orgId }),
+    enabled: !!orgId
   });
 
   const testProviderMutation = useMutation({
@@ -74,10 +75,10 @@ export default function AdminAIProviders() {
       return base44.functions.invoke('testAIProvider', { provider_id: providerId });
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['aiProviders'] });
+      queryClient.invalidateQueries({ queryKey: ['aiProviders', orgId] });
       setTestingId(null);
       if (data?.data?.success) {
-        toast.success('Provider test successful');
+        toast.success(data?.data?.message || 'Provider test successful');
       } else {
         toast.error(data?.data?.message || 'Provider test failed');
       }
@@ -90,7 +91,9 @@ export default function AdminAIProviders() {
   
   const createProviderMutation = useMutation({
     mutationFn: async (data) => {
+      if (!orgId) throw new Error('No organization found');
       return base44.entities.AIProvider.create({
+        org_id: orgId,
         provider_name: data.provider_name,
         model_name: data.model_name,
         api_key_encrypted: data.api_key, // Will be encrypted server-side in production
@@ -104,7 +107,7 @@ export default function AdminAIProviders() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['aiProviders'] });
+      queryClient.invalidateQueries({ queryKey: ['aiProviders', orgId] });
       setShowNewForm(false);
       setFormData({
         provider_name: 'OpenAI',
@@ -121,13 +124,17 @@ export default function AdminAIProviders() {
     }
   });
 
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  
   const deleteProviderMutation = useMutation({
     mutationFn: (providerId) => base44.entities.AIProvider.delete(providerId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['aiProviders'] });
+      queryClient.invalidateQueries({ queryKey: ['aiProviders', orgId] });
+      setDeleteConfirmId(null);
       toast.success('Provider deleted');
     },
     onError: (error) => {
+      setDeleteConfirmId(null);
       toast.error(error.message || 'Failed to delete provider');
     }
   });
@@ -143,7 +150,7 @@ export default function AdminAIProviders() {
       return base44.entities.AIProvider.update(providerId, { is_default: true });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['aiProviders'] });
+      queryClient.invalidateQueries({ queryKey: ['aiProviders', orgId] });
       toast.success('Default provider updated');
     },
     onError: (error) => {
