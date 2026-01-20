@@ -332,7 +332,7 @@ export default function QAAudit() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
           <Card className={stats.missingFunctions > 0 ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}>
             <CardContent className="pt-6 text-center">
               <p className={`text-3xl font-bold ${stats.missingFunctions > 0 ? 'text-red-700' : 'text-green-700'}`}>
