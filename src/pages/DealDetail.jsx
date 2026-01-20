@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MISMOExportPanel from '@/components/deal-detail/MISMOExportPanel';
 import MISMOImportPanel from '@/components/deal-detail/MISMOImportPanel';
+import UnderwritingTab from '@/components/deal-detail/UnderwritingTab';
 import CommunicationsTab from "../components/deal-detail/CommunicationsTab";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -391,7 +392,7 @@ export default function DealDetail() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview">
-        <TabsList className="mb-6">
+        <TabsList className="mb-6 flex-wrap">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="borrowers">Borrowers</TabsTrigger>
           <TabsTrigger value="property">Property</TabsTrigger>
@@ -401,9 +402,10 @@ export default function DealDetail() {
           <TabsTrigger value="conditions">Conditions ({conditions.length})</TabsTrigger>
           <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
-          <TabsTrigger value="lenders">Lender Outreach</TabsTrigger>
+          <TabsTrigger value="lenders">Lenders</TabsTrigger>
+          <TabsTrigger value="underwriting">Underwriting</TabsTrigger>
           <TabsTrigger value="portal">Portal</TabsTrigger>
-          <TabsTrigger value="mismo">MISMO Export</TabsTrigger>
+          <TabsTrigger value="mismo">MISMO</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -829,8 +831,15 @@ export default function DealDetail() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="underwriting">
+          <UnderwritingTab dealId={dealId} deal={deal} />
+        </TabsContent>
+
         <TabsContent value="mismo">
-          <MISMOExportPanel dealId={dealId} />
+          <div className="space-y-6">
+            <MISMOExportPanel dealId={dealId} />
+            <MISMOImportPanel dealId={dealId} />
+          </div>
         </TabsContent>
       </Tabs>
 
