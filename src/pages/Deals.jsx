@@ -31,6 +31,8 @@ import {
   FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { SkeletonTable } from '@/components/ui/skeleton-cards';
+import { EmptyLoans, EmptySearchResults } from '@/components/ui/empty-states';
 
 export default function Deals() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -183,17 +185,15 @@ export default function Deals() {
       {/* Deals Table */}
       <Card className="border-gray-200">
         <CardContent className="p-0">
-          {filteredDeals.length === 0 ? (
-            <div className="py-12 text-center">
-              <FileText className="h-8 w-8 mx-auto mb-3 text-gray-300" />
-              <p className="text-gray-500">No deals found</p>
-              <Link 
-                to={createPageUrl('NewDeal')}
-                className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
-              >
-                Create your first deal
-              </Link>
-            </div>
+          {isLoading ? (
+            <SkeletonTable rows={8} cols={8} />
+          ) : deals.length === 0 ? (
+            <EmptyLoans onAction={() => window.location.href = createPageUrl('NewDeal')} />
+          ) : filteredDeals.length === 0 ? (
+            <EmptySearchResults
+              query={searchTerm || statusFilter}
+              onClear={() => { setSearchTerm(''); setStatusFilter('all'); }}
+            />
           ) : (
             <Table>
               <TableHeader>

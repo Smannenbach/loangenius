@@ -32,6 +32,8 @@ import {
   Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { SkeletonCard } from '@/components/ui/skeleton-cards';
+import { EmptyDocuments, EmptySearchResults } from '@/components/ui/empty-states';
 
 export default function Documents() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -168,18 +170,32 @@ export default function Documents() {
       {/* Documents List */}
       <Card className="border-gray-200">
         <CardContent className="p-0">
-          {filteredDocuments.length === 0 ? (
-            <div className="py-12 text-center">
-              <FileText className="h-8 w-8 mx-auto mb-3 text-gray-300" />
-              <p className="text-gray-500">No documents found</p>
-              <Button 
-                variant="link" 
-                className="text-blue-600 mt-2"
-                onClick={() => setIsUploadOpen(true)}
-              >
-                Upload your first document
-              </Button>
+          {isLoading ? (
+            <div className="divide-y divide-gray-100">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-lg bg-gray-200 animate-pulse" />
+                    <div className="space-y-2">
+                      <div className="h-4 w-48 bg-gray-200 rounded animate-pulse" />
+                      <div className="h-3 w-32 bg-gray-100 rounded animate-pulse" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" />
+                    <div className="h-8 w-8 bg-gray-100 rounded animate-pulse" />
+                    <div className="h-8 w-8 bg-gray-100 rounded animate-pulse" />
+                  </div>
+                </div>
+              ))}
             </div>
+          ) : documents.length === 0 ? (
+            <EmptyDocuments onAction={() => setIsUploadOpen(true)} />
+          ) : filteredDocuments.length === 0 ? (
+            <EmptySearchResults
+              query={searchTerm || statusFilter}
+              onClear={() => { setSearchTerm(''); setStatusFilter('all'); }}
+            />
           ) : (
             <div className="divide-y divide-gray-100">
               {filteredDocuments.map((doc) => (
