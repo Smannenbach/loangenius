@@ -59,30 +59,6 @@ These must be configured in your deployment platform (Base44, Deno Deploy, etc.)
 | `TWILIO_AUTH_TOKEN` | Optional | Twilio auth token |
 | `TWILIO_PHONE_NUMBER` | Optional | Twilio phone number |
 
-### Third-Party Integrations
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `Google_Cloud_OAuth_Client_ID` | Optional | Google Cloud OAuth |
-| `Google_Cloud_OAuth_Client_Secret` | Optional | Google Cloud OAuth |
-| `Google_Cloud_Access_Token` | Optional | Google Cloud access |
-| `Google_Cloud_Refresh_Token` | Optional | Google Cloud refresh |
-| `Goolge_Maps_Platform_API_Key` | Optional | Google Maps API |
-| `AirTable_Personal_Access_Token` | Optional | Airtable integration |
-| `GoHighLevel_LoanDaddy_Access_Token_New` | Optional | GHL integration |
-| `Facebook_Conversion_API_Access_Token` | Optional | Facebook CAPI |
-| `Reoon_Email_Verifier_API_Key` | Optional | Email verification |
-
-### Zapier Integration
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `Zapier_LoanGenius_OAuth_Client_ID` | Optional | Zapier OAuth |
-| `Zapier_LoanGenius_OAuth_Client_Secret` | Optional | Zapier OAuth |
-| `Zapier_LoanGenius_OAuth_Authorization_URL` | Optional | Zapier auth URL |
-| `Zapier_LoanGenius_OAuth_Scope` | Optional | Zapier scopes |
-| `Zapier_OAuth_Redirect_URL` | Optional | Zapier redirect |
-
 ---
 
 ## C) Safe Defaults (Development)
@@ -106,11 +82,6 @@ OpenAI_API_Key=sk-your-dev-key
 2. `sso_*` variables - For user authentication
 3. At least one AI provider key - For AI-powered features
 
-**Recommended additions:**
-- `Sendgrid_API_Key` - For email notifications
-- `TWILIO_*` - For SMS notifications
-- Google OAuth credentials - For Google Sheets integration
-
 ---
 
 ## E) Security Notes
@@ -129,9 +100,42 @@ OpenAI_API_Key=sk-your-dev-key
 - Set secrets in Dashboard → Settings → Environment Variables
 - Secrets are automatically available to backend functions via `Deno.env.get()`
 
-### Deno Deploy (if self-hosting functions)
-- Configure in Deno Deploy dashboard under Project Settings → Environment Variables
-- Access via `Deno.env.get("VARIABLE_NAME")`
+---
+
+## G) Domain & SSL Readiness Checklist
+
+### Base44 Hosting (Default)
+The app is automatically available at:
+- `https://<app-name>.base44.app`
+
+### Custom Domain Setup (Future)
+If connecting a custom domain:
+
+1. **DNS Configuration:**
+   - Add CNAME record pointing to Base44
+   - Remove any AAAA (IPv6) records that may conflict
+   - Wait for DNS propagation (up to 48 hours)
+
+2. **SSL Certificate:**
+   - Base44 auto-provisions SSL via Let's Encrypt
+   - Certificate renewal is automatic
+
+3. **Root + WWW:**
+   - Configure both `example.com` and `www.example.com`
+   - Set up redirect from one to the other
+
+---
+
+## H) Health Check Endpoint
+
+The app includes a `/SystemHealth` page that verifies:
+- Database connectivity (Leads, Deals entities)
+- Organization membership
+- AI provider configuration
+- Integration status
+- Encryption key configuration
+
+Access via: Admin → System Health
 
 ---
 
