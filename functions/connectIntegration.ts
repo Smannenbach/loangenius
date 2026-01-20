@@ -1,10 +1,12 @@
 /**
  * Connect Integration
- * Validates credentials + stores encrypted credentials in IntegrationConfig
- * Uses AES-GCM encryption with INTEGRATION_ENCRYPTION_KEY secret
+ * Validates and stores encrypted credentials in IntegrationConfig
+ * Uses AES-GCM encryption via shared crypto helpers
  */
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { encryptJson } from './_shared/crypto.js';
+import { resolveOrgId, isOrgAdmin } from './_shared/org.js';
 
 Deno.serve(async (req) => {
   try {
@@ -15,183 +17,167 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Admin-only access
-    if (user.role !== 'admin') {
+    // Resolve org and check admin
+    const { orgId, membership } = await resolveOrgId(base44, user);
+    
+    if (!isOrgAdmin(membership)) {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const { integration_name, api_key, oauth_token, action } = await req.json();
+    const body = await req.json();
+    const { integration_key, auth_payload, action } = body;
 
-    if (!integration_name) {
-      return Response.json({ error: 'Missing integration_name' }, { status: 400 });
-    }
-
-    // Resolve org_id via OrgMembership (canonical resolver)
-    const memberships = await base44.entities.OrgMembership.filter({
-      user_id: user.email
-    });
+    // Legacy support: map old field names
+    const integrationKey = integration_key || body.integration_name;
     
-    if (memberships.length === 0) {
-      return Response.json({ error: 'User not associated with any organization' }, { status: 403 });
+    if (!integrationKey) {
+      return Response.json({ error: 'Missing integration_key' }, { status: 400 });
     }
+
+    // Handle disconnect action
+    if (action === 'disconnect') {
+      return await handleDisconnect(base44, orgId, integrationKey);
+    }
+
+    // Build auth payload from various input formats
+    let credentialsPayload = auth_payload;
     
-    const org_id = memberships[0].org_id;
-
-    // Handle test action
-    if (action === 'test') {
-      return await handleTestIntegration(base44, org_id, integration_name);
+    // Legacy support: accept api_key or oauth_token directly
+    if (!credentialsPayload && (body.api_key || body.oauth_token)) {
+      credentialsPayload = {};
+      if (body.api_key) credentialsPayload.api_key = body.api_key;
+      if (body.oauth_token) credentialsPayload.oauth_token = body.oauth_token;
+      if (body.refresh_token) credentialsPayload.refresh_token = body.refresh_token;
     }
 
-    // Validate encryption key is configured
-    const encryptionKey = Deno.env.get('INTEGRATION_ENCRYPTION_KEY');
-    if (!encryptionKey || encryptionKey.length < 16) {
+    if (!credentialsPayload || Object.keys(credentialsPayload).length === 0) {
+      return Response.json({ error: 'Missing auth_payload with credentials' }, { status: 400 });
+    }
+
+    // Validate credentials format
+    const validation = validateCredentials(integrationKey, credentialsPayload);
+    if (!validation.valid) {
       return Response.json({ 
-        error: 'INTEGRATION_ENCRYPTION_KEY not configured. Please set it in Secrets.' 
-      }, { status: 500 });
-    }
-
-    // Validate credentials
-    if (!api_key && !oauth_token) {
-      return Response.json({ error: 'API key or OAuth token required' }, { status: 400 });
-    }
-
-    const validationResult = await validateIntegrationCredentials(integration_name, api_key, oauth_token);
-    if (!validationResult.valid) {
-      return Response.json({ 
-        error: validationResult.error || 'Invalid credentials',
+        error: validation.error,
         status: 'error'
       }, { status: 400 });
     }
 
-    // Encrypt sensitive data with AES-GCM
-    const encryptedKey = api_key ? await encryptAESGCM(api_key, encryptionKey) : null;
-    const encryptedToken = oauth_token ? await encryptAESGCM(oauth_token, encryptionKey) : null;
+    // Encrypt the auth payload
+    const encrypted = await encryptJson(credentialsPayload);
 
-    // Check if integration config already exists
+    // Check for existing config
     const existing = await base44.asServiceRole.entities.IntegrationConfig.filter({
-      org_id,
-      integration_name
+      org_id: orgId,
+      integration_name: integrationKey
     });
 
     const now = new Date().toISOString();
+    
+    // Extract non-sensitive metadata (safe to store unencrypted)
+    const metadata = {
+      scopes: credentialsPayload.scopes || null,
+      account_email: credentialsPayload.account_email || credentialsPayload.email || null,
+      token_type: credentialsPayload.token_type || null
+    };
+
     const configData = {
-      api_key_encrypted: encryptedKey,
-      oauth_token_encrypted: encryptedToken,
+      iv_b64: encrypted.iv_b64,
+      ciphertext_b64: encrypted.ciphertext_b64,
       status: 'connected',
       last_tested_at: now,
       last_error: null,
-      is_active: true
+      is_active: true,
+      // Store non-sensitive metadata
+      scopes: metadata.scopes,
+      account_email: metadata.account_email
     };
 
     if (existing.length > 0) {
       await base44.asServiceRole.entities.IntegrationConfig.update(existing[0].id, {
         ...configData,
-        connected_at: existing[0].connected_at || now
+        connected_at: existing[0].connected_at || now,
+        updated_at: now
       });
     } else {
       await base44.asServiceRole.entities.IntegrationConfig.create({
-        org_id,
-        integration_name,
+        org_id: orgId,
+        integration_name: integrationKey,
         ...configData,
-        connected_at: now
+        connected_at: now,
+        created_at: now
       });
     }
 
     return Response.json({
-      success: true,
-      integration_name,
+      ok: true,
+      integration_key: integrationKey,
       status: 'connected',
-      message: `${integration_name.replace(/_/g, ' ')} connected successfully`
+      message: `${integrationKey.replace(/_/g, ' ')} connected successfully`
     });
   } catch (error) {
-    console.error('Error in connectIntegration:', error);
+    console.error('Error in connectIntegration:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
 
-async function handleTestIntegration(base44, org_id, integration_name) {
-  const configs = await base44.asServiceRole.entities.IntegrationConfig.filter({
-    org_id,
-    integration_name
+async function handleDisconnect(base44, orgId, integrationKey) {
+  const existing = await base44.asServiceRole.entities.IntegrationConfig.filter({
+    org_id: orgId,
+    integration_name: integrationKey
   });
 
-  if (configs.length === 0) {
-    return Response.json({ error: 'Integration not configured' }, { status: 404 });
+  if (existing.length === 0) {
+    return Response.json({ error: 'Integration not found' }, { status: 404 });
   }
 
-  const config = configs[0];
-  const now = new Date().toISOString();
-
-  // Basic connectivity test - in production, would make actual API calls
-  let testResult = { success: true, message: 'Connection verified' };
-
-  // Update test timestamp
-  await base44.asServiceRole.entities.IntegrationConfig.update(config.id, {
-    last_tested_at: now,
-    last_error: testResult.success ? null : testResult.message,
-    status: testResult.success ? 'connected' : 'error'
+  // Clear sensitive data and mark as disconnected
+  await base44.asServiceRole.entities.IntegrationConfig.update(existing[0].id, {
+    iv_b64: null,
+    ciphertext_b64: null,
+    status: 'disconnected',
+    is_active: false,
+    last_error: null,
+    updated_at: new Date().toISOString()
   });
 
   return Response.json({
-    success: testResult.success,
-    message: testResult.message,
-    last_tested_at: now
+    ok: true,
+    integration_key: integrationKey,
+    status: 'disconnected',
+    message: `${integrationKey.replace(/_/g, ' ')} disconnected`
   });
 }
 
-async function validateIntegrationCredentials(name, apiKey, oauthToken) {
-  // Validate API key format based on integration type
+function validateCredentials(integrationKey, payload) {
+  // Check minimum credential length
+  const apiKey = payload.api_key;
+  const oauthToken = payload.oauth_token || payload.access_token;
+
   if (apiKey) {
     if (apiKey.length < 10) {
       return { valid: false, error: 'API key too short (minimum 10 characters)' };
     }
     
     // Integration-specific validation
-    if (name === 'Claude' && !apiKey.startsWith('sk-ant-')) {
-      return { valid: false, error: 'Invalid Anthropic API key format' };
+    if (integrationKey === 'Claude' && !apiKey.startsWith('sk-ant-')) {
+      return { valid: false, error: 'Invalid Anthropic API key format (should start with sk-ant-)' };
     }
-    if (name === 'Stripe' && !apiKey.startsWith('sk_')) {
-      return { valid: false, error: 'Invalid Stripe API key format' };
+    if (integrationKey === 'Stripe' && !apiKey.startsWith('sk_')) {
+      return { valid: false, error: 'Invalid Stripe API key format (should start with sk_)' };
+    }
+    if (integrationKey === 'OpenAI' && !apiKey.startsWith('sk-')) {
+      return { valid: false, error: 'Invalid OpenAI API key format (should start with sk-)' };
     }
   }
-  
+
   if (oauthToken && oauthToken.length < 10) {
     return { valid: false, error: 'OAuth token too short' };
   }
-  
-  return { valid: true };
-}
 
-async function encryptAESGCM(plaintext, secretKey) {
-  const encoder = new TextEncoder();
-  const plaintextBytes = encoder.encode(plaintext);
-  
-  // Derive a 256-bit key from the secret using SHA-256
-  const keyMaterial = encoder.encode(secretKey);
-  const keyHash = await crypto.subtle.digest('SHA-256', keyMaterial);
-  
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw',
-    keyHash,
-    { name: 'AES-GCM' },
-    false,
-    ['encrypt']
-  );
-  
-  // Generate random 12-byte IV (recommended for AES-GCM)
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  
-  // Encrypt with AES-GCM
-  const ciphertext = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
-    cryptoKey,
-    plaintextBytes
-  );
-  
-  // Combine IV + ciphertext and encode as base64
-  const combined = new Uint8Array(iv.length + ciphertext.byteLength);
-  combined.set(iv, 0);
-  combined.set(new Uint8Array(ciphertext), iv.length);
-  
-  return btoa(String.fromCharCode(...combined));
+  if (!apiKey && !oauthToken) {
+    return { valid: false, error: 'Either api_key or oauth_token/access_token is required' };
+  }
+
+  return { valid: true };
 }
