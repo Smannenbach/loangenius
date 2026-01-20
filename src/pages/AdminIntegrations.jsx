@@ -85,26 +85,36 @@ export default function AdminIntegrations() {
 
   const connectMutation = useMutation({
     mutationFn: async (data) => {
-      const response = await base44.functions.invoke('connectIntegration', data);
+      // Send canonical payload shape
+      const response = await base44.functions.invoke('connectIntegration', {
+        action: 'connect',
+        integration_name: data.integration_key || data.integration_name,
+        credentials: data.auth_payload || data.credentials,
+      });
       return response.data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['integrations', orgId] });
       setApiKeyInputs({});
       setConnectingId(null);
-      toast.success(data.message || 'Integration connected successfully');
+      if (data.ok) {
+        toast.success(data.message || 'Integration connected successfully');
+      } else {
+        toast.error(data.message || 'Connection failed');
+      }
     },
     onError: (error) => {
       setConnectingId(null);
-      const msg = error.response?.data?.error || error.message || 'Connection failed';
+      const msg = error.response?.data?.message || error.response?.data?.error || error.message || 'Connection failed';
       toast.error(msg);
     }
   });
 
   const testMutation = useMutation({
     mutationFn: async (integrationName) => {
+      // Send canonical payload shape
       const response = await base44.functions.invoke('testIntegration', { 
-        integration_key: integrationName
+        integration_name: integrationName
       });
       return response.data;
     },
@@ -121,24 +131,31 @@ export default function AdminIntegrations() {
     },
     onError: (error) => {
       setTestingId(null);
-      toast.error(error.response?.data?.error || 'Test failed');
+      const msg = error.response?.data?.message || error.response?.data?.error || 'Test failed';
+      toast.error(msg);
     }
   });
 
   const disconnectMutation = useMutation({
     mutationFn: async (integrationName) => {
+      // Send canonical payload shape
       const response = await base44.functions.invoke('connectIntegration', {
-        integration_key: integrationName,
-        action: 'disconnect'
+        action: 'disconnect',
+        integration_name: integrationName,
       });
       return response.data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['integrations', orgId] });
-      toast.success(data.message || 'Integration disconnected');
+      if (data.ok) {
+        toast.success(data.message || 'Integration disconnected');
+      } else {
+        toast.error(data.message || 'Failed to disconnect');
+      }
     },
     onError: (error) => {
-      toast.error(error.response?.data?.error || 'Failed to disconnect');
+      const msg = error.response?.data?.message || error.response?.data?.error || 'Failed to disconnect';
+      toast.error(msg);
     }
   });
 
@@ -151,8 +168,8 @@ export default function AdminIntegrations() {
       }
       setConnectingId(integrationName);
       connectMutation.mutate({ 
-        integration_key: integrationName, 
-        auth_payload: { api_key: apiKey }
+        integration_name: integrationName, 
+        credentials: { api_key: apiKey }
       });
     } else {
       setConnectingId(integrationName);

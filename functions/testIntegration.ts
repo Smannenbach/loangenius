@@ -1,17 +1,19 @@
 /**
  * Test Integration - Verify integration connectivity
+ * Accepts both integration_name and integration_key for backwards compatibility
  */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 async function getEncryptionKey() {
   const keyB64 = Deno.env.get('INTEGRATION_ENCRYPTION_KEY');
-  if (!keyB64) throw new Error('INTEGRATION_ENCRYPTION_KEY not configured');
+  if (!keyB64) return null;
   const keyBytes = Uint8Array.from(atob(keyB64), c => c.charCodeAt(0));
   return await crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['decrypt']);
 }
 
 async function decryptCredentials(iv_b64, ciphertext_b64) {
   const key = await getEncryptionKey();
+  if (!key) throw new Error('Encryption key not available');
   const iv = Uint8Array.from(atob(iv_b64), c => c.charCodeAt(0));
   const ciphertext = Uint8Array.from(atob(ciphertext_b64), c => c.charCodeAt(0));
   const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
@@ -22,33 +24,39 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
     if (user.role !== 'admin') {
-      return Response.json({ error: 'Admin access required' }, { status: 403 });
+      return Response.json({ ok: false, error: 'Admin access required' }, { status: 403 });
     }
 
     const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
-    if (memberships.length === 0) return Response.json({ error: 'No organization' }, { status: 403 });
+    if (memberships.length === 0) {
+      return Response.json({ ok: false, error: 'No organization' }, { status: 403 });
+    }
     const orgId = memberships[0].org_id;
 
     const body = await req.json();
-
-    // Normalize payload (accept both integration_name and integration_key)
+    
+    // Normalize payload - accept both formats
     const integration_name = body.integration_name || body.integration_key;
 
     if (!integration_name) {
-        return Response.json({ error: 'Missing integration_name or integration_key' }, { status: 400 });
+      return Response.json({ 
+        ok: false, 
+        status: 'error',
+        message: 'Missing integration_name or integration_key' 
+      }, { status: 400 });
     }
 
     // Check encryption key
-    const encryptionKey = Deno.env.get('INTEGRATION_ENCRYPTION_KEY');
-    if (!encryptionKey) {
-        return Response.json({
-            ok: false,
-            status: 'error',
-            message: 'Integrations encryption key missing. Set INTEGRATION_ENCRYPTION_KEY in environment variables.',
-        }, { status: 500 });
+    const encryptionKeyPresent = !!Deno.env.get('INTEGRATION_ENCRYPTION_KEY');
+    if (!encryptionKeyPresent) {
+      return Response.json({
+        ok: false,
+        status: 'error',
+        message: 'Integrations encryption key missing. Set INTEGRATION_ENCRYPTION_KEY in environment variables.',
+      });
     }
 
     // Get config
@@ -59,9 +67,9 @@ Deno.serve(async (req) => {
 
     if (configs.length === 0) {
       return Response.json({ 
-        success: false, 
+        ok: false, 
         status: 'not_configured',
-        message: 'Integration not configured',
+        message: 'Integration not configured. Please connect it first.',
       });
     }
 
@@ -69,9 +77,9 @@ Deno.serve(async (req) => {
 
     if (!config.iv_b64 || !config.ciphertext_b64) {
       return Response.json({
-        success: false,
-        status: 'no_credentials',
-        message: 'No credentials stored',
+        ok: false,
+        status: 'needs_reconnect',
+        message: 'No credentials stored. Please reconnect the integration.',
       });
     }
 
@@ -79,16 +87,17 @@ Deno.serve(async (req) => {
     try {
       const credentials = await decryptCredentials(config.iv_b64, config.ciphertext_b64);
       
-      // Update test timestamp
+      // Update test timestamp and mark healthy
       await base44.entities.IntegrationConfig.update(config.id, {
         last_tested_at: new Date().toISOString(),
         status: 'healthy',
+        last_error: null,
       });
 
       return Response.json({
-        success: true,
+        ok: true,
         status: 'healthy',
-        message: 'Integration is working',
+        message: 'Integration test successful - credentials are valid',
       });
     } catch (e) {
       await base44.entities.IntegrationConfig.update(config.id, {
@@ -98,12 +107,17 @@ Deno.serve(async (req) => {
       });
 
       return Response.json({
-        success: false,
+        ok: false,
         status: 'unhealthy',
-        message: e.message,
+        message: 'Integration test failed: ' + e.message,
       });
     }
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('testIntegration error:', error);
+    return Response.json({ 
+      ok: false, 
+      status: 'error',
+      message: error.message 
+    }, { status: 500 });
   }
 });

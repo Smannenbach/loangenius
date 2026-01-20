@@ -74,17 +74,23 @@ export default function GoogleSheetsImportWizard({ trigger, onImportComplete }) 
       });
       if (result.data?.ok || result.data?.sheets) {
         setConnectionStatus('connected');
-      } else if (result.data?.needs_reconnect) {
+      } else if (result.data?.needs_reconnect || result.data?.status === 'needs_reconnect') {
+        setConnectionStatus('disconnected');
+      } else if (result.data?.error) {
+        // Any error means disconnected - don't fake success
         setConnectionStatus('disconnected');
       } else {
-        setConnectionStatus('connected'); // Assume connected if no error
+        setConnectionStatus('connected');
       }
     } catch (e) {
-      // Check error type
-      if (e.response?.data?.needs_reconnect) {
+      // Any exception means disconnected - be honest with users
+      const status = e.response?.status;
+      const data = e.response?.data;
+      if (status === 401 || status === 403 || data?.needs_reconnect || data?.status === 'needs_reconnect') {
         setConnectionStatus('disconnected');
       } else {
-        setConnectionStatus('connected'); // Connection might be fine, sheet access issue
+        // Unknown error = assume disconnected (don't fake success)
+        setConnectionStatus('disconnected');
       }
     }
   };
@@ -199,10 +205,16 @@ export default function GoogleSheetsImportWizard({ trigger, onImportComplete }) 
     onSuccess: (data) => {
       setImportResult(data);
       setStep(4);
-      // Invalidate leads query
+      // Invalidate ALL lead-related queries to ensure Leads page refreshes
       queryClient.invalidateQueries({ queryKey: ['Lead'] });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['importRuns'] });
+      // Also invalidate with org scope patterns
+      queryClient.invalidateQueries({ predicate: (query) => 
+        query.queryKey[0] === 'Lead' || 
+        query.queryKey[0] === 'leads' ||
+        (Array.isArray(query.queryKey) && query.queryKey.includes('Lead'))
+      });
       
       const msg = `Created ${data.created_count}, Updated ${data.updated_count}, Skipped ${data.skipped_count}`;
       if (data.error_count > 0) {
@@ -331,17 +343,21 @@ export default function GoogleSheetsImportWizard({ trigger, onImportComplete }) 
                       <div>
                         <p className="font-medium text-amber-800">Google Sheets Not Connected</p>
                         <p className="text-sm text-amber-700 mt-1">
-                          Please connect Google Sheets in Admin → Integrations to import private spreadsheets.
+                          To import from Google Sheets, you need to authorize the Google Sheets connector.
                         </p>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="mt-3"
-                          onClick={checkConnection}
-                        >
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Check Again
-                        </Button>
+                        <p className="text-xs text-amber-600 mt-2">
+                          Ask your admin to connect Google Sheets via OAuth in the app settings.
+                        </p>
+                        <div className="flex gap-2 mt-3">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={checkConnection}
+                          >
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Check Again
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   )}

@@ -7,6 +7,7 @@ import AdminIntegrations from './pages/AdminIntegrations';
 import AdminLoginHistory from './pages/AdminLoginHistory';
 import AdminOrganization from './pages/AdminOrganization';
 import AdminPortalPreview from './pages/AdminPortalPreview';
+import AdminPrivacyRequests from './pages/AdminPrivacyRequests';
 import AdminSettings from './pages/AdminSettings';
 import AdminWebhooks from './pages/AdminWebhooks';
 import AgentExecutionViewer from './pages/AgentExecutionViewer';
@@ -18,6 +19,8 @@ import Assumptions from './pages/Assumptions';
 import AuditComplianceViewer from './pages/AuditComplianceViewer';
 import base44ClickMap from './pages/BASE44_CLICK_MAP';
 import bugfixChangelog from './pages/BUGFIX_CHANGELOG';
+import BillingSettings from './pages/BillingSettings';
+import BillingSuccess from './pages/BillingSuccess';
 import BorrowerOnboarding from './pages/BorrowerOnboarding';
 import BorrowerPortal from './pages/BorrowerPortal';
 import BorrowerPortalDashboard from './pages/BorrowerPortalDashboard';
@@ -59,6 +62,7 @@ import NotFound from './pages/NotFound';
 import Pipeline from './pages/Pipeline';
 import PortalSettings from './pages/PortalSettings';
 import Privacy from './pages/Privacy';
+import PrivacyRequest from './pages/PrivacyRequest';
 import QAAudit from './pages/QAAudit';
 import QuoteGenerator from './pages/QuoteGenerator';
 import ReportBuilder from './pages/ReportBuilder';
@@ -68,10 +72,12 @@ import Roadmap from './pages/Roadmap';
 import smokeTestResults from './pages/SMOKE_TEST_RESULTS';
 import Security from './pages/Security';
 import Settings from './pages/Settings';
+import SmokeTests from './pages/SmokeTests';
 import Status from './pages/Status';
 import SubmissionPrep from './pages/SubmissionPrep';
 import Subprocessors from './pages/Subprocessors';
 import SuperAdmin from './pages/SuperAdmin';
+import SystemHealth from './pages/SystemHealth';
 import TestingHub from './pages/TestingHub';
 import TestingValidationHub from './pages/TestingValidationHub';
 import Trust from './pages/Trust';
@@ -79,12 +85,6 @@ import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
-import SmokeTests from './pages/SmokeTests';
-import SystemHealth from './pages/SystemHealth';
-import PrivacyRequest from './pages/PrivacyRequest';
-import BillingSuccess from './pages/BillingSuccess';
-import AdminPrivacyRequests from './pages/AdminPrivacyRequests';
-import BillingSettings from './pages/BillingSettings';
 import __Layout from './Layout.jsx';
 
 
@@ -98,6 +98,7 @@ export const PAGES = {
     "AdminLoginHistory": AdminLoginHistory,
     "AdminOrganization": AdminOrganization,
     "AdminPortalPreview": AdminPortalPreview,
+    "AdminPrivacyRequests": AdminPrivacyRequests,
     "AdminSettings": AdminSettings,
     "AdminWebhooks": AdminWebhooks,
     "AgentExecutionViewer": AgentExecutionViewer,
@@ -109,6 +110,8 @@ export const PAGES = {
     "AuditComplianceViewer": AuditComplianceViewer,
     "BASE44_CLICK_MAP": base44ClickMap,
     "BUGFIX_CHANGELOG": bugfixChangelog,
+    "BillingSettings": BillingSettings,
+    "BillingSuccess": BillingSuccess,
     "BorrowerOnboarding": BorrowerOnboarding,
     "BorrowerPortal": BorrowerPortal,
     "BorrowerPortalDashboard": BorrowerPortalDashboard,
@@ -150,6 +153,7 @@ export const PAGES = {
     "Pipeline": Pipeline,
     "PortalSettings": PortalSettings,
     "Privacy": Privacy,
+    "PrivacyRequest": PrivacyRequest,
     "QAAudit": QAAudit,
     "QuoteGenerator": QuoteGenerator,
     "ReportBuilder": ReportBuilder,
@@ -159,10 +163,12 @@ export const PAGES = {
     "SMOKE_TEST_RESULTS": smokeTestResults,
     "Security": Security,
     "Settings": Settings,
+    "SmokeTests": SmokeTests,
     "Status": Status,
     "SubmissionPrep": SubmissionPrep,
     "Subprocessors": Subprocessors,
     "SuperAdmin": SuperAdmin,
+    "SystemHealth": SystemHealth,
     "TestingHub": TestingHub,
     "TestingValidationHub": TestingValidationHub,
     "Trust": Trust,
@@ -170,12 +176,6 @@ export const PAGES = {
     "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
-    "SmokeTests": SmokeTests,
-    "SystemHealth": SystemHealth,
-    "PrivacyRequest": PrivacyRequest,
-    "BillingSuccess": BillingSuccess,
-    "AdminPrivacyRequests": AdminPrivacyRequests,
-    "BillingSettings": BillingSettings,
 }
 
 export const pagesConfig = {
