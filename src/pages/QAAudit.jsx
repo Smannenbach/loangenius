@@ -33,7 +33,7 @@ const allFunctionFiles = import.meta.glob('/src/functions/*.js', { as: 'raw', ea
 const SIDEBAR_PAGES = [
   'Dashboard', 'Pipeline', 'Leads', 'Loans', 'Contacts',
   'QuoteGenerator', 'AIAssistant', 'Communications', 'EmailSequences', 'Reports',
-  'Users', 'LenderIntegrations', 'PortalSettings', 'TestingHub', 'QAAudit',
+  'Users', 'LenderIntegrations', 'PortalSettings', 'SmokeTests', 'TestingHub', 'QAAudit',
   'Underwriting', 'ComplianceDashboard', 'MISMOExportProfiles', 'MISMOImportExport',
   'AdminIntegrations', 'Settings'
 ];

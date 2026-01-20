@@ -42,6 +42,7 @@ import Deals from './pages/Deals';
 import DocumentIntelligence from './pages/DocumentIntelligence';
 import Documents from './pages/Documents';
 import EmailSequences from './pages/EmailSequences';
+import ErrorTest from './pages/ErrorTest';
 import ExecutiveDashboard from './pages/ExecutiveDashboard';
 import LandingPage from './pages/LandingPage';
 import LeadIntelligence from './pages/LeadIntelligence';
@@ -78,7 +79,6 @@ import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
-import ErrorTest from './pages/ErrorTest';
 import SmokeTests from './pages/SmokeTests';
 import __Layout from './Layout.jsx';
 
@@ -128,6 +128,7 @@ export const PAGES = {
     "DocumentIntelligence": DocumentIntelligence,
     "Documents": Documents,
     "EmailSequences": EmailSequences,
+    "ErrorTest": ErrorTest,
     "ExecutiveDashboard": ExecutiveDashboard,
     "LandingPage": LandingPage,
     "LeadIntelligence": LeadIntelligence,
@@ -164,7 +165,6 @@ export const PAGES = {
     "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
-    "ErrorTest": ErrorTest,
     "SmokeTests": SmokeTests,
 }
 
