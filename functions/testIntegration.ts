@@ -33,10 +33,22 @@ Deno.serve(async (req) => {
     const orgId = memberships[0].org_id;
 
     const body = await req.json();
-    const { integration_name } = body;
+
+    // Normalize payload (accept both integration_name and integration_key)
+    const integration_name = body.integration_name || body.integration_key;
 
     if (!integration_name) {
-      return Response.json({ error: 'Missing integration_name' }, { status: 400 });
+        return Response.json({ error: 'Missing integration_name or integration_key' }, { status: 400 });
+    }
+
+    // Check encryption key
+    const encryptionKey = Deno.env.get('INTEGRATION_ENCRYPTION_KEY');
+    if (!encryptionKey) {
+        return Response.json({
+            ok: false,
+            status: 'error',
+            message: 'Integrations encryption key missing. Set INTEGRATION_ENCRYPTION_KEY in environment variables.',
+        }, { status: 500 });
     }
 
     // Get config
