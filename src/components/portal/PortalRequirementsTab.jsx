@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FileText, CheckCircle2, Clock, AlertCircle, Upload, ChevronRight } from 'lucide-react';
 import PortalDocumentUploadEnhanced from './PortalDocumentUploadEnhanced';
+import { useQueryClient } from '@tanstack/react-query';
 
 const statusConfig = {
   pending: { icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', label: 'Pending', badge: 'bg-amber-100 text-amber-800', canUpload: true },
@@ -15,8 +16,17 @@ const statusConfig = {
   rejected: { icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', label: 'Rejected', badge: 'bg-red-100 text-red-800', canUpload: true },
 };
 
-export default function PortalRequirementsTab({ requirements = {}, sessionId }) {
+export default function PortalRequirementsTab({ requirements = {}, sessionId, conditionId = null }) {
   const [uploadModal, setUploadModal] = useState(null);
+  const queryClient = useQueryClient();
+
+  const handleUploadComplete = () => {
+    setUploadModal(null);
+    // Refresh requirements and conditions
+    queryClient.invalidateQueries({ queryKey: ['borrower-requirements'] });
+    queryClient.invalidateQueries({ queryKey: ['portalConditions'] });
+  };
+
   if (!requirements || Object.keys(requirements).length === 0) {
     return (
       <Card>
@@ -115,8 +125,9 @@ export default function PortalRequirementsTab({ requirements = {}, sessionId }) 
             <PortalDocumentUploadEnhanced
               sessionId={sessionId}
               requirementId={uploadModal?.id}
+              conditionId={uploadModal?.condition_id || conditionId}
               requirementName={uploadModal?.display_name || uploadModal?.document_type}
-              onUploadComplete={() => setUploadModal(null)}
+              onUploadComplete={handleUploadComplete}
             />
           </div>
         </DialogContent>
