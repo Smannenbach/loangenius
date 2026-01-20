@@ -54,7 +54,7 @@ import { COUNTRY_CODES } from '@/components/formatters';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import QuoteGeneratorModal from '@/components/QuoteGeneratorModal';
 import LeadDetailModal from '@/components/LeadDetailModal';
-import LeadsImportModal from '@/components/LeadsImportModal';
+import LeadImportWizard from '@/components/leads/LeadImportWizard';
 import { TCPAConsentCompact } from '@/components/TCPAConsent';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
@@ -1035,8 +1035,8 @@ export default function Leads() {
 
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-2 mb-6">
-        <LeadsImportModal 
-          trigger={<Button variant="outline" className="gap-2"><Upload className="h-4 w-4" />Import from Google Sheets</Button>}
+        <LeadImportWizard 
+          trigger={<Button variant="outline" className="gap-2"><Upload className="h-4 w-4" />Import Leads</Button>}
           onImportComplete={() => queryClient.invalidateQueries({ queryKey: ['leads'] })} 
         />
         <Button 
@@ -1162,7 +1162,7 @@ export default function Leads() {
               <Plus className="h-4 w-4" />
               Quick Add Lead
             </Button>
-            <LeadsImportModal 
+            <LeadImportWizard 
               trigger={<Button variant="outline" className="gap-2"><Upload className="h-4 w-4" />Import Leads</Button>}
               onImportComplete={() => queryClient.invalidateQueries({ queryKey: ['leads'] })} 
             />
