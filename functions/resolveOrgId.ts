@@ -75,10 +75,15 @@ Deno.serve(async (req) => {
 
     // If no membership exists and auto_create is true, bootstrap org
     if (memberships.length === 0 && autoCreate) {
+      // Generate a slug from user email
+      const slugBase = (user.email.split('@')[0] || 'org').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const slug = `${slugBase}-${Date.now().toString(36)}`;
+      
       // Create new organization
       const org = await base44.asServiceRole.entities.Organization.create({
         name: `${user.full_name || user.email}'s Organization`,
-        status: 'active',
+        slug: slug,
+        subscription_status: 'TRIAL',
       });
 
       // Create membership with admin role
@@ -111,10 +116,15 @@ Deno.serve(async (req) => {
     
     // If org_id is "default" or invalid, and auto_create is on, create a real org
     if (!isValidOrgId && autoCreate) {
+      // Generate a slug from user email
+      const slugBase = (user.email.split('@')[0] || 'org').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const slug = `${slugBase}-${Date.now().toString(36)}`;
+      
       // Create new organization
       const newOrg = await base44.asServiceRole.entities.Organization.create({
         name: `${user.full_name || user.email}'s Organization`,
-        status: 'active',
+        slug: slug,
+        subscription_status: 'TRIAL',
       });
       
       // Update the membership to point to real org
