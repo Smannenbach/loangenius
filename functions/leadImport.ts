@@ -175,7 +175,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'User not part of any organization' }, { status: 403 });
     }
     const org_id = memberships[0].org_id;
-    const userRole = memberships[0].role || 'user';
+    const userRole = memberships[0].role_id || memberships[0].role || 'user';
     
     // RBAC: Only admin and loan_officer can import leads
     const allowedImportRoles = ['admin', 'owner', 'loan_officer', 'super_admin'];
