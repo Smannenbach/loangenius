@@ -105,8 +105,9 @@ const VERIFICATION_CONFIG = {
       try {
         await base44.functions.invoke('sendSMSOTP', { phone: identifier, code });
       } catch (smsError) {
-        console.warn('SMS sending failed, code still stored for testing:', smsError);
-        toast.info(`Dev fallback - Your code is ${code}`, { duration: 10000 });
+        // SMS failed - code is still stored for verification attempt
+        // In production, user should retry or contact support
+        toast.error('Failed to send SMS. Please try again.');
       }
     },
   },
