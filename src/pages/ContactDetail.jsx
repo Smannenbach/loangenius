@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Mail, Phone, MapPin, User, Building2, ArrowLeft } from 'lucide-react';
+import { Mail, Phone, MapPin, User, Building2, ArrowLeft, AlertCircle } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 
 export default function ContactDetail() {
   const [searchParams] = useSearchParams();
   const contactId = searchParams.get('id');
   const [activeTab, setActiveTab] = useState('overview');
+  const navigate = useNavigate();
 
   const { data: contact, isLoading } = useQuery({
     queryKey: ['contact', contactId],
@@ -44,13 +45,49 @@ export default function ContactDetail() {
     );
   }
 
+  // Handle missing ID
+  if (!contactId) {
+    return (
+      <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="text-center py-12">
+          <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
+            <AlertCircle className="h-8 w-8 text-amber-600" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">No Contact Selected</h2>
+          <p className="text-gray-500 mb-4">Please select a contact to view details.</p>
+          <div className="flex gap-3 justify-center">
+            <Button variant="outline" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Go Back
+            </Button>
+            <Link to={createPageUrl('Contacts')}>
+              <Button>Go to Contacts</Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!contact) {
     return (
-      <div className="p-6 bg-gray-50 min-h-screen text-center">
-        <p className="text-gray-500">Contact not found</p>
-        <Link to={createPageUrl('Contacts')} className="text-blue-600 hover:underline mt-2 inline-block">
-          Back to Contacts
-        </Link>
+      <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="text-center py-12">
+          <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+            <AlertCircle className="h-8 w-8 text-red-600" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Contact Not Found</h2>
+          <p className="text-gray-500 mb-4">The contact you're looking for doesn't exist or couldn't be loaded.</p>
+          <div className="flex gap-3 justify-center">
+            <Button variant="outline" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Go Back
+            </Button>
+            <Link to={createPageUrl('Contacts')}>
+              <Button>Go to Contacts</Button>
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
