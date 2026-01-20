@@ -53,23 +53,22 @@ export default function Deals() {
 
   const orgId = memberships[0]?.org_id || user?.org_id;
 
+  // FIX: Use proper database filtering with pagination instead of .list() then filter
+  const [page, setPage] = useState(0);
+  const pageSize = 50;
+  
   const { data: deals = [], isLoading } = useQuery({
-    queryKey: ['deals', orgId],
+    queryKey: ['deals', orgId, page],
     queryFn: async () => {
-      try {
-        if (orgId) {
-          return await base44.entities.Deal.filter({ org_id: orgId, is_deleted: false });
-        }
-        const allDeals = await base44.entities.Deal.list();
-        return allDeals.filter(d => !d.is_deleted);
-      } catch (e) {
-        try {
-          const allDeals = await base44.entities.Deal.list();
-          return allDeals.filter(d => !d.is_deleted);
-        } catch {
-          return [];
-        }
-      }
+      // Always use database-level filtering - never .list() then filter in memory
+      const filters = { is_deleted: false };
+      if (orgId) filters.org_id = orgId;
+      
+      return await base44.entities.Deal.filter(
+        filters,
+        '-created_date', // Sort by newest first
+        pageSize         // Limit results
+      );
     },
     enabled: true,
   });
