@@ -1,5 +1,5 @@
 /**
- * Borrower Portal Summary
+ * Portal Summary - Get borrower's deal summary for portal
  */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
@@ -7,63 +7,62 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { deal_id, borrower_email } = body;
+    const { borrower_email, deal_id } = body;
 
-    if (!deal_id) {
-      return Response.json({ error: 'Missing deal_id' }, { status: 400 });
+    if (!borrower_email && !deal_id) {
+      return Response.json({ ok: false, error: 'Missing borrower_email or deal_id' }, { status: 400 });
     }
 
-    // Get deal
-    const deals = await base44.asServiceRole.entities.Deal.filter({ id: deal_id });
+    let deals = [];
+
+    if (deal_id) {
+      deals = await base44.asServiceRole.entities.Deal.filter({ id: deal_id });
+    } else if (borrower_email) {
+      // Find borrower's deals
+      const dealBorrowers = await base44.asServiceRole.entities.DealBorrower.filter({});
+      const borrowerDeals = dealBorrowers.filter(db => 
+        db.borrower_email?.toLowerCase() === borrower_email.toLowerCase()
+      );
+      
+      for (const db of borrowerDeals) {
+        const d = await base44.asServiceRole.entities.Deal.filter({ id: db.deal_id });
+        if (d.length > 0) deals.push(d[0]);
+      }
+    }
+
     if (deals.length === 0) {
-      return Response.json({ error: 'Deal not found' }, { status: 404 });
+      return Response.json({ ok: false, error: 'No deals found' }, { status: 404 });
     }
+
     const deal = deals[0];
 
+    // Get pending documents
+    const docReqs = await base44.asServiceRole.entities.DealDocumentRequirement.filter({
+      deal_id: deal.id,
+      status: 'pending',
+    });
+
     // Get conditions
-    const conditions = await base44.asServiceRole.entities.Condition.filter({ deal_id: deal_id });
-    const pendingConditions = conditions.filter(c => c.status === 'pending');
-    const completedConditions = conditions.filter(c => c.status === 'fulfilled');
-
-    // Get documents
-    const docReqs = await base44.asServiceRole.entities.DealDocumentRequirement.filter({ deal_id: deal_id });
-    const pendingDocs = docReqs.filter(d => d.status === 'pending');
-    const uploadedDocs = docReqs.filter(d => ['uploaded', 'accepted'].includes(d.status));
-
-    // Get tasks
-    const tasks = await base44.asServiceRole.entities.Task.filter({ deal_id: deal_id, is_visible_to_borrower: true });
-    const pendingTasks = tasks.filter(t => t.status === 'pending');
+    const conditions = await base44.asServiceRole.entities.Condition.filter({
+      deal_id: deal.id,
+    });
 
     return Response.json({
+      ok: true,
       deal: {
         id: deal.id,
         deal_number: deal.deal_number,
+        loan_product: deal.loan_product,
+        loan_amount: deal.loan_amount,
         stage: deal.stage,
         status: deal.status,
-        loan_amount: deal.loan_amount,
-        loan_product: deal.loan_product,
-        loan_purpose: deal.loan_purpose,
       },
-      conditions: {
-        total: conditions.length,
-        pending: pendingConditions.length,
-        completed: completedConditions.length,
-      },
-      documents: {
-        total: docReqs.length,
-        pending: pendingDocs.length,
-        uploaded: uploadedDocs.length,
-      },
-      tasks: {
-        total: tasks.length,
-        pending: pendingTasks.length,
-      },
-      progress_percent: Math.round(
-        ((completedConditions.length + uploadedDocs.length) / 
-         Math.max(conditions.length + docReqs.length, 1)) * 100
-      ),
+      pending_documents: docReqs.length,
+      conditions_count: conditions.length,
+      conditions_pending: conditions.filter(c => c.status === 'pending').length,
     });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('portalSummary error:', error);
+    return Response.json({ ok: false, error: error.message }, { status: 500 });
   }
 });

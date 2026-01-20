@@ -1,123 +1,111 @@
 /**
- * Google Sheets - List Tabs
- * Input: { spreadsheet_id_or_url }
- * Output: { spreadsheetId, sheets:[{ title, sheetId }], ok }
+ * Google Sheets List Tabs - List available sheets/tabs in a spreadsheet
  */
-
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-// Inline helpers to avoid import issues
-async function sheetsRequest(accessToken, endpoint) {
-  const baseUrl = 'https://sheets.googleapis.com/v4';
-  const url = `${baseUrl}${endpoint}`;
-  const MAX_RETRIES = 3;
-  
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    const response = await fetch(url, {
-      headers: { 'Authorization': `Bearer ${accessToken}` },
-    });
-    
-    if (response.status === 401 || response.status === 403) {
-      return { ok: false, error: 'Google Sheets authorization expired. Please reconnect.', needs_reconnect: true };
-    }
-    
-    if (response.status === 429) {
-      await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
-      continue;
-    }
-    
-    if (!response.ok) {
-      const text = await response.text();
-      return { ok: false, error: `API error: ${text}` };
-    }
-    
-    return { ok: true, data: await response.json() };
-  }
-  return { ok: false, error: 'Rate limited - please try again' };
-}
-
-function parseSpreadsheetId(urlOrId) {
+function extractSpreadsheetId(urlOrId) {
   if (!urlOrId) return null;
-  if (/^[a-zA-Z0-9_-]+$/.test(urlOrId) && !urlOrId.includes('/')) return urlOrId;
-  const match = urlOrId.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-  return match ? match[1] : urlOrId;
+  
+  // If it looks like a URL
+  if (urlOrId.includes('/')) {
+    const match = urlOrId.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    return match ? match[1] : null;
+  }
+  
+  // Otherwise assume it's already an ID
+  return urlOrId;
 }
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
+    if (!user) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+
+    // Resolve org
+    const resolveResponse = await base44.functions.invoke('resolveOrgId', { auto_create: false });
+    const orgData = resolveResponse.data;
     
-    if (!user) {
-      return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+    if (!orgData.ok || !orgData.has_org) {
+      return Response.json({ ok: false, error: 'No organization' }, { status: 403 });
     }
-    
-    // Check role - admin or loan officer can import
-    const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
-    if (memberships.length === 0) {
-      return Response.json({ ok: false, error: 'No organization membership' }, { status: 403 });
-    }
-    
-    const role = memberships[0].role_id || 'user';
-    if (!['admin', 'owner', 'manager', 'loan_officer'].includes(role) && user.role !== 'admin') {
-      return Response.json({ ok: false, error: 'Import requires admin or loan officer role' }, { status: 403 });
-    }
-    
+
     const body = await req.json();
-    const { spreadsheet_id_or_url } = body;
+    const spreadsheetIdOrUrl = body.spreadsheet_id_or_url || body.spreadsheetId;
     
-    if (!spreadsheet_id_or_url) {
+    if (!spreadsheetIdOrUrl) {
       return Response.json({ ok: false, error: 'Missing spreadsheet_id_or_url' }, { status: 400 });
     }
-    
-    const spreadsheetId = parseSpreadsheetId(spreadsheet_id_or_url);
+
+    const spreadsheetId = extractSpreadsheetId(spreadsheetIdOrUrl);
     if (!spreadsheetId) {
       return Response.json({ ok: false, error: 'Invalid spreadsheet URL or ID' }, { status: 400 });
     }
-    
-    // Get access token
+
+    // Get access token from connector
     let accessToken;
     try {
       accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
     } catch (e) {
-      return Response.json({ 
-        ok: false, 
-        error: 'Google Sheets not connected. Please authorize in Admin → Integrations.',
-        needs_reconnect: true 
-      }, { status: 403 });
+      return Response.json({
+        ok: false,
+        needs_reconnect: true,
+        status: 'needs_reconnect',
+        message: 'Google Sheets not connected. Please authorize Google Sheets in your app settings.',
+      });
     }
-    
+
     if (!accessToken) {
-      return Response.json({ 
-        ok: false, 
-        error: 'Google Sheets authorization missing.',
-        needs_reconnect: true 
-      }, { status: 403 });
+      return Response.json({
+        ok: false,
+        needs_reconnect: true,
+        status: 'needs_reconnect',
+        message: 'Google Sheets authorization required. Please connect Google Sheets in app settings.',
+      });
     }
-    
+
     // Fetch spreadsheet metadata
-    const result = await sheetsRequest(
-      accessToken,
-      `/spreadsheets/${spreadsheetId}?fields=spreadsheetId,properties.title,sheets.properties`
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=spreadsheetId,properties.title,sheets.properties`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
     );
-    
-    if (!result.ok) {
-      return Response.json({ ok: false, ...result }, { status: result.needs_reconnect ? 403 : 400 });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      if (response.status === 401 || response.status === 403) {
+        return Response.json({
+          ok: false,
+          needs_reconnect: true,
+          status: 'needs_reconnect',
+          message: 'Google Sheets access expired. Please reconnect in app settings.',
+        });
+      }
+      return Response.json({
+        ok: false,
+        error: `Failed to access spreadsheet: ${response.status}`,
+      }, { status: response.status });
     }
-    
+
+    const data = await response.json();
+
+    const sheets = (data.sheets || []).map(sheet => ({
+      sheetId: sheet.properties.sheetId,
+      title: sheet.properties.title,
+      index: sheet.properties.index,
+    }));
+
     return Response.json({
       ok: true,
-      spreadsheetId: result.data.spreadsheetId,
-      title: result.data.properties?.title,
-      sheets: (result.data.sheets || []).map(s => ({
-        sheetId: s.properties.sheetId,
-        title: s.properties.title,
-        index: s.properties.index,
-      })),
+      spreadsheetId: data.spreadsheetId,
+      title: data.properties?.title || 'Untitled',
+      sheets,
     });
-    
   } catch (error) {
-    console.error('[googleSheetsListTabs] Error:', error.message);
+    console.error('googleSheetsListTabs error:', error);
     return Response.json({ ok: false, error: error.message }, { status: 500 });
   }
 });

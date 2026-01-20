@@ -1,5 +1,5 @@
 /**
- * Dashboard Activity Feed
+ * Get Dashboard Activity - Recent activity feed
  */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
@@ -7,51 +7,55 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
-    const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
-    if (memberships.length === 0) return Response.json({ error: 'No organization' }, { status: 403 });
-    const orgId = memberships[0].org_id;
+    const resolveResponse = await base44.functions.invoke('resolveOrgId', { auto_create: false });
+    const orgData = resolveResponse.data;
+    if (!orgData.ok) return Response.json({ ok: false, error: 'No organization' }, { status: 403 });
+    const orgId = orgData.org_id;
 
-    // Get recent activity from various sources
-    const [recentLeads, recentDeals, recentDocs] = await Promise.all([
-      base44.entities.Lead.filter({ org_id: orgId }),
-      base44.entities.Deal.filter({ org_id: orgId }),
-      base44.entities.Document.filter({ org_id: orgId }),
-    ]);
+    // Get recent activity logs
+    const logs = await base44.asServiceRole.entities.ActivityLog.filter({ org_id: orgId });
+    const recentLogs = logs
+      .sort((a, b) => new Date(b.created_date) - new Date(a.created_date))
+      .slice(0, 20);
 
-    const activities = [];
-
-    // Add lead activities
-    recentLeads.slice(0, 10).forEach(lead => {
-      activities.push({
+    // Get recent leads
+    const leads = await base44.asServiceRole.entities.Lead.filter({ org_id: orgId });
+    const recentLeads = leads
+      .sort((a, b) => new Date(b.created_date) - new Date(a.created_date))
+      .slice(0, 5)
+      .map(l => ({
         type: 'lead_created',
-        title: `New lead: ${lead.first_name} ${lead.last_name}`,
-        timestamp: lead.created_date,
-        entity_id: lead.id,
-        entity_type: 'Lead',
-      });
-    });
+        title: `New lead: ${l.first_name} ${l.last_name || ''}`,
+        timestamp: l.created_date,
+        entity_id: l.id,
+      }));
 
-    // Add deal activities
-    recentDeals.slice(0, 10).forEach(deal => {
-      activities.push({
+    // Get recent deals
+    const deals = await base44.asServiceRole.entities.Deal.filter({ org_id: orgId });
+    const recentDeals = deals
+      .sort((a, b) => new Date(b.created_date) - new Date(a.created_date))
+      .slice(0, 5)
+      .map(d => ({
         type: 'deal_created',
-        title: `Deal ${deal.deal_number || deal.id} - ${deal.stage}`,
-        timestamp: deal.created_date,
-        entity_id: deal.id,
-        entity_type: 'Deal',
-      });
-    });
+        title: `New deal: ${d.deal_number || d.id}`,
+        timestamp: d.created_date,
+        entity_id: d.id,
+      }));
 
-    // Sort by timestamp descending
-    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    // Combine and sort
+    const activities = [...recentLeads, ...recentDeals]
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, 10);
 
     return Response.json({
-      activities: activities.slice(0, 20),
-      updated_at: new Date().toISOString(),
+      ok: true,
+      activities,
+      activity_logs: recentLogs,
     });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('getDashboardActivity error:', error);
+    return Response.json({ ok: false, error: error.message }, { status: 500 });
   }
 });

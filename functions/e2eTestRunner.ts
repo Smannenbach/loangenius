@@ -1,5 +1,5 @@
 /**
- * E2E Test Runner - Runs comprehensive end-to-end tests
+ * E2E Test Runner - Validates core system functionality
  */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
@@ -7,154 +7,94 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
+    if (!user) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+
+    // Resolve org and check admin role
+    const resolveResponse = await base44.functions.invoke('resolveOrgId', { auto_create: false });
+    const orgData = resolveResponse.data;
     
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!orgData.ok || !orgData.has_org) {
+      return Response.json({ ok: false, error: 'No organization' }, { status: 403 });
     }
 
-    // Only admins can run e2e tests
-    if (user.role !== 'admin') {
-      return Response.json({ error: 'Admin access required' }, { status: 403 });
+    // Check admin role using membership, not base44 user.role
+    if (!['admin', 'owner'].includes(orgData.membership_role)) {
+      return Response.json({ ok: false, error: 'Admin access required' }, { status: 403 });
     }
 
-    const results = {
-      passed: 0,
-      failed: 0,
-      skipped: 0,
-      tests: [],
-    };
+    const orgId = orgData.org_id;
+    const tests = [];
 
     // Test 1: Authentication
-    results.tests.push({
+    tests.push({
       name: 'Authentication',
-      status: 'passed',
-      message: `Authenticated as ${user.email}`,
+      status: 'pass',
+      message: `User authenticated: ${user.email}`,
     });
-    results.passed++;
 
-    // Test 2: Organization resolution
+    // Test 2: Org Resolution
+    tests.push({
+      name: 'Org Resolution',
+      status: 'pass',
+      message: `Org ID: ${orgId}, Role: ${orgData.membership_role}`,
+    });
+
+    // Test 3: Lead Query (org-scoped)
     try {
-      const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
-      if (memberships.length > 0) {
-        results.tests.push({
-          name: 'Organization Resolution',
-          status: 'passed',
-          message: `Found org: ${memberships[0].org_id}`,
-        });
-        results.passed++;
-      } else {
-        results.tests.push({
-          name: 'Organization Resolution',
-          status: 'failed',
-          message: 'No organization membership found',
-        });
-        results.failed++;
-      }
-    } catch (e) {
-      results.tests.push({
-        name: 'Organization Resolution',
-        status: 'failed',
-        message: e.message,
+      const leads = await base44.asServiceRole.entities.Lead.filter({ org_id: orgId });
+      tests.push({
+        name: 'Lead Query',
+        status: 'pass',
+        message: `Found ${leads.length} leads`,
       });
-      results.failed++;
+    } catch (e) {
+      tests.push({ name: 'Lead Query', status: 'fail', message: e.message });
     }
 
-    // Test 3: Database connectivity
-    try {
-      const leads = await base44.entities.Lead.filter({});
-      results.tests.push({
-        name: 'Database Connectivity (Lead)',
-        status: 'passed',
-        message: `Can query leads: ${leads.length} found`,
-      });
-      results.passed++;
-    } catch (e) {
-      results.tests.push({
-        name: 'Database Connectivity (Lead)',
-        status: 'failed',
-        message: e.message,
-      });
-      results.failed++;
-    }
-
-    // Test 4: Encryption key configured
+    // Test 4: Encryption Key
     const encKey = Deno.env.get('INTEGRATION_ENCRYPTION_KEY');
-    if (encKey) {
-      results.tests.push({
-        name: 'Encryption Key',
-        status: 'passed',
-        message: 'INTEGRATION_ENCRYPTION_KEY is configured',
-      });
-      results.passed++;
-    } else {
-      results.tests.push({
-        name: 'Encryption Key',
-        status: 'failed',
-        message: 'INTEGRATION_ENCRYPTION_KEY not set',
-      });
-      results.failed++;
-    }
+    tests.push({
+      name: 'Encryption Key',
+      status: encKey ? 'pass' : 'fail',
+      message: encKey ? 'Configured' : 'Missing INTEGRATION_ENCRYPTION_KEY',
+    });
 
-    // Test 5: Google Sheets connector
+    // Test 5: Google Sheets Connector
     try {
-      const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
-      if (accessToken) {
-        results.tests.push({
-          name: 'Google Sheets Connector',
-          status: 'passed',
-          message: 'Connector authorized',
-        });
-        results.passed++;
-      } else {
-        results.tests.push({
-          name: 'Google Sheets Connector',
-          status: 'skipped',
-          message: 'Not connected',
-        });
-        results.skipped++;
-      }
-    } catch (e) {
-      results.tests.push({
+      const token = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
+      tests.push({
         name: 'Google Sheets Connector',
-        status: 'skipped',
-        message: 'Not connected or not authorized',
+        status: token ? 'pass' : 'skip',
+        message: token ? 'Connected' : 'Not authorized',
       });
-      results.skipped++;
+    } catch (e) {
+      tests.push({ name: 'Google Sheets Connector', status: 'skip', message: 'Not configured' });
     }
 
-    // Test 6: AI Integration (InvokeLLM)
+    // Test 6: AI Integration
     try {
-      const aiResponse = await base44.integrations.Core.InvokeLLM({
-        prompt: 'Reply with just the word "OK"',
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: 'Reply with just "OK"',
       });
-      if (aiResponse) {
-        results.tests.push({
-          name: 'AI Integration (InvokeLLM)',
-          status: 'passed',
-          message: 'AI responded successfully',
-        });
-        results.passed++;
-      }
+      tests.push({
+        name: 'AI Integration',
+        status: result ? 'pass' : 'fail',
+        message: 'LLM responding',
+      });
     } catch (e) {
-      results.tests.push({
-        name: 'AI Integration (InvokeLLM)',
-        status: 'failed',
-        message: e.message,
-      });
-      results.failed++;
+      tests.push({ name: 'AI Integration', status: 'fail', message: e.message });
     }
+
+    const passCount = tests.filter(t => t.status === 'pass').length;
+    const failCount = tests.filter(t => t.status === 'fail').length;
 
     return Response.json({
-      summary: {
-        passed: results.passed,
-        failed: results.failed,
-        skipped: results.skipped,
-        total: results.tests.length,
-      },
-      tests: results.tests,
-      timestamp: new Date().toISOString(),
+      ok: failCount === 0,
+      summary: `${passCount}/${tests.length} tests passed`,
+      tests,
     });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('e2eTestRunner error:', error);
+    return Response.json({ ok: false, error: error.message }, { status: 500 });
   }
 });

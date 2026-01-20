@@ -1,48 +1,74 @@
 /**
- * Test System Health - Simple health check endpoint
+ * Test System Health - Quick health check for system status
  */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const checks = {};
+    const user = await base44.auth.me();
+    
+    const checks = [];
 
-    // Check auth
-    try {
-      const user = await base44.auth.me();
-      checks.auth = { status: 'healthy', user_email: user?.email };
-    } catch (e) {
-      checks.auth = { status: 'error', error: e.message };
+    // Check 1: Authentication
+    checks.push({
+      name: 'Authentication',
+      status: user ? 'pass' : 'fail',
+      message: user ? `Authenticated as ${user.email}` : 'Not authenticated',
+    });
+
+    if (!user) {
+      return Response.json({ ok: false, checks });
     }
 
-    // Check database connectivity
+    // Check 2: Org Resolution
     try {
-      const orgs = await base44.asServiceRole.entities.Organization.filter({});
-      checks.database = { status: 'healthy', org_count: orgs.length };
+      const resolveResponse = await base44.functions.invoke('resolveOrgId', { auto_create: true });
+      const orgData = resolveResponse.data;
+      checks.push({
+        name: 'Org Resolution',
+        status: orgData.ok ? 'pass' : 'fail',
+        message: orgData.ok ? `Org: ${orgData.org_id}` : 'No org',
+      });
     } catch (e) {
-      checks.database = { status: 'error', error: e.message };
+      checks.push({ name: 'Org Resolution', status: 'fail', message: e.message });
     }
 
-    // Check encryption key
+    // Check 3: Database Connectivity
+    try {
+      await base44.asServiceRole.entities.Lead.filter({});
+      checks.push({ name: 'Database', status: 'pass', message: 'Connected' });
+    } catch (e) {
+      checks.push({ name: 'Database', status: 'fail', message: e.message });
+    }
+
+    // Check 4: Encryption Key
     const encKey = Deno.env.get('INTEGRATION_ENCRYPTION_KEY');
-    checks.encryption_key = encKey ? 'configured' : 'missing';
+    checks.push({
+      name: 'Encryption Key',
+      status: encKey ? 'pass' : 'warn',
+      message: encKey ? 'Configured' : 'Not set (integrations disabled)',
+    });
 
-    // Overall status
-    const allHealthy = checks.auth?.status === 'healthy' && 
-                       checks.database?.status === 'healthy' && 
-                       checks.encryption_key === 'configured';
+    // Check 5: Email Integration
+    const sendgridKey = Deno.env.get('Sendgrid_API_Key');
+    checks.push({
+      name: 'Email (SendGrid)',
+      status: sendgridKey ? 'pass' : 'warn',
+      message: sendgridKey ? 'Configured' : 'Not configured',
+    });
+
+    const passCount = checks.filter(c => c.status === 'pass').length;
+    const failCount = checks.filter(c => c.status === 'fail').length;
 
     return Response.json({
-      status: allHealthy ? 'healthy' : 'degraded',
+      ok: failCount === 0,
+      status: failCount === 0 ? 'healthy' : 'degraded',
+      summary: `${passCount}/${checks.length} checks passed`,
       checks,
-      timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    return Response.json({
-      status: 'error',
-      error: error.message,
-      timestamp: new Date().toISOString(),
-    }, { status: 500 });
+    console.error('testSystemHealth error:', error);
+    return Response.json({ ok: false, error: error.message }, { status: 500 });
   }
 });

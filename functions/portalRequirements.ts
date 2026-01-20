@@ -1,5 +1,5 @@
 /**
- * Portal Requirements - Get/manage document requirements for borrower portal
+ * Portal Requirements - Get document requirements for borrower
  */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
@@ -7,41 +7,45 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { action, deal_id, requirement_id, status } = body;
+    const { deal_id } = body;
 
     if (!deal_id) {
-      return Response.json({ error: 'Missing deal_id' }, { status: 400 });
+      return Response.json({ ok: false, error: 'Missing deal_id' }, { status: 400 });
     }
 
-    if (action === 'list' || !action) {
-      const requirements = await base44.asServiceRole.entities.DealDocumentRequirement.filter({ 
-        deal_id: deal_id 
-      });
-      
-      return Response.json({
-        requirements: requirements.map(r => ({
-          id: r.id,
-          name: r.requirement_name,
-          type: r.requirement_type,
-          category: r.category,
-          status: r.status,
-          is_required: r.is_required,
-          instructions: r.instructions,
-          rejection_reason: r.rejection_reason,
-        })),
-      });
-    }
+    const requirements = await base44.asServiceRole.entities.DealDocumentRequirement.filter({
+      deal_id: deal_id,
+    });
 
-    if (action === 'update_status' && requirement_id) {
-      await base44.asServiceRole.entities.DealDocumentRequirement.update(requirement_id, {
-        status: status,
-        completed_at: status === 'accepted' ? new Date().toISOString() : null,
-      });
-      return Response.json({ success: true });
-    }
+    const grouped = {
+      pending: requirements.filter(r => r.status === 'pending'),
+      uploaded: requirements.filter(r => r.status === 'uploaded'),
+      accepted: requirements.filter(r => r.status === 'accepted'),
+      rejected: requirements.filter(r => r.status === 'rejected'),
+    };
 
-    return Response.json({ error: 'Invalid action' }, { status: 400 });
+    return Response.json({
+      ok: true,
+      requirements: requirements.map(r => ({
+        id: r.id,
+        name: r.requirement_name,
+        type: r.requirement_type,
+        category: r.category,
+        status: r.status,
+        is_required: r.is_required,
+        instructions: r.instructions,
+        rejection_reason: r.rejection_reason,
+      })),
+      summary: {
+        total: requirements.length,
+        pending: grouped.pending.length,
+        uploaded: grouped.uploaded.length,
+        accepted: grouped.accepted.length,
+        rejected: grouped.rejected.length,
+      },
+    });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('portalRequirements error:', error);
+    return Response.json({ ok: false, error: error.message }, { status: 500 });
   }
 });

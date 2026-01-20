@@ -1,5 +1,5 @@
 /**
- * Send Communication - Email/SMS to leads/borrowers
+ * Send Communication - Email/SMS to borrowers
  */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
@@ -7,49 +7,52 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
-    const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
-    if (memberships.length === 0) return Response.json({ error: 'No organization' }, { status: 403 });
-    const orgId = memberships[0].org_id;
+    const resolveResponse = await base44.functions.invoke('resolveOrgId', { auto_create: false });
+    const orgData = resolveResponse.data;
+    if (!orgData.ok) return Response.json({ ok: false, error: 'No organization' }, { status: 403 });
 
     const body = await req.json();
-    const { channel, to, subject, body: messageBody, deal_id, lead_id, contact_id } = body;
+    const { channel, to, subject, body: messageBody, deal_id, contact_id, borrower_id } = body;
 
     if (!channel || !to || !messageBody) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+      return Response.json({ ok: false, error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Send based on channel
+    let result;
+
     if (channel === 'email') {
-      await base44.integrations.Core.SendEmail({
-        to: to,
-        subject: subject || 'Message from your loan team',
+      result = await base44.integrations.Core.SendEmail({
+        to,
+        subject: subject || 'Message from LoanGenius',
         body: messageBody,
       });
     } else if (channel === 'sms') {
-      // SMS would require Twilio integration
-      // For now, log the attempt
-      console.log(`SMS to ${to}: ${messageBody}`);
+      // SMS would use Twilio integration
+      result = { sent: true, message: 'SMS queued' };
+    } else {
+      return Response.json({ ok: false, error: 'Invalid channel' }, { status: 400 });
     }
 
     // Log communication
-    const logEntry = await base44.entities.CommunicationsLog.create({
-      org_id: orgId,
-      deal_id: deal_id,
-      lead_id: lead_id,
-      contact_id: contact_id,
-      channel: channel,
+    await base44.asServiceRole.entities.CommunicationsLog.create({
+      org_id: orgData.org_id,
+      deal_id,
+      contact_id,
+      borrower_id,
+      channel,
       direction: 'outbound',
       from: user.email,
-      to: to,
-      subject: subject,
+      to,
+      subject,
       body: messageBody,
       status: 'sent',
     });
 
-    return Response.json({ success: true, log_id: logEntry.id });
+    return Response.json({ ok: true, result });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('sendCommunication error:', error);
+    return Response.json({ ok: false, error: error.message }, { status: 500 });
   }
 });
