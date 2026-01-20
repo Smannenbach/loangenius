@@ -8,10 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { 
-  FileText, Upload, CheckCircle, XCircle, AlertTriangle, 
+import {
+  FileText, Upload, CheckCircle, XCircle, AlertTriangle,
   Info, RefreshCw, Download, FileCode, Shield, Zap, Hash
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function MISMOValidator() {
   const [xmlContent, setXmlContent] = useState('');
@@ -98,7 +99,7 @@ export default function MISMOValidator() {
       });
       
       if (response.data?.success) {
-        alert(`Content Hash: ${response.data.hash}\n\nLength: ${response.data.content_length} bytes`);
+        toast.success(`Hash: ${response.data.hash} (${response.data.content_length} bytes)`);
       }
     } catch (error) {
       console.error('Hash computation error:', error);
