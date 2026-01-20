@@ -1,12 +1,73 @@
 /**
  * Connect Integration
  * Validates and stores encrypted credentials in IntegrationConfig
- * Uses AES-GCM encryption via shared crypto helpers
+ * Uses AES-GCM encryption
  */
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { encryptJson } from './_shared/crypto.js';
-import { resolveOrgId, isOrgAdmin } from './_shared/org.js';
+
+// ============ Inline Crypto Helpers ============
+const IV_LENGTH = 12;
+const KEY_LENGTH = 32;
+
+async function getEncryptionKey() {
+  const rawKey = Deno.env.get('INTEGRATION_ENCRYPTION_KEY');
+  if (!rawKey) {
+    throw new Error('INTEGRATION_ENCRYPTION_KEY not configured in Secrets.');
+  }
+  
+  let keyBytes;
+  
+  // Try base64 decode
+  try {
+    const decoded = atob(rawKey);
+    if (decoded.length === KEY_LENGTH) {
+      keyBytes = new Uint8Array(decoded.split('').map(c => c.charCodeAt(0)));
+    }
+  } catch (e) { /* not base64 */ }
+
+  // Try hex decode
+  if (!keyBytes && rawKey.length === 64 && /^[0-9a-fA-F]+$/.test(rawKey)) {
+    keyBytes = new Uint8Array(32);
+    for (let i = 0; i < 32; i++) {
+      keyBytes[i] = parseInt(rawKey.substr(i * 2, 2), 16);
+    }
+  }
+
+  // Fallback: derive from string
+  if (!keyBytes) {
+    const encoder = new TextEncoder();
+    const keyHash = await crypto.subtle.digest('SHA-256', encoder.encode(rawKey));
+    keyBytes = new Uint8Array(keyHash);
+  }
+
+  return await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+}
+
+async function encryptJson(plaintextObj) {
+  const cryptoKey = await getEncryptionKey();
+  const plaintext = JSON.stringify(plaintextObj);
+  const plaintextBytes = new TextEncoder().encode(plaintext);
+  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, cryptoKey, plaintextBytes);
+  return {
+    iv_b64: btoa(String.fromCharCode(...iv)),
+    ciphertext_b64: btoa(String.fromCharCode(...new Uint8Array(ciphertext)))
+  };
+}
+
+// ============ Inline Org Helpers ============
+async function resolveOrgId(base44, user) {
+  if (!user?.email) throw new Error('User not authenticated');
+  const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
+  if (memberships.length === 0) throw new Error('User not associated with any organization');
+  return { orgId: memberships[0].org_id, membership: memberships[0] };
+}
+
+function isOrgAdmin(membership) {
+  const role = membership?.role_id || membership?.role || 'user';
+  return ['admin', 'owner', 'super_admin'].includes(role);
+}
 
 Deno.serve(async (req) => {
   try {
