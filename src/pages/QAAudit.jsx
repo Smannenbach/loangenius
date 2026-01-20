@@ -351,12 +351,19 @@ export default function QAAudit() {
             </CardContent>
           </Card>
           
-          <Card className={stats.deadButtons > 0 ? "bg-yellow-50 border-yellow-200" : "bg-green-50 border-green-200"}>
+          <Card className={stats.trueDeadButtons > 0 ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}>
             <CardContent className="pt-6 text-center">
-              <p className={`text-3xl font-bold ${stats.deadButtons > 0 ? 'text-yellow-700' : 'text-green-700'}`}>
-                {stats.deadButtons}
+              <p className={`text-3xl font-bold ${stats.trueDeadButtons > 0 ? 'text-red-700' : 'text-green-700'}`}>
+                {stats.trueDeadButtons}
               </p>
-              <p className="text-sm text-gray-600">Dead Buttons</p>
+              <p className="text-sm text-gray-600">TRUE Dead Buttons</p>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="pt-6 text-center">
+              <p className="text-3xl font-bold text-blue-700">{stats.exemptButtons}</p>
+              <p className="text-sm text-gray-600">Exempt (Valid)</p>
             </CardContent>
           </Card>
           
