@@ -66,15 +66,10 @@ export default function Communications() {
   const { data: logs = [] } = useQuery({
     queryKey: ['communications', orgId],
     queryFn: async () => {
-      try {
-        if (orgId) {
-          return await base44.entities.CommunicationsLog.filter({ org_id: orgId });
-        }
-        return await base44.entities.CommunicationsLog.list();
-      } catch {
-        return [];
-      }
+      if (!orgId) return [];
+      return await base44.entities.CommunicationsLog.filter({ org_id: orgId });
     },
+    enabled: !!orgId,
   });
 
   const sendMutation = useMutation({
@@ -95,9 +90,8 @@ export default function Communications() {
             subject: data.subject || 'Message from LoanGenius',
             body: data.body
           });
-          // Log it manually
-          const memberships = await base44.entities.OrgMembership.filter({ user_id: (await base44.auth.me()).email });
-          const orgId = memberships[0]?.org_id || 'default';
+          // Log it manually using the already-resolved orgId
+          if (!orgId) throw new Error('Organization not resolved');
           
           await base44.entities.CommunicationsLog.create({
             org_id: orgId,

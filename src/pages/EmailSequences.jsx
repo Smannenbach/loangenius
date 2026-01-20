@@ -46,15 +46,10 @@ export default function EmailSequences() {
   const { data: sequences = [], isLoading } = useQuery({
     queryKey: ['emailSequences', orgId],
     queryFn: async () => {
-      try {
-        if (orgId) {
-          return await base44.entities.EmailSequence.filter({ org_id: orgId });
-        }
-        return await base44.entities.EmailSequence.list('-created_date');
-      } catch {
-        return [];
-      }
-    }
+      if (!orgId) return [];
+      return await base44.entities.EmailSequence.filter({ org_id: orgId });
+    },
+    enabled: !!orgId,
   });
 
   const { data: enrollments = [] } = useQuery({
@@ -84,15 +79,21 @@ export default function EmailSequences() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => editingSequence 
-      ? base44.entities.EmailSequence.update(editingSequence.id, data)
-      : base44.entities.EmailSequence.create({ ...data, org_id: orgId }),
+    mutationFn: (data) => {
+      if (!orgId && !editingSequence) throw new Error('Organization not resolved');
+      return editingSequence 
+        ? base44.entities.EmailSequence.update(editingSequence.id, data)
+        : base44.entities.EmailSequence.create({ ...data, org_id: orgId });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['emailSequences']);
       setIsCreateOpen(false);
       setEditingSequence(null);
       resetForm();
       toast.success(editingSequence ? 'Sequence updated' : 'Sequence created');
+    },
+    onError: (error) => {
+      toast.error('Failed to save sequence: ' + error.message);
     }
   });
 
@@ -101,12 +102,21 @@ export default function EmailSequences() {
     onSuccess: () => {
       queryClient.invalidateQueries(['emailSequences']);
       toast.success('Sequence deleted');
+    },
+    onError: (error) => {
+      toast.error('Failed to delete: ' + error.message);
     }
   });
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, is_active }) => base44.entities.EmailSequence.update(id, { is_active }),
-    onSuccess: () => queryClient.invalidateQueries(['emailSequences'])
+    onSuccess: (_, { is_active }) => {
+      queryClient.invalidateQueries(['emailSequences']);
+      toast.success(is_active ? 'Sequence activated' : 'Sequence paused');
+    },
+    onError: (error) => {
+      toast.error('Failed to toggle: ' + error.message);
+    }
   });
 
   const resetForm = () => {
