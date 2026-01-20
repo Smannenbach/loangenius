@@ -86,6 +86,7 @@ import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
 import Preflight from './pages/Preflight';
+import MISMOValidator from './pages/MISMOValidator';
 import __Layout from './Layout.jsx';
 
 
@@ -178,6 +179,7 @@ export const PAGES = {
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
     "Preflight": Preflight,
+    "MISMOValidator": MISMOValidator,
 }
 
 export const pagesConfig = {
