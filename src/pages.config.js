@@ -9,7 +9,7 @@ import AdminOrganization from './pages/AdminOrganization';
 import AdminPortalPreview from './pages/AdminPortalPreview';
 import AdminPrivacyRequests from './pages/AdminPrivacyRequests';
 import AdminSettings from './pages/AdminSettings';
-import AdminWebhooks from './pages/AdminWebhooks';
+import ContactDetail from './pages/ContactDetail';
 import AgentExecutionViewer from './pages/AgentExecutionViewer';
 import AgentKnowledgeBase from './pages/AgentKnowledgeBase';
 import AgentOrchestrator from './pages/AgentOrchestrator';
@@ -24,9 +24,9 @@ import BillingSuccess from './pages/BillingSuccess';
 import BorrowerOnboarding from './pages/BorrowerOnboarding';
 import BorrowerPortal from './pages/BorrowerPortal';
 import BorrowerPortalDashboard from './pages/BorrowerPortalDashboard';
-import BorrowerPortalHome from './pages/BorrowerPortalHome';
-import BorrowerPortalLogin from './pages/BorrowerPortalLogin';
 import BrandStudio from './pages/BrandStudio';
+import BorrowerPortalLogin from './pages/BorrowerPortalLogin';
+import Dashboard from './pages/Dashboard';
 import BrandingSettings from './pages/BrandingSettings';
 import BusinessPurposeApplication from './pages/BusinessPurposeApplication';
 import CoborrowerPortal from './pages/CoborrowerPortal';
@@ -34,34 +34,33 @@ import Communications from './pages/Communications';
 import ComplianceDashboard from './pages/ComplianceDashboard';
 import ConsentManagement from './pages/ConsentManagement';
 import ContactCreate from './pages/ContactCreate';
-import ContactDetail from './pages/ContactDetail';
 import Contacts from './pages/Contacts';
+import Deals from './pages/Deals';
 import Conversations from './pages/Conversations';
-import Dashboard from './pages/Dashboard';
+import Documents from './pages/Documents';
 import DealDetail from './pages/DealDetail';
 import DealMobile from './pages/DealMobile';
 import DealWizard from './pages/DealWizard';
-import Deals from './pages/Deals';
+import Loans from './pages/Loans';
 import DocumentIntelligence from './pages/DocumentIntelligence';
 import DocumentIntelligenceHub from './pages/DocumentIntelligenceHub';
-import Documents from './pages/Documents';
+import Leads from './pages/Leads';
 import EmailSequences from './pages/EmailSequences';
 import ErrorTest from './pages/ErrorTest';
 import ExecutiveDashboard from './pages/ExecutiveDashboard';
 import LandingPage from './pages/LandingPage';
 import LeadIntelligence from './pages/LeadIntelligence';
-import Leads from './pages/Leads';
+import Pipeline from './pages/Pipeline';
 import LenderIntegrations from './pages/LenderIntegrations';
 import Lenders from './pages/Lenders';
 import LoanApplication from './pages/LoanApplication';
 import LoanApplicationWizard from './pages/LoanApplicationWizard';
-import Loans from './pages/Loans';
+import Settings from './pages/Settings';
 import MISMOExportProfiles from './pages/MISMOExportProfiles';
 import MISMOImportExport from './pages/MISMOImportExport';
 import MISMOValidator from './pages/MISMOValidator';
 import NewDeal from './pages/NewDeal';
 import NotFound from './pages/NotFound';
-import Pipeline from './pages/Pipeline';
 import PortalSettings from './pages/PortalSettings';
 import Preflight from './pages/Preflight';
 import Privacy from './pages/Privacy';
@@ -74,7 +73,6 @@ import Reports from './pages/Reports';
 import Roadmap from './pages/Roadmap';
 import smokeTestResults from './pages/SMOKE_TEST_RESULTS';
 import Security from './pages/Security';
-import Settings from './pages/Settings';
 import SmokeTests from './pages/SmokeTests';
 import Status from './pages/Status';
 import SubmissionPrep from './pages/SubmissionPrep';
@@ -92,6 +90,8 @@ import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
 import AdminBilling from './pages/AdminBilling';
 import SystemDiagnostics from './pages/SystemDiagnostics';
+import AdminWebhooks from './pages/AdminWebhooks';
+import BorrowerPortalHome from './pages/BorrowerPortalHome';
 import __Layout from './Layout.jsx';
 
 
@@ -107,7 +107,7 @@ export const PAGES = {
     "AdminPortalPreview": AdminPortalPreview,
     "AdminPrivacyRequests": AdminPrivacyRequests,
     "AdminSettings": AdminSettings,
-    "AdminWebhooks": AdminWebhooks,
+    "ContactDetail": ContactDetail,
     "AgentExecutionViewer": AgentExecutionViewer,
     "AgentKnowledgeBase": AgentKnowledgeBase,
     "AgentOrchestrator": AgentOrchestrator,
@@ -122,9 +122,9 @@ export const PAGES = {
     "BorrowerOnboarding": BorrowerOnboarding,
     "BorrowerPortal": BorrowerPortal,
     "BorrowerPortalDashboard": BorrowerPortalDashboard,
-    "BorrowerPortalHome": BorrowerPortalHome,
-    "BorrowerPortalLogin": BorrowerPortalLogin,
     "BrandStudio": BrandStudio,
+    "BorrowerPortalLogin": BorrowerPortalLogin,
+    "Dashboard": Dashboard,
     "BrandingSettings": BrandingSettings,
     "BusinessPurposeApplication": BusinessPurposeApplication,
     "CoborrowerPortal": CoborrowerPortal,
@@ -132,34 +132,33 @@ export const PAGES = {
     "ComplianceDashboard": ComplianceDashboard,
     "ConsentManagement": ConsentManagement,
     "ContactCreate": ContactCreate,
-    "ContactDetail": ContactDetail,
     "Contacts": Contacts,
+    "Deals": Deals,
     "Conversations": Conversations,
-    "Dashboard": Dashboard,
+    "Documents": Documents,
     "DealDetail": DealDetail,
     "DealMobile": DealMobile,
     "DealWizard": DealWizard,
-    "Deals": Deals,
+    "Loans": Loans,
     "DocumentIntelligence": DocumentIntelligence,
     "DocumentIntelligenceHub": DocumentIntelligenceHub,
-    "Documents": Documents,
+    "Leads": Leads,
     "EmailSequences": EmailSequences,
     "ErrorTest": ErrorTest,
     "ExecutiveDashboard": ExecutiveDashboard,
     "LandingPage": LandingPage,
     "LeadIntelligence": LeadIntelligence,
-    "Leads": Leads,
+    "Pipeline": Pipeline,
     "LenderIntegrations": LenderIntegrations,
     "Lenders": Lenders,
     "LoanApplication": LoanApplication,
     "LoanApplicationWizard": LoanApplicationWizard,
-    "Loans": Loans,
+    "Settings": Settings,
     "MISMOExportProfiles": MISMOExportProfiles,
     "MISMOImportExport": MISMOImportExport,
     "MISMOValidator": MISMOValidator,
     "NewDeal": NewDeal,
     "NotFound": NotFound,
-    "Pipeline": Pipeline,
     "PortalSettings": PortalSettings,
     "Preflight": Preflight,
     "Privacy": Privacy,
@@ -172,7 +171,6 @@ export const PAGES = {
     "Roadmap": Roadmap,
     "SMOKE_TEST_RESULTS": smokeTestResults,
     "Security": Security,
-    "Settings": Settings,
     "SmokeTests": SmokeTests,
     "Status": Status,
     "SubmissionPrep": SubmissionPrep,
@@ -190,6 +188,8 @@ export const PAGES = {
     "ValidationDashboard": ValidationDashboard,
     "AdminBilling": AdminBilling,
     "SystemDiagnostics": SystemDiagnostics,
+    "AdminWebhooks": AdminWebhooks,
+    "BorrowerPortalHome": BorrowerPortalHome,
 }
 
 export const pagesConfig = {

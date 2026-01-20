@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
+import { useOrgId, useOrgScopedQuery } from '@/components/useOrgId';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
+import { Users, Plus, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
+import { SkeletonTable } from '@/components/ui/skeleton-cards';
+import { EmptyContacts, EmptySearchResults } from '@/components/ui/empty-states';
 
-// Simple debounce hook
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -16,19 +27,6 @@ function useDebounce(value, delay) {
 
   return debouncedValue;
 }
-import { base44 } from '@/api/base44Client';
-import { useOrgId, useOrgScopedQuery } from '@/components/useOrgId';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from '@/components/ui/select';
-import { Users, Plus, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-import { toast } from 'sonner';
-import { Link } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
-import { SkeletonTable } from '@/components/ui/skeleton-cards';
-import { EmptyContacts, EmptySearchResults } from '@/components/ui/empty-states';
 
 export default function Contacts() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,15 +37,11 @@ export default function Contacts() {
   const [sortColumn, setSortColumn] = useState('created_date');
   const [sortDirection, setSortDirection] = useState('desc');
 
-  // Use canonical org resolver
   const { isLoading: orgLoading } = useOrgId();
-
-  // Use org-scoped query - NEVER falls back to list()
   const { data: contacts = [], isLoading: contactsLoading } = useOrgScopedQuery('Contact');
 
   const isLoading = orgLoading || contactsLoading;
 
-  // Filter contacts using debounced search term
   const filtered = contacts.filter(c => {
     const matchSearch = !debouncedSearchTerm ||
       (c.first_name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
@@ -113,7 +107,6 @@ export default function Contacts() {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Contacts</h1>
         <Link to={createPageUrl('ContactCreate')}>
@@ -124,17 +117,15 @@ export default function Contacts() {
         </Link>
       </div>
 
-      {/* Search & Filters */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">
         <div className="flex gap-4 mb-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Search by name, email, phone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
-              aria-label="Search contacts"
             />
           </div>
           <Select value={contactType} onValueChange={setContactType}>
@@ -166,72 +157,48 @@ export default function Contacts() {
         </div>
       </div>
 
-      {/* Contacts Table */}
       {isLoading ? (
         <SkeletonTable rows={8} cols={6} />
+      ) : filtered.length === 0 && debouncedSearchTerm ? (
+        <EmptySearchResults query={debouncedSearchTerm} onClear={() => setSearchTerm('')} />
+      ) : contacts.length === 0 ? (
+        <EmptyContacts onAction={() => window.location.href = createPageUrl('ContactCreate')} />
       ) : (
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        {isLoading ? (
-          <SkeletonTable rows={8} cols={6} />
-        ) : filtered.length === 0 && debouncedSearchTerm ? (
-          <EmptySearchResults
-            query={debouncedSearchTerm}
-            onClear={() => setSearchTerm('')}
-          />
-        ) : contacts.length === 0 ? (
-          <EmptyContacts
-            onAction={() => window.location.href = createPageUrl('ContactCreate')}
-          />
-        ) : (
-        <table className="w-full">
-          <thead>
-            <tr className="bg-gray-50 border-b">
-              <th 
-                className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('name')}
-              >
-                <div className="flex items-center gap-2">
-                  Name <SortIcon column="name" />
-                </div>
-              </th>
-              <th 
-                className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('email')}
-              >
-                <div className="flex items-center gap-2">
-                  Contact <SortIcon column="email" />
-                </div>
-              </th>
-              <th 
-                className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('type')}
-              >
-                <div className="flex items-center gap-2">
-                  Type <SortIcon column="type" />
-                </div>
-              </th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Assigned To</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {filtered.length === 0 && searchTerm ? (
-              <tr>
-                <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                  No contacts match your filters. Try adjusting your search criteria.
-                <td colSpan="6" className="px-6 py-4">
-                  <EmptySearchResults query={searchTerm} onClear={() => setSearchTerm('')} />
-                </td>
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50 border-b">
+                <th 
+                  className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('name')}
+                >
+                  <div className="flex items-center gap-2">
+                    Name <SortIcon column="name" />
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('email')}
+                >
+                  <div className="flex items-center gap-2">
+                    Contact <SortIcon column="email" />
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('type')}
+                >
+                  <div className="flex items-center gap-2">
+                    Type <SortIcon column="type" />
+                  </div>
+                </th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Assigned To</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Action</th>
               </tr>
-            ) : filtered.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="px-6 py-4">
-                  <EmptyContacts onAction={() => window.location.href = createPageUrl('ContactCreate')} />
-                </td>
-              </tr>
-            ) : (
-              paginatedContacts.map(contact => (
+            </thead>
+            <tbody className="divide-y">
+              {paginatedContacts.map(contact => (
                 <tr key={contact.id} className="hover:bg-gray-50 transition">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
@@ -271,15 +238,13 @@ export default function Contacts() {
                     </Link>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      {/* Pagination - FIX: Proper pagination based on total pages */}
-      {filtered.length > 0 && (
+      {filtered.length > ITEMS_PER_PAGE && (
         <div className="flex justify-center gap-4 mt-6">
           <Button 
             variant="outline" 
@@ -289,12 +254,12 @@ export default function Contacts() {
             Previous
           </Button>
           <span className="px-4 py-2 text-sm text-gray-600">
-            Page {currentPage} of {Math.ceil(filtered.length / 20) || 1}
+            Page {currentPage} of {Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1}
           </span>
           <Button 
             variant="outline"
             onClick={() => setCurrentPage(p => p + 1)}
-            disabled={currentPage >= Math.ceil(filtered.length / 20)}
+            disabled={currentPage >= Math.ceil(filtered.length / ITEMS_PER_PAGE)}
           >
             Next
           </Button>

@@ -21,7 +21,6 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Palette, Image, Type, FileText, RotateCcw } from 'lucide-react';
-import { toast } from 'sonner';
 import BrandingPreview from '@/components/BrandingPreview';
 
 const FONT_OPTIONS = ['Inter', 'Roboto', 'Open Sans', 'Lato', 'Poppins'];
@@ -46,6 +45,20 @@ const PRESETS = {
     button_style: 'sharp',
   },
 };
+
+function getDefaultBranding() {
+  return {
+    primary_color: '#2563eb',
+    secondary_color: '#1e40af',
+    accent_color: '#10b981',
+    background_color: '#ffffff',
+    text_color: '#1f2937',
+    button_style: 'rounded',
+    font_heading: 'Inter',
+    font_body: 'Inter',
+    welcome_message: 'Welcome! Upload your documents to get started.',
+  };
+}
 
 export default function BrandStudio() {
   const queryClient = useQueryClient();
@@ -109,10 +122,10 @@ export default function BrandStudio() {
     if (!file) return;
 
     try {
-      const { url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setFormData({
         ...formData,
-        [type === 'light' ? 'logo_light_url' : 'logo_dark_url']: url,
+        [type === 'light' ? 'logo_light_url' : 'logo_dark_url']: file_url,
       });
     } catch (error) {
       toast.error('Error uploading logo: ' + error.message);
@@ -132,7 +145,6 @@ export default function BrandStudio() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Settings */}
         <div className="lg:col-span-2 space-y-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-4">
@@ -142,7 +154,6 @@ export default function BrandStudio() {
               <TabsTrigger value="content">Content</TabsTrigger>
             </TabsList>
 
-            {/* Identity Tab */}
             <TabsContent value="identity" className="space-y-4">
               <Card>
                 <CardHeader>
@@ -197,7 +208,6 @@ export default function BrandStudio() {
               </Card>
             </TabsContent>
 
-            {/* Colors Tab */}
             <TabsContent value="colors" className="space-y-4">
               <Card>
                 <CardHeader>
@@ -220,13 +230,13 @@ export default function BrandStudio() {
                         <div className="flex items-center gap-2">
                           <input
                             type="color"
-                            value={formData[key]}
+                            value={formData[key] || '#000000'}
                             onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
                             className="h-10 w-20 rounded cursor-pointer"
                           />
                           <Input
                             type="text"
-                            value={formData[key]}
+                            value={formData[key] || ''}
                             onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
                             className="flex-1 text-xs font-mono"
                             placeholder="#000000"
@@ -260,7 +270,6 @@ export default function BrandStudio() {
               </Card>
             </TabsContent>
 
-            {/* Typography Tab */}
             <TabsContent value="typography" className="space-y-4">
               <Card>
                 <CardHeader>
@@ -273,7 +282,7 @@ export default function BrandStudio() {
                   <div>
                     <Label>Heading Font</Label>
                     <Select
-                      value={formData.font_heading}
+                      value={formData.font_heading || 'Inter'}
                       onValueChange={(v) => setFormData({ ...formData, font_heading: v })}
                     >
                       <SelectTrigger>
@@ -290,7 +299,7 @@ export default function BrandStudio() {
                   <div>
                     <Label>Body Font</Label>
                     <Select
-                      value={formData.font_body}
+                      value={formData.font_body || 'Inter'}
                       onValueChange={(v) => setFormData({ ...formData, font_body: v })}
                     >
                       <SelectTrigger>
@@ -307,7 +316,7 @@ export default function BrandStudio() {
                   <div>
                     <Label>Button Style</Label>
                     <Select
-                      value={formData.button_style}
+                      value={formData.button_style || 'rounded'}
                       onValueChange={(v) => setFormData({ ...formData, button_style: v })}
                     >
                       <SelectTrigger>
@@ -324,7 +333,6 @@ export default function BrandStudio() {
               </Card>
             </TabsContent>
 
-            {/* Content Tab */}
             <TabsContent value="content" className="space-y-4">
               <Card>
                 <CardHeader>
@@ -337,7 +345,7 @@ export default function BrandStudio() {
                   <div>
                     <Label>Welcome Message</Label>
                     <Textarea
-                      value={formData.welcome_message}
+                      value={formData.welcome_message || ''}
                       onChange={(e) => setFormData({ ...formData, welcome_message: e.target.value })}
                       placeholder="Welcome message shown to borrowers"
                       className="h-20"
@@ -381,7 +389,6 @@ export default function BrandStudio() {
             </TabsContent>
           </Tabs>
 
-          {/* Save Button */}
           <Button
             onClick={saveBranding}
             disabled={isSaving}
@@ -392,25 +399,10 @@ export default function BrandStudio() {
           </Button>
         </div>
 
-        {/* Preview Panel */}
         <div className="lg:col-span-1">
           <BrandingPreview branding={formData} />
         </div>
       </div>
     </div>
   );
-}
-
-function getDefaultBranding() {
-  return {
-    primary_color: '#2563eb',
-    secondary_color: '#1e40af',
-    accent_color: '#10b981',
-    background_color: '#ffffff',
-    text_color: '#1f2937',
-    button_style: 'rounded',
-    font_heading: 'Inter',
-    font_body: 'Inter',
-    welcome_message: 'Welcome! Upload your documents to get started.',
-  };
 }

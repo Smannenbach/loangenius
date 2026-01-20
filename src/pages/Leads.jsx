@@ -1251,10 +1251,9 @@ export default function Leads() {
                                   deleteLeadMutation.mutate(lead.id);
                                 }
                               }}
-                            <DropdownMenuItem 
-                              className="text-red-600" 
-                              onClick={() => setDeleteConfirmLead(lead)}
-                            >Delete</DropdownMenuItem>
+                            >
+                              Delete
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>

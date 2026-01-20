@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
-import { FileText, Plus, X } from 'lucide-react';
 import { FileText, Plus, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -16,14 +15,12 @@ export default function SendForSignatureModal({ dealId, onClose }) {
   const [send, setSend] = useState(true);
   const queryClient = useQueryClient();
 
-  // FIX: Fetch real documents for this deal instead of mock data
   const { data: dealDocuments = [], isLoading: docsLoading } = useQuery({
     queryKey: ['deal-documents', dealId],
     queryFn: () => base44.entities.Document.filter({ deal_id: dealId, status: 'approved' }),
     enabled: !!dealId
   });
 
-  // FIX: Fetch real borrowers for this deal
   const { data: borrowers = [], isLoading: borrowersLoading } = useQuery({
     queryKey: ['deal-borrowers', dealId],
     queryFn: async () => {
@@ -35,7 +32,6 @@ export default function SendForSignatureModal({ dealId, onClose }) {
     enabled: !!dealId
   });
 
-  // Pre-populate signers from borrowers
   useEffect(() => {
     if (borrowers.length > 0 && signers[0]?.name === '') {
       setSigners(borrowers.map(b => ({
@@ -54,9 +50,6 @@ export default function SendForSignatureModal({ dealId, onClose }) {
   });
 
   const handleSend = () => {
-    if (!envelopeName || documents.length === 0 || signers.length === 0) {
-      toast.warning('Please fill in all required fields');
-    // FIX: Replace alert() with toast and proper validation
     if (!envelopeName.trim()) {
       toast.error('Please enter an envelope name');
       return;
@@ -71,7 +64,6 @@ export default function SendForSignatureModal({ dealId, onClose }) {
       return;
     }
 
-    // FIX: Use real document data
     const documents = dealDocuments
       .filter(d => selectedDocIds.includes(d.id))
       .map(d => ({ id: d.id, name: d.name, file_url: d.file_url }));
