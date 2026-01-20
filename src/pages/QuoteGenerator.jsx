@@ -50,6 +50,7 @@ function SendQuoteButton({ quote }) {
     <>
       <Button 
         className="flex-1 gap-2 bg-blue-600 hover:bg-blue-500"
+        data-testid="cta:QuoteGenerator:SendToBorrower"
         onClick={() => setIsOpen(true)}
         disabled={!quote.borrowerEmail}
       >
