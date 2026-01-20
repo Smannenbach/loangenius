@@ -1,17 +1,27 @@
+/**
+ * MISMO Conformance Report Generator
+ * Generates detailed conformance reports for export/import operations
+ * 
+ * Categories:
+ * - XML well-formedness
+ * - XSD schema violations
+ * - Enum violations
+ * - Datatype violations
+ * - Missing required fields
+ * - Conditionality violations
+ * - Mapping gaps
+ * 
+ * PII Safety: Never includes raw SSN/DOB/Tax ID in reports
+ */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-// MISMO Conformance Report Generator
-// Generates comprehensive reports for import/export with PII redaction
-
-// Sensitive field patterns
+// PII field patterns to redact
 const PII_PATTERNS = [
-  { pattern: /ssn/i, type: 'SSN' },
-  { pattern: /socialsecurity/i, type: 'SSN' },
-  { pattern: /taxpayer/i, type: 'TaxID' },
-  { pattern: /dateofbirth|dob|birthdate/i, type: 'DOB' },
-  { pattern: /ein|employeridentification/i, type: 'EIN' },
-  { pattern: /accountnumber/i, type: 'Account' },
-  { pattern: /routingnumber/i, type: 'Routing' },
+  /SSN|SocialSecurity|TaxpayerIdentifier/i,
+  /DateOfBirth|BirthDate|DOB/i,
+  /TaxID|EIN|EmployerIdentification/i,
+  /AccountNumber|BankAccount/i,
+  /DriverLicense|DL/i
 ];
 
 Deno.serve(async (req) => {
@@ -23,27 +33,19 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { 
-      action, 
-      context, // 'export' or 'import'
-      validation_result,
-      mapping_result,
-      canonical_data,
-      pack_id,
-      run_id
-    } = await req.json();
+    const body = await req.json();
+    const { action, context, validation_result, mapping_result, canonical_data, pack_id, run_id } = body;
 
-    // ACTION: Generate full conformance report
+    // ACTION: Generate conformance report
     if (action === 'generate') {
-      const report = generateConformanceReport({
+      const report = generateConformanceReport(
         context,
         validation_result,
         mapping_result,
         canonical_data,
         pack_id,
-        run_id,
-        generated_by: user.email
-      });
+        run_id
+      );
       
       return Response.json({
         success: true,
@@ -51,21 +53,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ACTION: Redact PII from a report
-    if (action === 'redact_pii') {
-      const { report } = await req.json();
-      const redacted = redactPiiFromReport(report);
+    // ACTION: Summarize report
+    if (action === 'summarize') {
+      const { report } = body;
+      const summary = summarizeReport(report);
       return Response.json({
         success: true,
-        redacted_report: redacted
+        summary
       });
     }
 
-    // ACTION: Get report template
-    if (action === 'get_template') {
+    // ACTION: Redact PII from report
+    if (action === 'redact_pii') {
+      const { report } = body;
+      const redacted = redactPII(report);
       return Response.json({
         success: true,
-        template: getReportTemplate()
+        redacted_report: redacted
       });
     }
 
@@ -73,312 +77,333 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Conformance Report error:', error);
-    return Response.json({ 
-      error: 'Internal server error', 
-      details: error.message 
-    }, { status: 500 });
+    return Response.json({ error: error.message }, { status: 500 });
   }
 });
 
-// Generate comprehensive conformance report
-function generateConformanceReport(params) {
-  const {
-    context,
-    validation_result,
-    mapping_result,
-    canonical_data,
-    pack_id,
-    run_id,
-    generated_by
-  } = params;
+// ============================================================
+// REPORT GENERATION
+// ============================================================
 
-  const errors = [];
-  const warnings = [];
-
-  // Category 1: Well-formedness
-  if (validation_result?.well_formedness === false) {
-    errors.push({
-      category: 'well-formedness',
-      code: 'WF001',
-      line: validation_result.parse_error_line || 0,
-      column: validation_result.parse_error_col || 0,
-      xpath: '/',
-      message: validation_result.parse_error_message || 'XML is not well-formed',
-      expected: 'Valid XML document',
-      actual: 'Parse error',
-      severity: 'error'
-    });
-  }
-
-  // Category 2: XSD Schema violations
-  if (validation_result?.xsd_errors) {
-    for (const xsdError of validation_result.xsd_errors) {
-      errors.push({
-        category: 'xsd',
-        code: `XSD${String(errors.length + 1).padStart(3, '0')}`,
-        line: xsdError.line || 0,
-        column: xsdError.col || 0,
-        xpath: xsdError.xpath || 'unknown',
-        message: redactPiiFromMessage(xsdError.message),
-        expected: xsdError.expected,
-        actual: redactPiiFromValue(xsdError.actual, xsdError.xpath),
-        severity: 'error'
-      });
-    }
-  }
-
-  // Category 3: Enum violations
-  if (validation_result?.enum_violations) {
-    for (const enumError of validation_result.enum_violations) {
-      errors.push({
-        category: 'enum',
-        code: `ENUM${String(errors.length + 1).padStart(3, '0')}`,
-        line: 0,
-        column: 0,
-        xpath: enumError.xpath || enumError.field,
-        message: `Invalid enum value for ${enumError.field}`,
-        expected: `One of: ${(enumError.allowed_values || []).join(', ')}`,
-        actual: redactPiiFromValue(enumError.value, enumError.field),
-        severity: 'error'
-      });
-    }
-  }
-
-  // Category 4: Missing required fields
-  if (validation_result?.missing_required) {
-    for (const missing of validation_result.missing_required) {
-      errors.push({
-        category: 'missing_required',
-        code: `REQ${String(errors.length + 1).padStart(3, '0')}`,
-        line: 0,
-        column: 0,
-        xpath: missing.xpath || missing.field,
-        message: `Required field '${missing.label || missing.field}' is missing`,
-        expected: 'Value present',
-        actual: 'Empty or missing',
-        severity: 'error'
-      });
-    }
-  }
-
-  // Category 5: Conditionality violations
-  if (validation_result?.conditional_violations) {
-    for (const cond of validation_result.conditional_violations) {
-      errors.push({
-        category: 'conditionality',
-        code: `COND${String(errors.length + 1).padStart(3, '0')}`,
-        line: 0,
-        column: 0,
-        xpath: cond.field,
-        message: cond.message,
-        expected: 'Condition satisfied',
-        actual: 'Condition not met',
-        severity: cond.severity || 'error'
-      });
-    }
-  }
-
-  // Category 6: Mapping gaps
-  if (mapping_result?.unmapped_nodes) {
-    const unmappedCount = mapping_result.unmapped_nodes.length;
-    if (unmappedCount > 0) {
-      warnings.push({
-        category: 'mapping_gaps',
-        code: 'MAP001',
-        line: 0,
-        column: 0,
-        xpath: 'various',
-        message: `${unmappedCount} fields not mapped to canonical model`,
-        expected: 'All fields mapped',
-        actual: `${unmappedCount} unmapped`,
-        severity: 'warning',
-        details: mapping_result.unmapped_nodes.slice(0, 10).map(n => ({
-          xpath: n.xpath,
-          element: n.element_name,
-          value_preview: n.value_preview
-        }))
-      });
-    }
-  }
-
-  // Add any validation warnings
-  if (validation_result?.warnings) {
-    for (const warn of validation_result.warnings) {
-      warnings.push({
-        category: warn.category || 'validation',
-        code: `WARN${String(warnings.length + 1).padStart(3, '0')}`,
-        line: warn.line || 0,
-        column: warn.col || 0,
-        xpath: warn.xpath || 'unknown',
-        message: redactPiiFromMessage(warn.message),
-        severity: 'warning'
-      });
-    }
-  }
-
-  // Determine overall status
-  let status = 'PASS';
-  if (errors.length > 0) {
-    status = 'FAIL';
-  } else if (warnings.length > 0) {
-    status = 'PASS_WITH_WARNINGS';
-  }
-
-  // Build report
+function generateConformanceReport(context, validationResult, mappingResult, canonicalData, packId, runId) {
   const report = {
     report_id: `CR-${Date.now()}`,
-    run_id: run_id || `RUN-${Date.now()}`,
+    run_id: runId,
     context, // 'export' or 'import'
-    status,
-    
-    pack_info: {
-      pack_id: pack_id || 'PACK_A_GENERIC_MISMO_34_B324',
-      mismo_version: '3.4.0',
-      build: 'B324'
+    pack_id: packId,
+    generated_at: new Date().toISOString(),
+    status: 'PASS',
+    categories: {
+      well_formedness: { status: 'PASS', items: [] },
+      xsd_schema: { status: 'PASS', items: [] },
+      enum_violations: { status: 'PASS', items: [] },
+      datatype_violations: { status: 'PASS', items: [] },
+      missing_required: { status: 'PASS', items: [] },
+      conditionality: { status: 'PASS', items: [] },
+      mapping_gaps: { status: 'PASS', items: [] }
     },
-    
     summary: {
-      total_errors: errors.length,
-      total_warnings: warnings.length,
-      by_category: {
-        well_formedness: errors.filter(e => e.category === 'well-formedness').length,
-        xsd: errors.filter(e => e.category === 'xsd').length,
-        enum: errors.filter(e => e.category === 'enum').length,
-        missing_required: errors.filter(e => e.category === 'missing_required').length,
-        conditionality: errors.filter(e => e.category === 'conditionality').length,
-        mapping_gaps: warnings.filter(w => w.category === 'mapping_gaps').length
-      }
-    },
-    
-    errors: errors.map(e => redactErrorPii(e)),
-    warnings: warnings.map(w => redactErrorPii(w)),
-    
-    metadata: {
-      generated_at: new Date().toISOString(),
-      generated_by: generated_by,
-      pii_redacted: true
+      total_errors: 0,
+      total_warnings: 0,
+      total_info: 0,
+      error_categories: [],
+      warning_categories: []
     }
   };
+
+  // Process validation result
+  if (validationResult) {
+    // Well-formedness
+    if (!validationResult.well_formed) {
+      report.categories.well_formedness.status = 'FAIL';
+      report.categories.well_formedness.items.push({
+        severity: 'error',
+        code: 'XML_MALFORMED',
+        message: 'XML is not well-formed',
+        details: redactPIIFromMessage(validationResult.errors?.[0]?.message || 'Parse error')
+      });
+    }
+
+    // Process errors by category
+    if (validationResult.errors) {
+      for (const error of validationResult.errors) {
+        const category = categorizeError(error);
+        const redactedError = {
+          severity: 'error',
+          code: error.code,
+          message: redactPIIFromMessage(error.message),
+          xpath: error.xpath,
+          line: error.line,
+          column: error.column
+        };
+
+        if (report.categories[category]) {
+          report.categories[category].items.push(redactedError);
+          report.categories[category].status = 'FAIL';
+        }
+      }
+    }
+
+    // Process warnings
+    if (validationResult.warnings) {
+      for (const warning of validationResult.warnings) {
+        const category = categorizeError(warning);
+        const redactedWarning = {
+          severity: 'warning',
+          code: warning.code,
+          message: redactPIIFromMessage(warning.message),
+          xpath: warning.xpath,
+          line: warning.line
+        };
+
+        if (report.categories[category]) {
+          report.categories[category].items.push(redactedWarning);
+          if (report.categories[category].status === 'PASS') {
+            report.categories[category].status = 'PASS_WITH_WARNINGS';
+          }
+        }
+      }
+    }
+  }
+
+  // Process mapping result (for imports)
+  if (mappingResult) {
+    // Check for unmapped fields
+    if (mappingResult.unmapped_nodes && mappingResult.unmapped_nodes.length > 0) {
+      report.categories.mapping_gaps.status = 'PASS_WITH_WARNINGS';
+      for (const unmapped of mappingResult.unmapped_nodes.slice(0, 20)) { // Limit to 20
+        report.categories.mapping_gaps.items.push({
+          severity: 'warning',
+          code: 'UNMAPPED_INBOUND_NODE',
+          message: `Unmapped inbound element: ${unmapped.xpath}`,
+          xpath: unmapped.xpath,
+          reason: unmapped.reason || 'No mapping defined'
+        });
+      }
+      
+      if (mappingResult.unmapped_nodes.length > 20) {
+        report.categories.mapping_gaps.items.push({
+          severity: 'info',
+          code: 'UNMAPPED_COUNT',
+          message: `... and ${mappingResult.unmapped_nodes.length - 20} more unmapped nodes`
+        });
+      }
+    }
+  }
+
+  // Check canonical data for export gaps
+  if (context === 'export' && canonicalData) {
+    const exportGaps = findExportGaps(canonicalData);
+    if (exportGaps.length > 0) {
+      for (const gap of exportGaps) {
+        report.categories.mapping_gaps.items.push({
+          severity: gap.required ? 'error' : 'warning',
+          code: 'UNMAPPED_CANONICAL_FIELD',
+          message: `Canonical field '${gap.field}' has no MISMO mapping`,
+          field: gap.field,
+          reason: gap.reason || 'Not in MISMO LDD'
+        });
+        
+        if (gap.required && report.categories.mapping_gaps.status !== 'FAIL') {
+          report.categories.mapping_gaps.status = 'PASS_WITH_WARNINGS';
+        }
+      }
+    }
+  }
+
+  // Calculate summary
+  let totalErrors = 0;
+  let totalWarnings = 0;
+  let totalInfo = 0;
+  const errorCategories = [];
+  const warningCategories = [];
+
+  for (const [categoryName, category] of Object.entries(report.categories)) {
+    const errors = category.items.filter(i => i.severity === 'error').length;
+    const warnings = category.items.filter(i => i.severity === 'warning').length;
+    const infos = category.items.filter(i => i.severity === 'info').length;
+    
+    totalErrors += errors;
+    totalWarnings += warnings;
+    totalInfo += infos;
+    
+    if (errors > 0) errorCategories.push(categoryName);
+    if (warnings > 0) warningCategories.push(categoryName);
+  }
+
+  report.summary = {
+    total_errors: totalErrors,
+    total_warnings: totalWarnings,
+    total_info: totalInfo,
+    error_categories: errorCategories,
+    warning_categories: warningCategories
+  };
+
+  // Determine overall status
+  if (totalErrors > 0) {
+    report.status = 'FAIL';
+  } else if (totalWarnings > 0) {
+    report.status = 'PASS_WITH_WARNINGS';
+  } else {
+    report.status = 'PASS';
+  }
 
   return report;
 }
 
-// Redact PII from error object
-function redactErrorPii(error) {
-  return {
-    ...error,
-    message: redactPiiFromMessage(error.message),
-    actual: error.actual ? redactPiiFromValue(error.actual, error.xpath) : undefined,
-    details: error.details?.map(d => ({
-      ...d,
-      value_preview: d.value_preview ? redactPiiFromValue(d.value_preview, d.xpath) : undefined
-    }))
-  };
+// ============================================================
+// ERROR CATEGORIZATION
+// ============================================================
+
+function categorizeError(error) {
+  const code = error.code || '';
+  const category = error.category || '';
+  
+  // Use explicit category if provided
+  if (category === 'well_formedness' || code.includes('MALFORMED')) return 'well_formedness';
+  if (category === 'structure' || code.includes('INVALID_ROOT') || code.includes('MISSING_REQUIRED_ELEMENT') || code.includes('MISSING_MISMO_VERSION')) return 'xsd_schema';
+  if (category === 'enum' || code.includes('ENUM') || code.includes('INVALID_LDD_ENUM')) return 'enum_violations';
+  if (category === 'datatype' || code.includes('DATATYPE') || code.includes('TYPE_MISMATCH')) return 'datatype_violations';
+  if (code.includes('MISSING_REQUIRED') || code.includes('CONDITIONAL')) return 'missing_required';
+  if (category === 'conditionality') return 'conditionality';
+  if (category === 'mapping' || code.includes('UNMAPPED')) return 'mapping_gaps';
+  
+  // Default to XSD schema
+  return 'xsd_schema';
 }
 
-// Redact PII from message string
-function redactPiiFromMessage(message) {
-  if (!message) return message;
+// ============================================================
+// EXPORT GAP DETECTION
+// ============================================================
+
+function findExportGaps(canonicalData) {
+  const gaps = [];
   
-  // Redact SSN patterns (XXX-XX-XXXX or XXXXXXXXX)
+  // Fields that have no MISMO mapping (extension-only)
+  const extensionOnlyFields = [
+    'dscr', 'dscr_ratio', 'dscr_calculation_method',
+    'gross_rental_income', 'net_operating_income',
+    'is_business_purpose_loan', 'investment_strategy', 'exit_strategy',
+    'entity_ein', 'entity_formation_date', 'entity_formation_state',
+    'prepay_penalty_structure', 'interest_only_period_months',
+    'property_monthly_rent', 'property_annual_taxes', 'property_annual_insurance',
+    'property_monthly_hoa', 'broker_compensation', 'broker_compensation_type'
+  ];
+  
+  for (const field of extensionOnlyFields) {
+    if (canonicalData[field] !== undefined && canonicalData[field] !== null) {
+      gaps.push({
+        field,
+        reason: 'Mapped to LG Extension namespace (not core MISMO)',
+        required: false
+      });
+    }
+  }
+  
+  return gaps;
+}
+
+// ============================================================
+// PII REDACTION
+// ============================================================
+
+function redactPII(report) {
+  const redacted = JSON.parse(JSON.stringify(report));
+  
+  // Recursively redact PII from all string values
+  const redactObject = (obj) => {
+    if (!obj || typeof obj !== 'object') return;
+    
+    for (const key of Object.keys(obj)) {
+      const value = obj[key];
+      
+      if (typeof value === 'string') {
+        obj[key] = redactPIIFromMessage(value);
+      } else if (Array.isArray(value)) {
+        value.forEach(item => redactObject(item));
+      } else if (typeof value === 'object') {
+        redactObject(value);
+      }
+    }
+  };
+  
+  redactObject(redacted);
+  return redacted;
+}
+
+function redactPIIFromMessage(message) {
+  if (!message || typeof message !== 'string') return message;
+  
+  // Redact SSN patterns (XXX-XX-XXXX or 9 digits)
   message = message.replace(/\b\d{3}-?\d{2}-?\d{4}\b/g, '***-**-****');
   
-  // Redact date patterns that might be DOB
-  message = message.replace(/\b\d{4}-\d{2}-\d{2}\b/g, '****-**-**');
-  message = message.replace(/\b\d{2}\/\d{2}\/\d{4}\b/g, '**/**/****');
+  // Redact dates that look like DOB (before 2005)
+  message = message.replace(/\b(19|20)\d{2}[-/](0[1-9]|1[0-2])[-/](0[1-9]|[12]\d|3[01])\b/g, '****-**-**');
+  
+  // Redact account numbers (8+ digits)
+  message = message.replace(/\b\d{8,}\b/g, '********');
   
   // Redact EIN patterns (XX-XXXXXXX)
-  message = message.replace(/\b\d{2}-\d{7}\b/g, '**-*******');
-  
-  // Redact account numbers (sequences of 8+ digits)
-  message = message.replace(/\b\d{8,}\b/g, (match) => '****' + match.slice(-4));
+  message = message.replace(/\b\d{2}-?\d{7}\b/g, '**-*******');
   
   return message;
 }
 
-// Redact PII from value based on field context
-function redactPiiFromValue(value, xpath) {
-  if (!value) return value;
+// ============================================================
+// REPORT SUMMARIZATION
+// ============================================================
+
+function summarizeReport(report) {
+  const summary = {
+    status: report.status,
+    generated_at: report.generated_at,
+    pack_id: report.pack_id,
+    context: report.context,
+    quick_stats: {
+      errors: report.summary?.total_errors || 0,
+      warnings: report.summary?.total_warnings || 0,
+      info: report.summary?.total_info || 0
+    },
+    category_summary: {},
+    actionable_items: []
+  };
   
-  const valueStr = String(value);
-  
-  // Check if xpath suggests sensitive data
-  for (const { pattern, type } of PII_PATTERNS) {
-    if (pattern.test(xpath || '')) {
-      switch (type) {
-        case 'SSN':
-          return '***-**-' + valueStr.slice(-4);
-        case 'DOB':
-          return '****-**-**';
-        case 'EIN':
-        case 'TaxID':
-          return '**-***' + valueStr.slice(-4);
-        case 'Account':
-        case 'Routing':
-          return '****' + valueStr.slice(-4);
-        default:
-          return '****';
-      }
-    }
+  // Summarize by category
+  for (const [categoryName, category] of Object.entries(report.categories || {})) {
+    const errors = category.items?.filter(i => i.severity === 'error').length || 0;
+    const warnings = category.items?.filter(i => i.severity === 'warning').length || 0;
+    
+    summary.category_summary[categoryName] = {
+      status: category.status,
+      errors,
+      warnings
+    };
+    
+    // Add actionable items (top 3 errors per category)
+    const topErrors = (category.items || [])
+      .filter(i => i.severity === 'error')
+      .slice(0, 3)
+      .map(e => ({
+        category: categoryName,
+        code: e.code,
+        message: e.message,
+        xpath: e.xpath
+      }));
+    
+    summary.actionable_items.push(...topErrors);
   }
   
-  return valueStr;
-}
-
-// Redact entire report
-function redactPiiFromReport(report) {
-  return {
-    ...report,
-    errors: report.errors?.map(e => redactErrorPii(e)),
-    warnings: report.warnings?.map(w => redactErrorPii(w)),
-    metadata: {
-      ...report.metadata,
-      pii_redacted: true,
-      redacted_at: new Date().toISOString()
-    }
-  };
-}
-
-// Get report template structure
-function getReportTemplate() {
-  return {
-    report_id: 'string',
-    run_id: 'string',
-    context: 'export | import',
-    status: 'PASS | PASS_WITH_WARNINGS | FAIL',
-    pack_info: {
-      pack_id: 'string',
-      mismo_version: 'string',
-      build: 'string'
-    },
-    summary: {
-      total_errors: 'number',
-      total_warnings: 'number',
-      by_category: {
-        well_formedness: 'number',
-        xsd: 'number',
-        enum: 'number',
-        missing_required: 'number',
-        conditionality: 'number',
-        mapping_gaps: 'number'
-      }
-    },
-    errors: [{
-      category: 'string',
-      code: 'string',
-      line: 'number',
-      column: 'number',
-      xpath: 'string',
-      message: 'string (PII redacted)',
-      expected: 'string',
-      actual: 'string (PII redacted)',
-      severity: 'error | warning'
-    }],
-    warnings: ['same structure as errors'],
-    metadata: {
-      generated_at: 'ISO timestamp',
-      generated_by: 'string',
-      pii_redacted: 'boolean'
-    }
-  };
+  // Limit actionable items to 10
+  summary.actionable_items = summary.actionable_items.slice(0, 10);
+  
+  // Generate human-readable verdict
+  if (report.status === 'PASS') {
+    summary.verdict = 'All conformance checks passed. XML is valid and ready for use.';
+  } else if (report.status === 'PASS_WITH_WARNINGS') {
+    summary.verdict = `Conformance checks passed with ${summary.quick_stats.warnings} warning(s). Review recommended before proceeding.`;
+  } else {
+    summary.verdict = `Conformance checks FAILED with ${summary.quick_stats.errors} error(s). Fix errors before proceeding.`;
+  }
+  
+  return summary;
 }
