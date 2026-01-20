@@ -71,6 +71,10 @@ const scrollbarStyles = `
   .sidebar-scroll::-webkit-scrollbar-thumb:hover {
     background-color: #64748b;
   }
+  .sidebar-nav-container {
+    scrollbar-width: thin;
+    scrollbar-color: #475569 transparent;
+  }
 `;
 
 export default function Layout({ children, currentPageName }) {
@@ -260,8 +264,8 @@ export default function Layout({ children, currentPageName }) {
           )}
         </div>
 
-        {/* Navigation - scrollable */}
-        <nav className="flex-1 overflow-y-auto p-3 space-y-1 sidebar-scroll">
+        {/* Navigation - scrollable with smooth scroll */}
+        <nav className="flex-1 overflow-y-auto p-3 space-y-1 sidebar-scroll sidebar-nav-container" style={{ maxHeight: 'calc(100vh - 8rem)', scrollBehavior: 'smooth' }}>
           {/* Main Section */}
           <div className="space-y-1">
             <SectionHeader
