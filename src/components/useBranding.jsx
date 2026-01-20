@@ -56,3 +56,47 @@ export function getCachedBranding() {
     return getDefaultBranding();
   }
 }
+
+/**
+ * Safe tenant hook that can be used outside TenantProvider.
+ * Falls back to empty/default values instead of throwing.
+ */
+export function useTenantSafe() {
+  const { data: context, isLoading } = useQuery({
+    queryKey: ['tenantContext'],
+    queryFn: async () => {
+      try {
+        const response = await base44.functions.invoke('resolveTenantContext', {});
+        return response.data;
+      } catch {
+        return null;
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: false
+  });
+
+  // If tenant context failed or loading, return safe defaults
+  if (!context?.ok) {
+    return {
+      tenant_id: null,
+      org_id: null,
+      tenant_name: 'LoanGenius',
+      branding: getDefaultBranding(),
+      features: {},
+      role: null,
+      isLoading
+    };
+  }
+
+  return {
+    tenant_id: context.tenant_id,
+    org_id: context.org_id,
+    tenant_name: context.tenant_name || 'LoanGenius',
+    branding: context.branding || getDefaultBranding(),
+    features: context.features || {},
+    role: context.role,
+    user: context.user,
+    isLoading: false
+  };
+}
