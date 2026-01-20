@@ -53,7 +53,8 @@ export default function LoansPage() {
   const updateLoanMutation = useMutation({
     mutationFn: (data) => base44.entities.Deal.update(data.id, data.changes),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['deals'] });
+      // Invalidate org-scoped query with correct key pattern
+      queryClient.invalidateQueries({ queryKey: ['Deal', 'org'] });
       setIsEditOpen(false);
       toast.success('Loan updated successfully!');
     },
