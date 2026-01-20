@@ -51,11 +51,60 @@ function getExistingFunctions() {
   return functions;
 }
 
+// Trigger patterns that make a button valid (not dead)
+const TRIGGER_PATTERNS = [
+  'DialogTrigger',
+  'DropdownMenuTrigger', 
+  'PopoverTrigger',
+  'TooltipTrigger',
+  'AlertDialogTrigger',
+  'SheetTrigger',
+  'DrawerTrigger',
+  'CollapsibleTrigger',
+  'AccordionTrigger',
+  'MenubarTrigger',
+  'ContextMenuTrigger',
+  'HoverCardTrigger',
+  'SelectTrigger',
+  'TabsTrigger'
+];
+
+// Check if button is inside a trigger wrapper
+function isInsideTrigger(content, buttonIndex) {
+  // Look backwards up to 200 chars for trigger patterns
+  const lookbackStart = Math.max(0, buttonIndex - 200);
+  const beforeButton = content.substring(lookbackStart, buttonIndex);
+  
+  for (const trigger of TRIGGER_PATTERNS) {
+    // Check for opening trigger tag that hasn't been closed
+    const triggerOpen = new RegExp(`<${trigger}[^>]*>(?!.*</${trigger}>)`, 's');
+    if (triggerOpen.test(beforeButton)) {
+      return trigger;
+    }
+    // Also check for asChild pattern in trigger
+    if (beforeButton.includes(`<${trigger}`) && beforeButton.includes('asChild')) {
+      return trigger;
+    }
+  }
+  return null;
+}
+
+// Check if button is inside a clickable parent (card, etc.)
+function isInsideClickableParent(content, buttonIndex) {
+  const lookbackStart = Math.max(0, buttonIndex - 300);
+  const beforeButton = content.substring(lookbackStart, buttonIndex);
+  
+  // Check for onClick on parent elements like Card, div, etc.
+  const cardClickPattern = /<(?:Card|div|article|section)[^>]*onClick\s*=/;
+  return cardClickPattern.test(beforeButton);
+}
+
 // Analyze source files for issues
 function analyzeSourceFiles() {
   const existingFunctions = getExistingFunctions();
   const missingFunctions = [];
-  const deadButtons = [];
+  const trueDeadButtons = [];
+  const exemptButtons = [];
   const silentMutations = [];
   const brokenRoutes = [];
   
@@ -92,21 +141,36 @@ function analyzeSourceFiles() {
       const isSubmit = /type\s*=\s*["']submit["']/.test(buttonTag);
       const isAsChild = /asChild/.test(buttonTag);
       const isDisabled = /disabled/.test(buttonTag);
+      const hasDataTestId = /data-testid\s*=/.test(buttonTag);
       
       if (!hasOnClick && !isSubmit && !isAsChild) {
+        // Check exempt patterns
+        const triggerParent = isInsideTrigger(content, buttonMatch.index);
+        const inClickableParent = isInsideClickableParent(content, buttonMatch.index);
+        
         // Check if it's inside a Link or has valid usage
         const contextStart = Math.max(0, buttonMatch.index - 100);
         const contextEnd = Math.min(content.length, buttonMatch.index + buttonTag.length + 50);
         const context = content.substring(contextStart, contextEnd);
         const isWrappedInLink = /<Link[^>]*>[\s\S]*<Button/.test(context) || /asChild[\s\S]*<Link/.test(context);
         
-        if (!isWrappedInLink && !isDisabled) {
-          deadButtons.push({
-            file: filePath.replace('/src/', ''),
-            line: lineNum,
-            snippet: buttonTag.substring(0, 80) + (buttonTag.length > 80 ? '...' : ''),
-            severity: 'medium'
-          });
+        const buttonInfo = {
+          file: filePath.replace('/src/', ''),
+          line: lineNum,
+          snippet: buttonTag.substring(0, 100) + (buttonTag.length > 100 ? '...' : ''),
+          hasDataTestId
+        };
+        
+        if (isDisabled) {
+          exemptButtons.push({ ...buttonInfo, reason: 'Disabled button (intentionally non-interactive)' });
+        } else if (triggerParent) {
+          exemptButtons.push({ ...buttonInfo, reason: `Inside ${triggerParent} (Radix trigger pattern)` });
+        } else if (inClickableParent) {
+          exemptButtons.push({ ...buttonInfo, reason: 'Inside clickable parent container' });
+        } else if (isWrappedInLink) {
+          exemptButtons.push({ ...buttonInfo, reason: 'Wrapped in Link component' });
+        } else {
+          trueDeadButtons.push({ ...buttonInfo, severity: 'high' });
         }
       }
     }
@@ -155,7 +219,8 @@ function analyzeSourceFiles() {
   
   return {
     missingFunctions: deduplicateMissingFunctions(missingFunctions),
-    deadButtons,
+    trueDeadButtons,
+    exemptButtons,
     silentMutations,
     brokenRoutes,
     existingFunctions: Array.from(existingFunctions),
