@@ -11,7 +11,7 @@ const KEY_LENGTH = 32;
 
 async function getEncryptionKey() {
   const rawKey = Deno.env.get('INTEGRATION_ENCRYPTION_KEY');
-  if (!rawKey) throw new Error('INTEGRATION_ENCRYPTION_KEY not configured');
+  if (!rawKey) throw new Error('Missing required secret: INTEGRATION_ENCRYPTION_KEY');
   
   let keyBytes;
   try {
