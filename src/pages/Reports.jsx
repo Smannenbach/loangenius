@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useOrgId, useOrgScopedQuery } from '@/components/useOrgId';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,21 +17,12 @@ export default function Reports() {
   const [activeTab, setActiveTab] = useState('analytics');
   const queryClient = useQueryClient();
 
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-  });
+  // Use canonical org resolver
+  const { orgId, user, isLoading: orgLoading } = useOrgId();
 
-  const { data: memberships = [] } = useQuery({
-    queryKey: ['userMembership', user?.email],
-    queryFn: async () => {
-      if (!user?.email) return [];
-      return await base44.entities.OrgMembership.filter({ user_id: user.email });
-    },
-    enabled: !!user?.email,
-  });
-
-  const orgId = memberships[0]?.org_id;
+  // Use org-scoped queries for deals and leads
+  const { data: deals = [] } = useOrgScopedQuery('Deal', { is_deleted: false });
+  const { data: leads = [] } = useOrgScopedQuery('Lead', { is_deleted: false });
 
   const { data: kpis, isLoading: kpisLoading } = useQuery({
     queryKey: ['dashboardKPIs', orgId],
@@ -39,30 +31,25 @@ export default function Reports() {
         const result = await base44.functions.invoke('getDashboardKPIs', { org_id: orgId });
         return result;
       } catch (e) {
-        try {
-          const deals = await base44.entities.Deal.list();
-          const leads = await base44.entities.Lead.list();
-          const activeDeals = deals.filter(d => d.status === 'active');
-          const fundedDeals = deals.filter(d => d.stage === 'funded');
-          const totalAmount = deals.reduce((sum, d) => sum + (d.loan_amount || 0), 0);
-          const convertedLeads = leads.filter(l => l.status === 'converted').length;
-          
-          return { 
-            data: { 
-              kpis: { 
-                deals: { total: deals.length, active: activeDeals.length, funded: fundedDeals.length, totalAmount }, 
-                leads: { total: leads.length, new: leads.filter(l => l.status === 'new').length, conversionRate: leads.length > 0 ? Math.round((convertedLeads / leads.length) * 100) : 0, converted: convertedLeads }, 
-                stageDistribution: deals.reduce((acc, d) => {
-                  const stage = d.stage || 'unknown';
-                  acc[stage] = (acc[stage] || 0) + 1;
-                  return acc;
-                }, {})
-              } 
+        // Fallback to local calculation using org-scoped data
+        const activeDeals = deals.filter(d => d.status === 'active');
+        const fundedDeals = deals.filter(d => d.stage === 'funded');
+        const totalAmount = deals.reduce((sum, d) => sum + (d.loan_amount || 0), 0);
+        const convertedLeads = leads.filter(l => l.status === 'converted').length;
+        
+        return { 
+          data: { 
+            kpis: { 
+              deals: { total: deals.length, active: activeDeals.length, funded: fundedDeals.length, totalAmount }, 
+              leads: { total: leads.length, new: leads.filter(l => l.status === 'new').length, conversionRate: leads.length > 0 ? Math.round((convertedLeads / leads.length) * 100) : 0, converted: convertedLeads }, 
+              stageDistribution: deals.reduce((acc, d) => {
+                const stage = d.stage || 'unknown';
+                acc[stage] = (acc[stage] || 0) + 1;
+                return acc;
+              }, {})
             } 
-          };
-        } catch {
-          return { data: { kpis: { deals: { total: 0, active: 0, funded: 0, totalAmount: 0 }, leads: { total: 0, new: 0, conversionRate: 0, converted: 0 }, stageDistribution: {} } } };
-        }
+          } 
+        };
       }
     },
     enabled: !!orgId,
