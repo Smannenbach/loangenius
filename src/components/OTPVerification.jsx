@@ -325,9 +325,12 @@ export function PhoneVerification({
       try {
         await base44.functions.invoke('sendSMSOTP', { phone: cleanPhone, code });
       } catch (smsError) {
-        console.warn('SMS sending failed, code still stored for testing:', smsError);
-        // DEV fallback: Show code in toast if SMS fails
-        toast.info(`Dev fallback - Your code is ${code}`, { duration: 10000 });
+        console.error('SMS sending failed:', smsError);
+        // Remove stored code if SMS fails to prevent orphaned codes
+        sessionStorage.removeItem(`otp_phone_${cleanPhone}`);
+        toast.error('Failed to send SMS. Please try again or contact support.');
+        setIsSending(false);
+        return;
       }
       
       setCodeSent(true);
