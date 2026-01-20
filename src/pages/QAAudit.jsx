@@ -106,6 +106,9 @@ const AUDIT_DATA = {
     { type: 'org_scoping', issue: 'Fixed: Canonical OrgMembership lookup used everywhere', severity: 'resolved' },
     { type: 'navigation', issue: 'Fixed: Replaced window.location.href with Link/anchor for internal navigation', severity: 'resolved' },
     { type: 'mutations', issue: 'Fixed: All mutations now have onError handlers with toast.error()', severity: 'resolved' },
+    { type: 'security', issue: 'Fixed: Integration tokens encrypted with AES-GCM', severity: 'resolved' },
+    { type: 'ai_providers', issue: 'Fixed: AdminAIProviders add/test/default/delete all wired', severity: 'resolved' },
+    { type: 'e2e_tests', issue: 'Fixed: Real e2eTestRunner with auth/org/leads/AI/integrations tests', severity: 'resolved' },
   ]
 };
 
