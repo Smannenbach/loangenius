@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Mail, Phone, MapPin, User, Building2, ArrowLeft, AlertCircle } from 'lucide-react';
 import { createPageUrl } from '@/utils';
+import { toast } from 'sonner';
 
 export default function ContactDetail() {
   const [searchParams] = useSearchParams();
@@ -158,7 +159,7 @@ export default function ContactDetail() {
                   if (contact.email) {
                     window.location.href = `mailto:${contact.email}`;
                   } else {
-                    alert('No email address available');
+                    toast.warning('No email address available for this contact');
                   }
                 }}
               >
@@ -172,7 +173,7 @@ export default function ContactDetail() {
                   if (contact.phone) {
                     window.location.href = `tel:${contact.phone}`;
                   } else {
-                    alert('No phone number available');
+                    toast.warning('No phone number available for this contact');
                   }
                 }}
               >

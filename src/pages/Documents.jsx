@@ -64,6 +64,10 @@ export default function Documents() {
       setIsUploadOpen(false);
       setUploadData({ name: '', document_type: 'other' });
       setSelectedFile(null);
+      // Reset file input to allow re-selecting the same file
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       toast.success('Document uploaded successfully!');
     },
     onError: (error) => {
@@ -204,10 +208,11 @@ export default function Documents() {
                       <span className="ml-1">{doc.status?.replace(/_/g, ' ')}</span>
                     </Badge>
                     <div className="flex gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="h-8 w-8"
+                        aria-label="View document"
                         onClick={() => {
                           if (doc.file_url) {
                             window.open(doc.file_url, '_blank');
@@ -218,10 +223,11 @@ export default function Documents() {
                       >
                         <Eye className="h-4 w-4 text-gray-400" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="h-8 w-8"
+                        aria-label="Download document"
                         onClick={() => {
                           if (doc.file_url) {
                             const a = document.createElement('a');

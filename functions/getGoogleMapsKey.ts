@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const apiKey = Deno.env.get('Goolge_Maps_Platform_API_Key');
+    const apiKey = Deno.env.get('Google_Maps_Platform_API_Key');
     
     if (!apiKey) {
       return Response.json({ error: 'Maps API key not configured' }, { status: 500 });

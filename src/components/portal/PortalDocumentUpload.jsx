@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function PortalDocumentUpload({ sessionId, requirementId, requirementName }) {
   const queryClient = useQueryClient();
@@ -84,17 +85,17 @@ export default function PortalDocumentUpload({ sessionId, requirementId, require
   const isValidFile = (file) => {
     const maxSize = 25 * 1024 * 1024; // 25MB
     const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-    
+
     if (file.size > maxSize) {
-      alert('File size must be less than 25MB');
+      toast.error('File size must be less than 25MB');
       return false;
     }
-    
+
     if (!validTypes.includes(file.type)) {
-      alert('Only PDF, JPG, and PNG files are allowed');
+      toast.error('Only PDF, JPG, and PNG files are allowed');
       return false;
     }
-    
+
     return true;
   };
 

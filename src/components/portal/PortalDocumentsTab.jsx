@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { FileText, Upload, CheckCircle2, Clock, AlertCircle, Loader2, Download } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function PortalDocumentsTab({ sessionId }) {
   const queryClient = useQueryClient();
@@ -59,13 +60,13 @@ export default function PortalDocumentsTab({ sessionId }) {
 
      const maxSize = 25 * 1024 * 1024; // 25MB
      if (file.size > maxSize) {
-       alert('File size exceeds 25MB limit');
+       toast.error('File size exceeds 25MB limit');
        return;
      }
 
      const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
      if (!validTypes.includes(file.type)) {
-       alert('Only PDF, JPG, and PNG files are allowed');
+       toast.error('Only PDF, JPG, and PNG files are allowed');
        return;
      }
 

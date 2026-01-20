@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useOrgId, useOrgScopedQuery } from '@/components/useOrgId';
@@ -62,9 +62,27 @@ import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 
+// Simple debounce hook
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 export default function Leads() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [statusFilter, setStatusFilter] = useState('all');
   const [loanTypeFilter, setLoanTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('created_date');
@@ -253,8 +271,8 @@ export default function Leads() {
     .filter(lead => {
       if (statusFilter !== 'all' && lead.status !== statusFilter) return false;
       if (loanTypeFilter !== 'all' && lead.loan_type !== loanTypeFilter) return false;
-      if (!searchTerm) return true;
-      const search = searchTerm.toLowerCase();
+      if (!debouncedSearchTerm) return true;
+      const search = debouncedSearchTerm.toLowerCase();
       return (
         lead.first_name?.toLowerCase().includes(search) ||
         lead.last_name?.toLowerCase().includes(search) ||

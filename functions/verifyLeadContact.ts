@@ -4,7 +4,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 function generateOTP() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  // Use cryptographically secure random number generation
+  const array = new Uint32Array(1);
+  crypto.getRandomValues(array);
+  return String(100000 + (array[0] % 900000));
 }
 
 Deno.serve(async (req) => {
@@ -29,15 +32,24 @@ Deno.serve(async (req) => {
       const generatedOTP = generateOTP();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-      // In production, send via Twilio/SendGrid
-      console.log(`OTP for ${contact_value}: ${generatedOTP}`);
+      // Store OTP and send via appropriate channel
+      if (contact_type === 'email') {
+        await base44.functions.invoke('sendgridEmail', {
+          to: contact_value,
+          template: 'otp_verification',
+          data: { otp: generatedOTP }
+        }).catch((err) => console.error('Email send failed:', err));
+      } else if (contact_type === 'mobile') {
+        await base44.functions.invoke('twilioSMS', {
+          to: contact_value,
+          body: `Your LoanGenius verification code is: ${generatedOTP}. Expires in 10 minutes.`
+        }).catch((err) => console.error('SMS send failed:', err));
+      }
 
       return Response.json({
         ok: true,
         message: 'OTP sent',
         expires_at: expiresAt.toISOString(),
-        // Remove in production:
-        otp_for_testing: generatedOTP,
       });
     }
 

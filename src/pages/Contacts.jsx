@@ -1,4 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
+// Simple debounce hook
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 import { base44 } from '@/api/base44Client';
 import { useOrgId, useOrgScopedQuery } from '@/components/useOrgId';
 import { Button } from '@/components/ui/button';
@@ -13,6 +30,7 @@ import { createPageUrl } from '@/utils';
 
 export default function Contacts() {
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [contactType, setContactType] = useState('all');
   const [filterType, setFilterType] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -25,14 +43,14 @@ export default function Contacts() {
 
   const isLoading = orgLoading || contactsLoading;
 
-  // Filter contacts
+  // Filter contacts using debounced search term
   const filtered = contacts.filter(c => {
-    const matchSearch = !searchTerm || 
-      (c.first_name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (c.last_name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (c.entity_name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (c.email?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (c.phone?.includes(searchTerm));
+    const matchSearch = !debouncedSearchTerm ||
+      (c.first_name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+      (c.last_name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+      (c.entity_name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+      (c.email?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+      (c.phone?.includes(debouncedSearchTerm));
 
     const matchType = contactType === 'all' || c.contact_type === contactType;
     const matchFilter = filterType === 'all' || 

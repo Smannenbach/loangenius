@@ -160,7 +160,7 @@ export default function Step5Borrower({ data, onChange, onNext, onPrev }) {
           {data.borrowers?.length > 0 && (
             <div className="space-y-3">
               {data.borrowers.map((borrower, idx) => (
-                <div key={idx} className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+                <div key={borrower.id || borrower.email || `borrower-${idx}`} className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
                   <div className="flex gap-3">
                     <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                       <User className="h-5 w-5 text-blue-600" />

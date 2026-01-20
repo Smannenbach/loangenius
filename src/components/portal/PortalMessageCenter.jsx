@@ -76,10 +76,10 @@ export default function PortalMessageCenter({ dealId, borrowerEmail }) {
             <p className="text-xs mt-1">Start a conversation with your loan officer</p>
           </div>
         ) : (
-          messages.map((msg, idx) => {
+          messages.map((msg) => {
             const isFromBorrower = msg.from === borrowerEmail;
             return (
-              <div key={idx} className={`flex ${isFromBorrower ? 'justify-end' : 'justify-start'}`}>
+              <div key={msg.id || `${msg.created_date}-${msg.from}`} className={`flex ${isFromBorrower ? 'justify-end' : 'justify-start'}`}>
                 <div
                   className={`max-w-md rounded-lg px-4 py-2 ${
                     isFromBorrower

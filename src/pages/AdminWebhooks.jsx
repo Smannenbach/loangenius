@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Eye, EyeOff } from 'lucide-react';
+import { toast } from 'sonner';
 
 const EVENT_TYPES = [
   'document.uploaded',
@@ -52,7 +53,7 @@ export default function AdminWebhooks() {
 
   const handleCreate = async () => {
     if (!formData.webhook_url) {
-      alert('Webhook URL required');
+      toast.error('Webhook URL is required');
       return;
     }
     createMutation.mutate(formData);

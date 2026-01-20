@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
       if (['STOP', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT'].includes(upperBody)) {
         // Add to opt-out
         await base44.asServiceRole.entities.SMSOptOut.create({
-          org_id: 'default', // Would need org context
+          org_id: Deno.env.get('DEFAULT_ORG_ID') || 'default', // TODO: Extract org from phone number mapping
           phone_number: from,
           status: 'opted_out',
           reason: 'STOP keyword'
@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
 
       // Log inbound message
       await base44.asServiceRole.entities.Communication.create({
-        org_id: 'default',
+        org_id: Deno.env.get('DEFAULT_ORG_ID') || 'default', // TODO: Extract org from phone number mapping
         channel: 'SMS',
         direction: 'Inbound',
         from_address: from,

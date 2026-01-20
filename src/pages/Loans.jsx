@@ -304,7 +304,7 @@ export default function LoansPage() {
                         <td className="px-8 py-4 text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                              <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-slate-200">
+                              <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-slate-200" aria-label="Loan actions menu">
                                 <MoreVertical className="h-4 w-4 text-slate-600" />
                               </Button>
                             </DropdownMenuTrigger>

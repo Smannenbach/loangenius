@@ -78,12 +78,15 @@ export default function PortalDashboard({
   const nextSteps = nextStepsContent[deal?.stage] || nextStepsContent.inquiry;
   const NextIcon = nextSteps.icon;
 
-  // Calculate estimated closing
+  // Calculate estimated closing (without mutating the original date)
   const getEstimatedClosing = () => {
     if (deal?.closing_date) return new Date(deal.closing_date);
     const today = new Date();
     const daysMap = { inquiry: 45, application: 40, processing: 30, underwriting: 21, approved: 14, closing: 7, funded: 0 };
-    return new Date(today.setDate(today.getDate() + (daysMap[deal?.stage] || 30)));
+    const days = daysMap[deal?.stage] || 30;
+    const futureDate = new Date(today.getTime());
+    futureDate.setDate(futureDate.getDate() + days);
+    return futureDate;
   };
 
   const estimatedClosing = getEstimatedClosing();

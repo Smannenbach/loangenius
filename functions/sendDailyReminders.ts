@@ -76,10 +76,10 @@ Deno.serve(async (req) => {
             deal_id: dealId,
             channel: 'Email',
             direction: 'Outbound',
-            from_address: 'noreply@loangenius.local',
+            from_address: Deno.env.get('MAIL_FROM_ADDRESS') || 'noreply@loangenius.com',
             to_address: borrower.email,
             subject: 'Reminder: Documents Still Needed for Your Loan',
-            body: `Hi ${borrower.first_name || 'Borrower'},\n\nWe're still waiting on the following documents:\n\n${docList}\n\nPlease visit your portal to upload: https://portal.loangenius.local/login\n\nThanks!`,
+            body: `Hi ${borrower.first_name || 'Borrower'},\n\nWe're still waiting on the following documents:\n\n${docList}\n\nPlease visit your portal to upload: ${Deno.env.get('PORTAL_BASE_URL') || 'https://portal.loangenius.com'}/login\n\nThanks!`,
             status: 'Queued'
           });
 
