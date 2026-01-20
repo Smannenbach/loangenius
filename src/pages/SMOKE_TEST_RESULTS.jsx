@@ -45,6 +45,7 @@ export default function SMOKE_TEST_RESULTS() {
   const getStatusIcon = (status) => {
     if (status === 'PASS') return <CheckCircle className="h-5 w-5 text-green-600" />;
     if (status === 'FAIL') return <XCircle className="h-5 w-5 text-red-600" />;
+    if (status === 'SKIP') return <Clock className="h-5 w-5 text-gray-400" />;
     return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
   };
 
@@ -111,7 +112,7 @@ export default function SMOKE_TEST_RESULTS() {
       {/* Results Summary */}
       {testResults && !runTestsMutation.isPending && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <Card className={testResults.success ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}>
               <CardContent className="pt-6 text-center">
                 {testResults.success ? (
@@ -120,7 +121,7 @@ export default function SMOKE_TEST_RESULTS() {
                   <XCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
                 )}
                 <p className="font-bold text-lg">{testResults.success ? 'PASSED' : 'FAILED'}</p>
-                <p className="text-sm text-gray-600">Overall Status</p>
+                <p className="text-sm text-gray-600">Overall</p>
               </CardContent>
             </Card>
 
@@ -144,6 +145,13 @@ export default function SMOKE_TEST_RESULTS() {
                   {testResults.tests_failed}
                 </p>
                 <p className="text-sm text-gray-600">Failed</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-gray-200">
+              <CardContent className="pt-6 text-center">
+                <p className="text-3xl font-bold text-gray-400">{testResults.tests_skipped || 0}</p>
+                <p className="text-sm text-gray-600">Skipped</p>
               </CardContent>
             </Card>
           </div>
@@ -180,34 +188,53 @@ export default function SMOKE_TEST_RESULTS() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {testResults.details?.map((test, idx) => (
-                  <div 
-                    key={idx} 
-                    className={`p-4 rounded-lg border ${
-                      test.status === 'PASS' 
-                        ? 'bg-green-50 border-green-200' 
-                        : 'bg-red-50 border-red-200'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3">
-                        {getStatusIcon(test.status)}
-                        <div>
-                          <p className="font-medium">{test.name}</p>
-                          {test.message && (
-                            <p className="text-sm text-gray-600 mt-1">{test.message}</p>
-                          )}
-                          {test.error && (
-                            <div className="mt-2 p-2 bg-red-100 rounded text-sm text-red-700 font-mono">
-                              <strong>Error:</strong> {test.error}
+                {/* Group by category */}
+                {Object.entries(
+                  (testResults.details || []).reduce((acc, test) => {
+                    const cat = test.category || 'Other';
+                    if (!acc[cat]) acc[cat] = [];
+                    acc[cat].push(test);
+                    return acc;
+                  }, {})
+                ).map(([category, tests]) => (
+                  <div key={category} className="space-y-2">
+                    <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">{category}</h3>
+                    {tests.map((test, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`p-4 rounded-lg border ${
+                          test.status === 'PASS' 
+                            ? 'bg-green-50 border-green-200' 
+                            : test.status === 'SKIP'
+                            ? 'bg-gray-50 border-gray-200'
+                            : 'bg-red-50 border-red-200'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-3">
+                            {getStatusIcon(test.status)}
+                            <div>
+                              <p className="font-medium">{test.name}</p>
+                              {test.message && (
+                                <p className="text-sm text-gray-600 mt-1">{test.message}</p>
+                              )}
+                              {test.error && (
+                                <div className="mt-2 p-2 bg-red-100 rounded text-sm text-red-700 font-mono">
+                                  <strong>Error:</strong> {test.error}
+                                </div>
+                              )}
                             </div>
-                          )}
+                          </div>
+                          <Badge className={
+                            test.status === 'PASS' ? 'bg-green-100 text-green-800' : 
+                            test.status === 'SKIP' ? 'bg-gray-100 text-gray-600' :
+                            'bg-red-100 text-red-800'
+                          }>
+                            {test.status}
+                          </Badge>
                         </div>
                       </div>
-                      <Badge className={test.status === 'PASS' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                        {test.status}
-                      </Badge>
-                    </div>
+                    ))}
                   </div>
                 ))}
               </div>
