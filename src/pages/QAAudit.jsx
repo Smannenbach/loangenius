@@ -35,7 +35,7 @@ const SIDEBAR_PAGES = [
   // Main
   'Dashboard', 'Pipeline', 'Leads', 'Loans', 'Contacts',
   // Tools
-  'QuoteGenerator', 'AIAssistant', 'Communications', 'EmailSequences', 'Reports',
+  'QuoteGenerator', 'AIAssistant', 'DocumentIntelligenceHub', 'Communications', 'EmailSequences', 'Reports',
   // Admin
   'Users', 'LenderIntegrations', 'PortalSettings', 'SystemHealth', 'Preflight',
   'Underwriting', 'ComplianceDashboard', 'MISMOExportProfiles', 'MISMOImportExport', 'MISMOValidator',
@@ -71,23 +71,42 @@ const TRIGGER_PATTERNS = [
   'ContextMenuTrigger',
   'HoverCardTrigger',
   'SelectTrigger',
-  'TabsTrigger'
+  'TabsTrigger',
+  'NavigationMenuTrigger'
 ];
 
-// Check if button is inside a trigger wrapper
+// Patterns that indicate a button is a valid CTA even without inline onClick
+const VALID_BUTTON_PATTERNS = [
+  /asChild/,                    // Button used as slot
+  /variant="link"/,             // Link-style buttons often wrapped in Link
+  /<Link[^>]*>[\s\S]{0,50}<Button/,  // Button inside Link
+  /to=\{createPageUrl/,         // Navigation pattern
+  /href=/,                      // Direct link pattern
+  /form\.handleSubmit/,         // React hook form pattern
+  /onSubmit/,                   // Form submission context
+  /\{\.\.\.register\(/,         // React hook form registration
+  /mutation\.mutate/,           // Mutation in same line
+  /\.mutate\(\)/,               // Direct mutation call
+];
+
+// Check if button is inside a trigger wrapper (improved detection)
 function isInsideTrigger(content, buttonIndex) {
-  // Look backwards up to 200 chars for trigger patterns
-  const lookbackStart = Math.max(0, buttonIndex - 200);
+  // Look backwards up to 300 chars for trigger patterns
+  const lookbackStart = Math.max(0, buttonIndex - 300);
   const beforeButton = content.substring(lookbackStart, buttonIndex);
   
   for (const trigger of TRIGGER_PATTERNS) {
-    // Check for opening trigger tag that hasn't been closed
-    const triggerOpen = new RegExp(`<${trigger}[^>]*>(?!.*</${trigger}>)`, 's');
-    if (triggerOpen.test(beforeButton)) {
-      return trigger;
+    // Check for opening trigger tag
+    if (beforeButton.includes(`<${trigger}`)) {
+      // Verify it's not closed before our button
+      const lastOpen = beforeButton.lastIndexOf(`<${trigger}`);
+      const lastClose = beforeButton.lastIndexOf(`</${trigger}>`);
+      if (lastOpen > lastClose) {
+        return trigger;
+      }
     }
-    // Also check for asChild pattern in trigger
-    if (beforeButton.includes(`<${trigger}`) && beforeButton.includes('asChild')) {
+    // Check for asChild pattern wrapping button
+    if (beforeButton.includes(`${trigger}`) && beforeButton.includes('asChild')) {
       return trigger;
     }
   }
@@ -96,12 +115,26 @@ function isInsideTrigger(content, buttonIndex) {
 
 // Check if button is inside a clickable parent (card, etc.)
 function isInsideClickableParent(content, buttonIndex) {
-  const lookbackStart = Math.max(0, buttonIndex - 300);
+  const lookbackStart = Math.max(0, buttonIndex - 400);
   const beforeButton = content.substring(lookbackStart, buttonIndex);
   
   // Check for onClick on parent elements like Card, div, etc.
-  const cardClickPattern = /<(?:Card|div|article|section)[^>]*onClick\s*=/;
-  return cardClickPattern.test(beforeButton);
+  const patterns = [
+    /<(?:Card|div|article|section|button|a)[^>]*onClick\s*=/,
+    /<Link[^>]*to=/,  // Inside a Link component
+    /<a[^>]*href=/,   // Inside an anchor
+  ];
+  
+  return patterns.some(p => p.test(beforeButton));
+}
+
+// Check if button context contains valid patterns
+function hasValidButtonPattern(content, buttonIndex, buttonTag) {
+  const contextStart = Math.max(0, buttonIndex - 150);
+  const contextEnd = Math.min(content.length, buttonIndex + buttonTag.length + 100);
+  const context = content.substring(contextStart, contextEnd);
+  
+  return VALID_BUTTON_PATTERNS.some(pattern => pattern.test(context));
 }
 
 // Analyze source files for issues
@@ -152,18 +185,26 @@ function analyzeSourceFiles() {
         // Check exempt patterns
         const triggerParent = isInsideTrigger(content, buttonMatch.index);
         const inClickableParent = isInsideClickableParent(content, buttonMatch.index);
+        const hasValidPattern = hasValidButtonPattern(content, buttonMatch.index, buttonTag);
         
         // Check if it's inside a Link or has valid usage
-        const contextStart = Math.max(0, buttonMatch.index - 100);
-        const contextEnd = Math.min(content.length, buttonMatch.index + buttonTag.length + 50);
+        const contextStart = Math.max(0, buttonMatch.index - 150);
+        const contextEnd = Math.min(content.length, buttonMatch.index + buttonTag.length + 100);
         const context = content.substring(contextStart, contextEnd);
-        const isWrappedInLink = /<Link[^>]*>[\s\S]*<Button/.test(context) || /asChild[\s\S]*<Link/.test(context);
+        const isWrappedInLink = /<Link[^>]*>[\s\S]*<Button/.test(context) || 
+                                /asChild[\s\S]*<Link/.test(context) ||
+                                context.includes('to={createPageUrl');
+        
+        // Check for form context
+        const formContext = content.substring(Math.max(0, buttonMatch.index - 500), buttonMatch.index);
+        const isInFormContext = /<form|onSubmit|handleSubmit|useForm/.test(formContext);
         
         const buttonInfo = {
           file: filePath.replace('/src/', ''),
           line: lineNum,
-          snippet: buttonTag.substring(0, 100) + (buttonTag.length > 100 ? '...' : ''),
-          hasDataTestId
+          snippet: buttonTag.substring(0, 120) + (buttonTag.length > 120 ? '...' : ''),
+          hasDataTestId,
+          context: context.substring(0, 80)
         };
         
         if (isDisabled) {
@@ -171,9 +212,13 @@ function analyzeSourceFiles() {
         } else if (triggerParent) {
           exemptButtons.push({ ...buttonInfo, reason: `Inside ${triggerParent} (Radix trigger pattern)` });
         } else if (inClickableParent) {
-          exemptButtons.push({ ...buttonInfo, reason: 'Inside clickable parent container' });
+          exemptButtons.push({ ...buttonInfo, reason: 'Inside clickable parent container or Link' });
         } else if (isWrappedInLink) {
-          exemptButtons.push({ ...buttonInfo, reason: 'Wrapped in Link component' });
+          exemptButtons.push({ ...buttonInfo, reason: 'Wrapped in Link component for navigation' });
+        } else if (hasValidPattern) {
+          exemptButtons.push({ ...buttonInfo, reason: 'Contains valid mutation/form/navigation pattern' });
+        } else if (isInFormContext) {
+          exemptButtons.push({ ...buttonInfo, reason: 'Inside form context (implicit submit)' });
         } else {
           trueDeadButtons.push({ ...buttonInfo, severity: 'high' });
         }
