@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 export default function PortalDocumentUploadEnhanced({ 
   sessionId, 
   requirementId, 
+  conditionId,
   requirementName,
   onUploadComplete 
 }) {
@@ -54,10 +55,11 @@ export default function PortalDocumentUploadEnhanced({
       setUploadProgress(80);
       setUploadStage('processing');
 
-      // Step 3: Complete upload
+      // Step 3: Complete upload (includes condition auto-update)
       const completeResponse = await base44.functions.invoke('documentCompleteUpload', {
         sessionId,
         requirementId,
+        conditionId,
         uploadKey: presignResponse.data.uploadKey,
         fileName: file.name,
         mimeType: file.type,
@@ -71,6 +73,7 @@ export default function PortalDocumentUploadEnhanced({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['portalRequirements'] });
       queryClient.invalidateQueries({ queryKey: ['borrower-requirements'] });
+      queryClient.invalidateQueries({ queryKey: ['portalConditions'] });
       toast.success('Document uploaded successfully!');
       onUploadComplete?.();
       
