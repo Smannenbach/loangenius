@@ -133,6 +133,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Branding', href: '/TenantBrandingSettings', icon: Palette },
     { name: 'Borrower Portal', href: '/PortalSettings', icon: Globe },
     { name: 'System Health', href: '/SystemHealth', icon: Zap },
+      { name: 'Billing', href: '/AdminBilling', icon: Building },
     { name: 'Preflight', href: '/Preflight', icon: Rocket },
     { name: 'Underwriting', href: '/Underwriting', icon: Scale },
     { name: 'Compliance', href: '/ComplianceDashboard', icon: CheckCircle },
