@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { 
   CreditCard, 
   Zap, 
@@ -17,6 +19,12 @@ import {
   Users,
   Briefcase,
   Shield,
+  BarChart3,
+  Database,
+  Mail,
+  MessageSquare,
+  FileText,
+  Bot,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -114,7 +122,34 @@ export default function AdminBilling() {
     }
   };
 
+  const { data: usageLogs = [] } = useQuery({
+    queryKey: ['usage-logs', tenant_id],
+    queryFn: async () => {
+      if (!tenant_id) return [];
+      return base44.entities.TenantUsageLog.filter({ tenant_id });
+    },
+    enabled: !!tenant_id,
+  });
+
   const currentPlan = PLANS.find(p => p.id === (subscription?.plan_id || tenant?.plan_id || 'starter'));
+
+  // Calculate usage metrics from logs
+  const usageMetrics = {
+    api_calls: usageLogs.filter(l => l.metric_type === 'api_calls').reduce((s, l) => s + (l.metric_value || 0), 0),
+    storage_bytes: usageLogs.filter(l => l.metric_type === 'storage_bytes').reduce((s, l) => s + (l.metric_value || 0), 0),
+    ai_tokens: usageLogs.filter(l => l.metric_type === 'ai_tokens').reduce((s, l) => s + (l.metric_value || 0), 0),
+    emails_sent: usageLogs.filter(l => l.metric_type === 'emails_sent').reduce((s, l) => s + (l.metric_value || 0), 0),
+    sms_sent: usageLogs.filter(l => l.metric_type === 'sms_sent').reduce((s, l) => s + (l.metric_value || 0), 0),
+    document_generations: usageLogs.filter(l => l.metric_type === 'document_generations').reduce((s, l) => s + (l.metric_value || 0), 0),
+  };
+
+  const planLimits = {
+    starter: { api_calls: 10000, storage_gb: 5, ai_tokens: 100000, emails: 1000, sms: 100 },
+    professional: { api_calls: 50000, storage_gb: 25, ai_tokens: 500000, emails: 5000, sms: 500 },
+    enterprise: { api_calls: -1, storage_gb: -1, ai_tokens: -1, emails: -1, sms: -1 }, // unlimited
+  };
+
+  const limits = planLimits[currentPlan?.id || 'starter'];
 
   return (
     <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-8">
@@ -126,6 +161,14 @@ export default function AdminBilling() {
         <p className="text-gray-500 mt-2">Manage your subscription plan and billing details</p>
       </div>
 
+      <Tabs defaultValue="subscription">
+
+        <TabsList className="mb-6">
+          <TabsTrigger value="subscription">Subscription</TabsTrigger>
+          <TabsTrigger value="usage">Usage & Metering</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="subscription" className="space-y-8">
       {/* Current Plan Status */}
       <Card>
         <CardHeader>
@@ -285,6 +328,181 @@ export default function AdminBilling() {
           <strong>Test Mode:</strong> Use card number 4242 4242 4242 4242 with any future expiry date and CVC to test payments.
         </AlertDescription>
       </Alert>
+        </TabsContent>
+
+        <TabsContent value="usage" className="space-y-6">
+          <div>
+            <h2 className="text-xl font-bold mb-2">Usage This Billing Period</h2>
+            <p className="text-gray-500 text-sm">Track your metered usage against plan limits</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* API Calls */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Zap className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">API Calls</p>
+                    <p className="text-lg font-bold">
+                      {usageMetrics.api_calls.toLocaleString()} 
+                      {limits.api_calls > 0 && <span className="text-sm font-normal text-gray-500"> / {limits.api_calls.toLocaleString()}</span>}
+                    </p>
+                  </div>
+                </div>
+                {limits.api_calls > 0 && (
+                  <Progress value={(usageMetrics.api_calls / limits.api_calls) * 100} className="h-2" />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Storage */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <Database className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Storage</p>
+                    <p className="text-lg font-bold">
+                      {(usageMetrics.storage_bytes / (1024*1024*1024)).toFixed(2)} GB
+                      {limits.storage_gb > 0 && <span className="text-sm font-normal text-gray-500"> / {limits.storage_gb} GB</span>}
+                    </p>
+                  </div>
+                </div>
+                {limits.storage_gb > 0 && (
+                  <Progress value={(usageMetrics.storage_bytes / (limits.storage_gb * 1024*1024*1024)) * 100} className="h-2" />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* AI Tokens */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <Bot className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">AI Tokens</p>
+                    <p className="text-lg font-bold">
+                      {usageMetrics.ai_tokens.toLocaleString()}
+                      {limits.ai_tokens > 0 && <span className="text-sm font-normal text-gray-500"> / {limits.ai_tokens.toLocaleString()}</span>}
+                    </p>
+                  </div>
+                </div>
+                {limits.ai_tokens > 0 && (
+                  <Progress value={(usageMetrics.ai_tokens / limits.ai_tokens) * 100} className="h-2" />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Emails */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-amber-100 rounded-lg">
+                    <Mail className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Emails Sent</p>
+                    <p className="text-lg font-bold">
+                      {usageMetrics.emails_sent.toLocaleString()}
+                      {limits.emails > 0 && <span className="text-sm font-normal text-gray-500"> / {limits.emails.toLocaleString()}</span>}
+                    </p>
+                  </div>
+                </div>
+                {limits.emails > 0 && (
+                  <Progress value={(usageMetrics.emails_sent / limits.emails) * 100} className="h-2" />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* SMS */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-teal-100 rounded-lg">
+                    <MessageSquare className="h-5 w-5 text-teal-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">SMS Sent</p>
+                    <p className="text-lg font-bold">
+                      {usageMetrics.sms_sent.toLocaleString()}
+                      {limits.sms > 0 && <span className="text-sm font-normal text-gray-500"> / {limits.sms.toLocaleString()}</span>}
+                    </p>
+                  </div>
+                </div>
+                {limits.sms > 0 && (
+                  <Progress value={(usageMetrics.sms_sent / limits.sms) * 100} className="h-2" />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Document Generations */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-indigo-100 rounded-lg">
+                    <FileText className="h-5 w-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Documents Generated</p>
+                    <p className="text-lg font-bold">{usageMetrics.document_generations.toLocaleString()}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Overage Warning */}
+          {usageLogs.some(l => l.quota_exceeded) && (
+            <Alert className="border-orange-200 bg-orange-50">
+              <AlertCircle className="h-4 w-4 text-orange-600" />
+              <AlertDescription className="text-orange-800">
+                <strong>Usage Alert:</strong> Some metrics have exceeded plan limits. Overage charges may apply.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Usage History */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-blue-600" />
+                Recent Usage Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {usageLogs.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">No usage data recorded yet</p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {usageLogs.slice(0, 20).map((log, i) => (
+                    <div key={log.id || i} className="flex items-center justify-between py-2 border-b last:border-0">
+                      <div>
+                        <p className="font-medium text-sm">{log.metric_type?.replace(/_/g, ' ')}</p>
+                        <p className="text-xs text-gray-500">
+                          {log.period_start ? new Date(log.period_start).toLocaleDateString() : 'Current period'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">{log.metric_value?.toLocaleString()}</p>
+                        {log.quota_exceeded && (
+                          <Badge className="bg-red-100 text-red-700 text-xs">Over limit</Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
