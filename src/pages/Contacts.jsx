@@ -27,6 +27,8 @@ import { Users, Plus, Search, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { SkeletonTable } from '@/components/ui/skeleton-cards';
+import { EmptyContacts, EmptySearchResults } from '@/components/ui/empty-states';
 
 export default function Contacts() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -128,7 +130,16 @@ export default function Contacts() {
       {/* Contacts Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         {isLoading ? (
-          <div className="p-8 text-center text-gray-500">Loading contacts...</div>
+          <SkeletonTable rows={8} cols={6} />
+        ) : filtered.length === 0 && debouncedSearchTerm ? (
+          <EmptySearchResults
+            query={debouncedSearchTerm}
+            onClear={() => setSearchTerm('')}
+          />
+        ) : contacts.length === 0 ? (
+          <EmptyContacts
+            onAction={() => window.location.href = createPageUrl('ContactCreate')}
+          />
         ) : (
         <table className="w-full">
           <thead>
@@ -145,7 +156,7 @@ export default function Contacts() {
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                  No contacts found. <Link to={createPageUrl('ContactCreate')} className="text-blue-600 hover:underline">Add your first contact</Link>
+                  No contacts match your filters. Try adjusting your search criteria.
                 </td>
               </tr>
             ) : (
