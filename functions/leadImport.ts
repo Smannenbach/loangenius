@@ -99,19 +99,24 @@ function autoMapHeaders(headers) {
  * Resolve org using resolveOrgId function
  */
 async function resolveOrg(base44) {
-  const response = await base44.functions.invoke('resolveOrgId', { auto_create: true });
-  const data = response.data;
-  
-  if (!data.ok || !data.has_org) {
-    throw new Error('No organization found. Please contact support.');
+  try {
+    const response = await base44.functions.invoke('resolveOrgId', { auto_create: true });
+    const data = response.data;
+    
+    if (!data.ok || !data.has_org) {
+      throw new Error('No organization found. Please contact support.');
+    }
+    
+    // Reject placeholder org_ids
+    if (data.org_id === 'default' || !data.org_id) {
+      throw new Error('Invalid organization. Please refresh and try again.');
+    }
+    
+    return data.org_id;
+  } catch (e) {
+    console.error('resolveOrg failed:', e.message);
+    throw new Error('Failed to resolve organization: ' + e.message);
   }
-  
-  // Reject placeholder org_ids
-  if (data.org_id === 'default' || !data.org_id) {
-    throw new Error('Invalid organization. Please refresh and try again.');
-  }
-  
-  return data.org_id;
 }
 
 Deno.serve(async (req) => {
@@ -120,12 +125,27 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Resolve org via canonical function
+    // Resolve org using asServiceRole (avoid invoking another function)
     let orgId;
     try {
-      orgId = await resolveOrg(base44);
+      const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+        user_id: user.email,
+      });
+      
+      const activeMembership = memberships.find(m => m.status === 'active' || !m.status);
+      if (!activeMembership) {
+        return Response.json({ error: 'No organization membership found' }, { status: 403 });
+      }
+      
+      orgId = activeMembership.org_id;
+      
+      // Reject placeholder org_ids
+      if (!orgId || orgId === 'default') {
+        return Response.json({ error: 'Please refresh the page to initialize your organization' }, { status: 403 });
+      }
     } catch (e) {
-      return Response.json({ error: e.message }, { status: 403 });
+      console.error('Org resolution failed:', e.message);
+      return Response.json({ error: 'Failed to resolve organization' }, { status: 403 });
     }
 
     const body = await req.json();
