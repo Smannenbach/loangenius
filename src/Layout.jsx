@@ -54,6 +54,7 @@ import {
         Zap,
         CheckCircle,
         Globe,
+        Palette,
 } from 'lucide-react';
 
 const scrollbarStyles = `
