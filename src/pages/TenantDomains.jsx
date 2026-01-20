@@ -34,62 +34,66 @@ export default function TenantDomains() {
 
   const { data: domains = [], isLoading } = useQuery({
     queryKey: ['tenantDomains', tenant_id],
-    queryFn: () => base44.entities.TenantDomain.filter({ tenant_id })
+    queryFn: async () => {
+      if (!tenant_id) return [];
+      const response = await base44.functions.invoke('listTenantDomains', {});
+      return response.data?.domains || [];
+    },
+    enabled: !!tenant_id
   });
 
   const createMutation = useMutation({
-    mutationFn: (hostname) => base44.functions.invoke('manageTenantDomain', {
-      action: 'create',
-      hostname
-    }),
+    mutationFn: (hostname) => base44.functions.invoke('addTenantDomain', { hostname }),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['tenantDomains'] });
       setIsAddOpen(false);
       setNewHostname('');
-      setSelectedDomain(response.data.domain);
+      if (response.data?.domain) {
+        setSelectedDomain(response.data.domain);
+      }
       toast.success('Domain added successfully');
     },
     onError: (error) => {
-      toast.error('Failed to add domain: ' + error.message);
+      toast.error('Failed to add domain: ' + (error.response?.data?.error || error.message));
     }
   });
 
   const verifyMutation = useMutation({
-    mutationFn: (domain_id) => base44.functions.invoke('manageTenantDomain', {
-      action: 'verify_dns',
-      domain_id
-    }),
+    mutationFn: (domain_id) => base44.functions.invoke('verifyTenantDomain', { domain_id }),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['tenantDomains'] });
-      if (response.data.verified) {
-        toast.success('DNS verified! SSL provisioning started.');
+      if (response.data?.verified) {
+        toast.success('DNS verified! Domain is now active.');
       } else {
-        toast.error('DNS verification failed. Check your records.');
+        toast.error(response.data?.message || 'DNS verification failed. Check your records.');
       }
+    },
+    onError: (error) => {
+      toast.error('Verification failed: ' + (error.response?.data?.error || error.message));
     }
   });
 
   const setPrimaryMutation = useMutation({
-    mutationFn: (domain_id) => base44.functions.invoke('manageTenantDomain', {
-      action: 'set_primary',
-      domain_id
-    }),
+    mutationFn: (domain_id) => base44.functions.invoke('setPrimaryDomain', { domain_id }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenantDomains'] });
       toast.success('Primary domain updated');
+    },
+    onError: (error) => {
+      toast.error('Failed to set primary: ' + (error.response?.data?.error || error.message));
     }
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (domain_id) => base44.functions.invoke('manageTenantDomain', {
-      action: 'delete',
-      domain_id
-    }),
+    mutationFn: (domain_id) => base44.functions.invoke('removeTenantDomain', { domain_id }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenantDomains'] });
       setDeleteConfirmOpen(false);
       setSelectedDomain(null);
-      toast.success('Domain deleted');
+      toast.success('Domain removed');
+    },
+    onError: (error) => {
+      toast.error('Failed to remove domain: ' + (error.response?.data?.error || error.message));
     }
   });
 
