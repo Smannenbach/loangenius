@@ -30,15 +30,28 @@ const PII_PATTERNS = [
   { pattern: /\b(sk|pk|api)[-_][a-zA-Z0-9]{20,}\b/gi, name: 'APIKEY', replacement: '[APIKEY-REDACTED]' },
 ];
 
-// Sensitive field names that should never be logged
+// Sensitive field names that should never be logged (OWASP recommendation)
 const SENSITIVE_FIELDS = new Set([
+  // Identity
   'ssn', 'social_security', 'social_security_number', 'ssn_last_four',
   'dob', 'date_of_birth', 'birth_date', 'birthdate',
   'ein', 'tax_id', 'ein_last_four', 'entity_ein',
+  'drivers_license', 'passport_number', 'national_id',
+  
+  // Financial
   'bank_account', 'account_number', 'routing_number',
-  'credit_card', 'card_number', 'cvv', 'cvc',
+  'credit_card', 'card_number', 'cvv', 'cvc', 'expiry',
+  'iban', 'swift', 'bic',
+  
+  // Auth/Secrets
   'password', 'secret', 'api_key', 'access_token', 'refresh_token',
-  'api_key_encrypted', 'ciphertext_b64', 'iv_b64',
+  'api_key_encrypted', 'ciphertext_b64', 'iv_b64', 'private_key',
+  'client_secret', 'webhook_secret', 'encryption_key', 'auth_token',
+  'session_token', 'jwt', 'bearer',
+  
+  // PII
+  'email', 'phone', 'mobile_phone', 'home_phone', 'work_phone',
+  'home_email', 'work_email', 'address', 'street', 'ip_address',
 ]);
 
 /**
