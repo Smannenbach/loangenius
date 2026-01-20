@@ -62,8 +62,8 @@ Deno.serve(async (req) => {
       const rowNum = i + headerRow + 1;
 
       try {
-        // Map row to lead data
-        const leadData = { org_id: orgId, status: 'new' };
+        // Map row to lead data - ALWAYS set is_deleted: false
+        const leadData = { org_id: orgId, status: 'new', is_deleted: false };
         
         headers.forEach((header, idx) => {
           const fieldName = mapping[header];
