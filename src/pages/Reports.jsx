@@ -30,7 +30,7 @@ export default function Reports() {
     enabled: !!user?.email,
   });
 
-  const orgId = memberships[0]?.org_id || user?.org_id;
+  const orgId = memberships[0]?.org_id;
 
   const { data: kpis, isLoading: kpisLoading } = useQuery({
     queryKey: ['dashboardKPIs', orgId],
@@ -65,7 +65,7 @@ export default function Reports() {
         }
       }
     },
-    enabled: true,
+    enabled: !!orgId,
   });
 
   const { data: reports = [], isLoading: reportsLoading } = useQuery({

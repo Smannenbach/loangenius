@@ -54,18 +54,13 @@ export default function UsersPage() {
     enabled: !!user?.email,
   });
 
-  const orgId = userMemberships[0]?.org_id || user?.org_id;
+  const orgId = userMemberships[0]?.org_id;
 
   const { data: memberships = [], isLoading } = useQuery({
     queryKey: ['orgMemberships', orgId],
     queryFn: async () => {
       if (!orgId) return [];
-      try {
-        return await base44.entities.OrgMembership.filter({ org_id: orgId });
-      } catch (e) {
-        // Fallback: get all memberships
-        return await base44.entities.OrgMembership.list();
-      }
+      return await base44.entities.OrgMembership.filter({ org_id: orgId });
     },
     enabled: !!orgId,
   });
@@ -263,18 +258,18 @@ export default function UsersPage() {
                     <Badge variant={member.status === 'active' ? 'default' : 'secondary'}>
                       {member.status || 'active'}
                     </Badge>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => {
-                        if (member.user_id && member.user_id.includes('@')) {
-                          window.location.href = `mailto:${member.user_id}`;
-                        }
-                      }}
-                      title="Send email"
-                    >
-                      <Mail className="h-4 w-4 text-gray-400" />
-                    </Button>
+                    {member.user_id?.includes('@') && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        asChild
+                        title="Send email"
+                      >
+                        <a href={`mailto:${member.user_id}`}>
+                          <Mail className="h-4 w-4 text-gray-400" />
+                        </a>
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
