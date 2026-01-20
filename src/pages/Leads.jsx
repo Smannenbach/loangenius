@@ -406,7 +406,9 @@ export default function Leads() {
                   />
                 </div>
                 <Button 
-                  className="w-full bg-blue-600 hover:bg-blue-700 h-10 mt-2" 
+                  type="submit"
+                  className="w-full bg-blue-600 hover:bg-blue-700 h-10 mt-2"
+                  data-testid="cta:Leads:QuickAddSubmit"
                   onClick={() => { 
                     if (!newLead.tcpa_consent) {
                       toast.error('TCPA consent is required');
