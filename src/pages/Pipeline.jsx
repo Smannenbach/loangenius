@@ -94,12 +94,12 @@ export default function Pipeline() {
           <h1 className="text-2xl md:text-3xl font-semibold text-gray-900">Pipeline</h1>
           <p className="text-gray-500 mt-1 text-sm md:text-base">Track deals through the origination process</p>
         </div>
-        <Link to={createPageUrl('LoanApplicationWizard')} className="self-start">
-          <Button className="bg-blue-600 hover:bg-blue-500 gap-2 w-full md:w-auto" data-testid="cta:Pipeline:NewDeal">
+        <Button asChild className="bg-blue-600 hover:bg-blue-500 gap-2 w-full md:w-auto self-start" data-testid="cta:Pipeline:NewDeal">
+          <Link to={createPageUrl('LoanApplicationWizard')}>
             <Plus className="h-4 w-4" />
             New Deal
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </div>
 
       {/* Error State */}
