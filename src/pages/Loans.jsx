@@ -113,7 +113,7 @@ export default function LoansPage() {
               <p className="text-slate-600 mt-2 text-lg">Comprehensive view of all loans and deal pipelines</p>
             </div>
             <Link to={createPageUrl('LoanApplicationWizard')}>
-              <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg gap-2 h-12 px-6">
+              <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg gap-2 h-12 px-6" data-testid="cta:Loans:NewLoan">
                 <Plus className="h-5 w-5" />
                 <span className="font-semibold">New Loan</span>
               </Button>
@@ -503,7 +503,9 @@ function LoanEditDialog({ loan, onClose, onSave, isPending }) {
           <div className="flex gap-3 pt-4">
             <Button variant="outline" onClick={onClose}>Cancel</Button>
             <Button 
+              type="submit"
               className="flex-1 bg-blue-600 hover:bg-blue-500"
+              data-testid="cta:Loans:SaveChanges"
               onClick={() => onSave(data)}
               disabled={isPending}
             >

@@ -163,7 +163,7 @@ export default function Communications() {
         </div>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
+            <Button className="bg-blue-600 hover:bg-blue-500 gap-2" data-testid="cta:Communications:NewMessage">
               <Plus className="h-4 w-4" />
               New Message
             </Button>
@@ -215,7 +215,9 @@ export default function Communications() {
               <div className="flex gap-3">
                 <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
                 <Button 
+                  type="submit"
                   className="flex-1 bg-blue-600 hover:bg-blue-700 gap-2"
+                  data-testid="cta:Communications:Send"
                   onClick={handleSend}
                   disabled={sendMutation.isPending || !message.to || !message.body}
                 >
