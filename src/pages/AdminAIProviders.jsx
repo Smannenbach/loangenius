@@ -301,7 +301,7 @@ export default function AdminAIProviders() {
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => deleteProviderMutation.mutate(provider.id)}
+                          onClick={() => setDeleteConfirmId(provider.id)}
                         >
                           Delete
                         </Button>
@@ -369,6 +369,27 @@ export default function AdminAIProviders() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete AI Provider?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this provider configuration. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => deleteProviderMutation.mutate(deleteConfirmId)}
+            >
+              Delete
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* New Provider Modal */}
       {showNewForm && (
