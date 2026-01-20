@@ -400,9 +400,40 @@ export default function Layout({ children, currentPageName }) {
       <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-slate-800 border-b border-slate-700 z-20 flex items-center justify-between px-16">
         <span className="font-bold text-white">LoanGenius</span>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="text-slate-400">
-            <Bell className="h-5 w-5" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white relative" data-testid="cta:Layout:MobileNotifications">
+                <Bell className="h-5 w-5" />
+                <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-72 bg-slate-800 border-slate-700">
+              <div className="p-3 font-medium text-white border-b border-slate-700 flex items-center justify-between">
+                <span>Notifications</span>
+                <Link to={createPageUrl('AlertsNotifications')} className="text-xs text-blue-400 hover:underline">
+                  View All
+                </Link>
+              </div>
+              <DropdownMenuItem className="p-3 hover:bg-slate-700 cursor-pointer">
+                <div className="flex flex-col">
+                  <span className="font-medium text-white text-sm">New document uploaded</span>
+                  <span className="text-xs text-slate-400">Deal #DL-2024-001 • 5 min ago</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="p-3 hover:bg-slate-700 cursor-pointer">
+                <div className="flex flex-col">
+                  <span className="font-medium text-white text-sm">Task assigned</span>
+                  <span className="text-xs text-slate-400">Review appraisal • 1 hour ago</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-slate-700" />
+              <DropdownMenuItem asChild>
+                <Link to={createPageUrl('AlertsNotifications')} className="p-3 text-center text-blue-400 hover:bg-slate-700 cursor-pointer block">
+                  See all notifications
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
