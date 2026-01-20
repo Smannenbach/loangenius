@@ -14,7 +14,15 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (user.role !== 'admin') {
+    // Resolve org membership and verify admin role
+    const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
+    if (memberships.length === 0) {
+      return Response.json({ error: 'User not part of any organization' }, { status: 403 });
+    }
+    const orgId = memberships[0].org_id;
+    const userRole = memberships[0].role_id || memberships[0].role || 'user';
+    
+    if (!['admin', 'owner', 'super_admin'].includes(userRole)) {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
 
@@ -24,7 +32,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing provider_id' }, { status: 400 });
     }
 
-    // Get the provider config
+    // Get the provider config - verify it belongs to this org
     let provider;
     try {
       provider = await base44.asServiceRole.entities.AIProvider.get(provider_id);
@@ -33,6 +41,11 @@ Deno.serve(async (req) => {
     }
     
     if (!provider) {
+      return Response.json({ error: 'Provider not found' }, { status: 404 });
+    }
+    
+    // Verify org scope
+    if (provider.org_id && provider.org_id !== orgId) {
       return Response.json({ error: 'Provider not found' }, { status: 404 });
     }
 
