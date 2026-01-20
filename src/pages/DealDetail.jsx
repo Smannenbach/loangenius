@@ -304,6 +304,7 @@ export default function DealDetail() {
               className="gap-2"
               onClick={() => exportMISMOMutation.mutate()}
               disabled={exportMISMOMutation.isPending}
+              data-testid="cta:DealDetail:ExportMISMO"
             >
               {exportMISMOMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -312,19 +313,25 @@ export default function DealDetail() {
               )}
               MISMO 3.4
             </Button>
-            <Button variant="outline" className="gap-2">
+            <Button 
+              variant="outline" 
+              className="gap-2"
+              onClick={() => toast.info('PDF export coming soon')}
+              data-testid="cta:DealDetail:ExportPDF"
+            >
               <Download className="h-4 w-4" />
               Export PDF
             </Button>
-            <Link to={createPageUrl(`DealWizard?id=${dealId}`)}>
-              <Button variant="outline" className="gap-2">
+            <Button asChild variant="outline" className="gap-2" data-testid="cta:DealDetail:Edit">
+              <Link to={createPageUrl(`DealWizard?id=${dealId}`)}>
                 <Edit className="h-4 w-4" />
                 Edit
-              </Button>
-            </Link>
+              </Link>
+            </Button>
             <Button 
               className="gap-2 bg-green-600 hover:bg-green-700"
               onClick={() => setShowSubmitToLenderModal(true)}
+              data-testid="cta:DealDetail:SubmitToLenders"
             >
               <Send className="h-4 w-4" />
               Submit to Lenders
@@ -455,7 +462,14 @@ export default function DealDetail() {
               <Card className="border-gray-200">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-lg">Documents</CardTitle>
-                  <Button variant="outline" size="sm">Upload Document</Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => toast.info('Document upload coming soon')}
+                    data-testid="cta:DealDetail:UploadDocument"
+                  >
+                    Upload Document
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   {documents.length === 0 ? (
@@ -495,7 +509,14 @@ export default function DealDetail() {
           <Card className="border-gray-200">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">Conditions</CardTitle>
-              <Button variant="outline" size="sm">Add Condition</Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => toast.info('Add condition coming soon')}
+                data-testid="cta:DealDetail:AddCondition"
+              >
+                Add Condition
+              </Button>
             </CardHeader>
             <CardContent>
               {conditions.length === 0 ? (
@@ -709,11 +730,24 @@ export default function DealDetail() {
                         <Send className="h-4 w-4 mr-2" />
                         Send Invite
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => toast.info('Portal preview coming soon')}
+                      >
                         <Eye className="h-4 w-4 mr-2" />
                         Preview
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedBorrower(borrower.id);
+                          sendPortalInviteMutation.mutate(borrower.id);
+                          toast.success('Invite resent!');
+                        }}
+                        disabled={sendPortalInviteMutation.isPending}
+                      >
                         <RotateCcw className="h-4 w-4 mr-2" />
                         Resend
                       </Button>
