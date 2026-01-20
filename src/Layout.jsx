@@ -118,6 +118,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Users & Permissions', href: '/Users', icon: Users },
     { name: 'Lender Partners', href: '/LenderIntegrations', icon: Building },
     { name: 'Borrower Portal', href: '/PortalSettings', icon: Globe },
+    { name: 'Smoke Tests', href: '/SmokeTests', icon: Rocket },
     { name: 'Testing Hub', href: '/TestingHub', icon: Sparkles },
     { name: 'QA Audit', href: '/QAAudit', icon: Search },
     { name: 'Underwriting', href: '/Underwriting', icon: Scale },
