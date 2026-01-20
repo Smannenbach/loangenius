@@ -22,40 +22,10 @@ import debounce from 'lodash/debounce';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
-function OrgLogoUpload() {
+function OrgLogoUpload({ orgId, orgSettings, refetchOrgSettings }) {
   const [logoUrl, setLogoUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const logoInputRef = useRef(null);
-
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-  });
-
-  const { data: memberships = [] } = useQuery({
-    queryKey: ['userMembership', user?.email],
-    queryFn: async () => {
-      if (!user?.email) return [];
-      return await base44.entities.OrgMembership.filter({ user_id: user.email });
-    },
-    enabled: !!user?.email,
-  });
-
-  const orgId = memberships[0]?.org_id;
-
-  const { data: orgSettings, refetch: refetchOrgSettings } = useQuery({
-    queryKey: ['orgSettings', orgId],
-    queryFn: async () => {
-      if (!orgId) return null;
-      try {
-        const settings = await base44.entities.OrgSettings.filter({ org_id: orgId });
-        return settings[0] || null;
-      } catch {
-        return null;
-      }
-    },
-    enabled: !!orgId,
-  });
 
   useEffect(() => {
     if (orgSettings?.logo_url) {
@@ -134,6 +104,81 @@ export default function SettingsPage() {
   const { data: user, refetch: refetchUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
+  });
+
+  const { data: memberships = [] } = useQuery({
+    queryKey: ['userMembership', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return await base44.entities.OrgMembership.filter({ user_id: user.email });
+    },
+    enabled: !!user?.email,
+  });
+
+  const orgId = memberships[0]?.org_id;
+
+  const { data: orgSettings, refetch: refetchOrgSettings } = useQuery({
+    queryKey: ['orgSettings', orgId],
+    queryFn: async () => {
+      if (!orgId) return null;
+      try {
+        const settings = await base44.entities.OrgSettings.filter({ org_id: orgId });
+        return settings[0] || null;
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!orgId,
+  });
+
+  // Organization form state
+  const [orgForm, setOrgForm] = useState({
+    company_name: '',
+    nmls_id: '',
+    address: '',
+    phone: '',
+    website: '',
+  });
+
+  // Load org settings into form
+  useEffect(() => {
+    if (orgSettings) {
+      setOrgForm({
+        company_name: orgSettings.company_name || '',
+        nmls_id: orgSettings.nmls_id || '',
+        address: orgSettings.address || '',
+        phone: orgSettings.phone || '',
+        website: orgSettings.website || '',
+      });
+    }
+  }, [orgSettings]);
+
+  // Save organization settings mutation
+  const saveOrgMutation = useMutation({
+    mutationFn: async (data) => {
+      if (orgSettings?.id) {
+        return await base44.entities.OrgSettings.update(orgSettings.id, data);
+      } else if (orgId) {
+        return await base44.entities.OrgSettings.create({ org_id: orgId, ...data });
+      }
+      throw new Error('No organization ID');
+    },
+    onSuccess: () => {
+      toast.success('Organization settings saved!');
+      refetchOrgSettings();
+    },
+    onError: (err) => toast.error('Failed to save: ' + err.message),
+  });
+
+  // Save notification preferences mutation
+  const saveNotificationsMutation = useMutation({
+    mutationFn: async (prefs) => {
+      return await base44.auth.updateMe({ notification_preferences: prefs });
+    },
+    onSuccess: () => {
+      toast.success('Notification preferences saved!');
+    },
+    onError: (err) => toast.error('Failed to save: ' + err.message),
   });
 
   const [profile, setProfile] = useState({
@@ -381,35 +426,56 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Logo Upload */}
-              <OrgLogoUpload />
+              <OrgLogoUpload orgId={orgId} orgSettings={orgSettings} refetchOrgSettings={refetchOrgSettings} />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Company Name</Label>
-                  <Input placeholder="ABC Mortgage" />
+                  <Input 
+                    value={orgForm.company_name}
+                    onChange={(e) => setOrgForm({ ...orgForm, company_name: e.target.value })}
+                    placeholder="ABC Mortgage" 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Company NMLS ID</Label>
-                  <Input placeholder="123456" />
+                  <Input 
+                    value={orgForm.nmls_id}
+                    onChange={(e) => setOrgForm({ ...orgForm, nmls_id: e.target.value })}
+                    placeholder="123456" 
+                  />
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <Label>Address</Label>
-                  <Input placeholder="123 Main St, City, State 12345" />
+                  <Input 
+                    value={orgForm.address}
+                    onChange={(e) => setOrgForm({ ...orgForm, address: e.target.value })}
+                    placeholder="123 Main St, City, State 12345" 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Phone</Label>
-                  <Input placeholder="(555) 123-4567" />
+                  <Input 
+                    value={orgForm.phone}
+                    onChange={(e) => setOrgForm({ ...orgForm, phone: e.target.value })}
+                    placeholder="(555) 123-4567" 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Website</Label>
-                  <Input placeholder="https://abcmortgage.com" />
+                  <Input 
+                    value={orgForm.website}
+                    onChange={(e) => setOrgForm({ ...orgForm, website: e.target.value })}
+                    placeholder="https://abcmortgage.com" 
+                  />
                 </div>
               </div>
               <Button 
                 className="bg-blue-600 hover:bg-blue-500 gap-2"
-                onClick={() => toast.success('Organization settings saved!')}
+                onClick={() => saveOrgMutation.mutate(orgForm)}
+                disabled={saveOrgMutation.isPending}
               >
-                <Save className="h-4 w-4" />
+                {saveOrgMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Save Changes
               </Button>
             </CardContent>
@@ -467,9 +533,10 @@ export default function SettingsPage() {
               </div>
               <Button 
                 className="bg-blue-600 hover:bg-blue-500 gap-2"
-                onClick={() => toast.success('Notification preferences saved!')}
+                onClick={() => saveNotificationsMutation.mutate(notifications)}
+                disabled={saveNotificationsMutation.isPending}
               >
-                <Save className="h-4 w-4" />
+                {saveNotificationsMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Save Preferences
               </Button>
             </CardContent>

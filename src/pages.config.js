@@ -43,6 +43,7 @@ import DealMobile from './pages/DealMobile';
 import DealWizard from './pages/DealWizard';
 import Deals from './pages/Deals';
 import DocumentIntelligence from './pages/DocumentIntelligence';
+import DocumentIntelligenceHub from './pages/DocumentIntelligenceHub';
 import Documents from './pages/Documents';
 import EmailSequences from './pages/EmailSequences';
 import ErrorTest from './pages/ErrorTest';
@@ -87,7 +88,6 @@ import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
-import DocumentIntelligenceHub from './pages/DocumentIntelligenceHub';
 import __Layout from './Layout.jsx';
 
 
@@ -137,6 +137,7 @@ export const PAGES = {
     "DealWizard": DealWizard,
     "Deals": Deals,
     "DocumentIntelligence": DocumentIntelligence,
+    "DocumentIntelligenceHub": DocumentIntelligenceHub,
     "Documents": Documents,
     "EmailSequences": EmailSequences,
     "ErrorTest": ErrorTest,
@@ -181,7 +182,6 @@ export const PAGES = {
     "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
-    "DocumentIntelligenceHub": DocumentIntelligenceHub,
 }
 
 export const pagesConfig = {
