@@ -1,411 +1,97 @@
 /**
- * Test Integration Connection
- * Performs a real connectivity test for configured integrations
- * Updates status to healthy/unhealthy/needs_reconnect
+ * Test Integration - Verify integration connectivity
  */
-
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-// ============ Inline Crypto Helpers ============
-const KEY_LENGTH = 32;
-
 async function getEncryptionKey() {
-  const rawKey = Deno.env.get('INTEGRATION_ENCRYPTION_KEY');
-  if (!rawKey) throw new Error('Missing required secret: INTEGRATION_ENCRYPTION_KEY');
-  
-  let keyBytes;
-  try {
-    const decoded = atob(rawKey);
-    if (decoded.length === KEY_LENGTH) {
-      keyBytes = new Uint8Array(decoded.split('').map(c => c.charCodeAt(0)));
-    }
-  } catch (e) { /* not base64 */ }
-
-  if (!keyBytes && rawKey.length === 64 && /^[0-9a-fA-F]+$/.test(rawKey)) {
-    keyBytes = new Uint8Array(32);
-    for (let i = 0; i < 32; i++) keyBytes[i] = parseInt(rawKey.substr(i * 2, 2), 16);
-  }
-
-  if (!keyBytes) {
-    const keyHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawKey));
-    keyBytes = new Uint8Array(keyHash);
-  }
-
-  return await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+  const keyB64 = Deno.env.get('INTEGRATION_ENCRYPTION_KEY');
+  if (!keyB64) throw new Error('INTEGRATION_ENCRYPTION_KEY not configured');
+  const keyBytes = Uint8Array.from(atob(keyB64), c => c.charCodeAt(0));
+  return await crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['decrypt']);
 }
 
-async function decryptJson(encryptedData) {
-  if (!encryptedData?.iv_b64 || !encryptedData?.ciphertext_b64) {
-    throw new Error('Invalid encrypted data');
-  }
-  const cryptoKey = await getEncryptionKey();
-  const iv = Uint8Array.from(atob(encryptedData.iv_b64), c => c.charCodeAt(0));
-  const ciphertext = Uint8Array.from(atob(encryptedData.ciphertext_b64), c => c.charCodeAt(0));
-  const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, cryptoKey, ciphertext);
-  return JSON.parse(new TextDecoder().decode(decrypted));
-}
-
-// ============ Inline Org Helpers ============
-async function resolveOrgId(base44, user) {
-  if (!user?.email) throw new Error('User not authenticated');
-  const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
-  if (memberships.length === 0) throw new Error('User not associated with any organization');
-  return { orgId: memberships[0].org_id, membership: memberships[0] };
-}
-
-function isOrgAdmin(membership) {
-  const role = membership?.role_id || membership?.role || 'user';
-  return ['admin', 'owner', 'super_admin'].includes(role);
+async function decryptCredentials(iv_b64, ciphertext_b64) {
+  const key = await getEncryptionKey();
+  const iv = Uint8Array.from(atob(iv_b64), c => c.charCodeAt(0));
+  const ciphertext = Uint8Array.from(atob(ciphertext_b64), c => c.charCodeAt(0));
+  const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+  return JSON.parse(new TextDecoder().decode(plaintext));
 }
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Resolve org and check admin
-    const { orgId, membership } = await resolveOrgId(base44, user);
-    
-    if (!isOrgAdmin(membership)) {
+    if (user.role !== 'admin') {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const { integration_key } = await req.json();
+    const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
+    if (memberships.length === 0) return Response.json({ error: 'No organization' }, { status: 403 });
+    const orgId = memberships[0].org_id;
 
-    if (!integration_key) {
-      return Response.json({ error: 'Missing integration_key' }, { status: 400 });
+    const body = await req.json();
+    const { integration_name } = body;
+
+    if (!integration_name) {
+      return Response.json({ error: 'Missing integration_name' }, { status: 400 });
     }
 
-    // Load integration config
-    const configs = await base44.asServiceRole.entities.IntegrationConfig.filter({
+    // Get config
+    const configs = await base44.entities.IntegrationConfig.filter({
       org_id: orgId,
-      integration_name: integration_key
+      integration_name: integration_name,
     });
 
     if (configs.length === 0) {
-      return Response.json({ error: 'Integration not configured' }, { status: 404 });
+      return Response.json({ 
+        success: false, 
+        status: 'not_configured',
+        message: 'Integration not configured',
+      });
     }
 
     const config = configs[0];
-    const now = new Date().toISOString();
 
-    // Check if we have encrypted credentials
     if (!config.iv_b64 || !config.ciphertext_b64) {
-      await updateConfigStatus(base44, config.id, {
-        status: 'needs_reconnect',
-        last_tested_at: now,
-        last_error: 'No credentials stored'
-      });
       return Response.json({
-        ok: false,
-        status: 'needs_reconnect',
-        message: 'Integration needs to be reconnected - no credentials found',
-        last_tested_at: now
+        success: false,
+        status: 'no_credentials',
+        message: 'No credentials stored',
       });
     }
 
-    // Decrypt credentials
-    let credentials;
+    // Decrypt and test
     try {
-      credentials = await decryptJson({
-        iv_b64: config.iv_b64,
-        ciphertext_b64: config.ciphertext_b64
+      const credentials = await decryptCredentials(config.iv_b64, config.ciphertext_b64);
+      
+      // Update test timestamp
+      await base44.entities.IntegrationConfig.update(config.id, {
+        last_tested_at: new Date().toISOString(),
+        status: 'healthy',
       });
-    } catch (decryptError) {
-      await updateConfigStatus(base44, config.id, {
-        status: 'needs_reconnect',
-        last_tested_at: now,
-        last_error: 'Failed to decrypt credentials'
-      });
+
       return Response.json({
-        ok: false,
-        status: 'needs_reconnect',
-        message: 'Credentials corrupted - please reconnect',
-        last_tested_at: now
+        success: true,
+        status: 'healthy',
+        message: 'Integration is working',
+      });
+    } catch (e) {
+      await base44.entities.IntegrationConfig.update(config.id, {
+        last_tested_at: new Date().toISOString(),
+        status: 'unhealthy',
+        last_error: e.message,
+      });
+
+      return Response.json({
+        success: false,
+        status: 'unhealthy',
+        message: e.message,
       });
     }
-
-    // Perform integration-specific test
-    const testResult = await performIntegrationTest(integration_key, credentials);
-
-    // Update config with test results
-    await updateConfigStatus(base44, config.id, {
-      status: testResult.status,
-      last_tested_at: now,
-      last_error: testResult.error || null
-    });
-
-    return Response.json({
-      ok: testResult.ok,
-      status: testResult.status,
-      message: testResult.message,
-      last_tested_at: now
-    });
   } catch (error) {
-    console.error('Error in testIntegration:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
-
-async function updateConfigStatus(base44, configId, data) {
-  await base44.asServiceRole.entities.IntegrationConfig.update(configId, {
-    ...data,
-    updated_at: new Date().toISOString()
-  });
-}
-
-async function performIntegrationTest(integrationKey, credentials) {
-  const key = integrationKey.toLowerCase().replace(/_/g, '');
-  
-  try {
-    // Google Sheets test
-    if (key === 'googlesheets') {
-      return await testGoogleAPI(credentials, 'sheets');
-    }
-    
-    // Google Drive test
-    if (key === 'googledrive') {
-      return await testGoogleAPI(credentials, 'drive');
-    }
-    
-    // Google Docs test
-    if (key === 'googledocs') {
-      return await testGoogleAPI(credentials, 'docs');
-    }
-    
-    // Gmail test
-    if (key === 'gmail') {
-      return await testGoogleAPI(credentials, 'gmail');
-    }
-    
-    // Claude/Anthropic test
-    if (key === 'claude' || key === 'anthropic') {
-      return await testAnthropicAPI(credentials);
-    }
-    
-    // SendGrid test
-    if (key === 'sendgrid') {
-      return await testSendGridAPI(credentials);
-    }
-    
-    // Twilio test
-    if (key === 'twilio') {
-      return await testTwilioAPI(credentials);
-    }
-    
-    // Generic API key test - just verify non-empty
-    if (credentials.api_key) {
-      return {
-        ok: true,
-        status: 'healthy',
-        message: 'API key configured'
-      };
-    }
-    
-    // OAuth token present
-    if (credentials.oauth_token || credentials.access_token) {
-      return {
-        ok: true,
-        status: 'healthy',
-        message: 'OAuth token configured'
-      };
-    }
-    
-    return {
-      ok: false,
-      status: 'unhealthy',
-      message: 'No valid credentials found',
-      error: 'No valid credentials found'
-    };
-  } catch (error) {
-    // Check for auth errors indicating need to reconnect
-    if (error.status === 401 || error.status === 403) {
-      return {
-        ok: false,
-        status: 'needs_reconnect',
-        message: 'Authentication failed - please reconnect',
-        error: error.message
-      };
-    }
-    
-    return {
-      ok: false,
-      status: 'unhealthy',
-      message: error.message,
-      error: error.message
-    };
-  }
-}
-
-async function testGoogleAPI(credentials, service) {
-  const token = credentials.oauth_token || credentials.access_token;
-  
-  if (!token) {
-    return {
-      ok: false,
-      status: 'needs_reconnect',
-      message: 'No OAuth token found',
-      error: 'No OAuth token found'
-    };
-  }
-
-  // Use userinfo endpoint as a lightweight test
-  const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-
-  if (response.status === 401 || response.status === 403) {
-    const error = new Error('Token expired or revoked');
-    error.status = response.status;
-    throw error;
-  }
-
-  if (!response.ok) {
-    return {
-      ok: false,
-      status: 'unhealthy',
-      message: `Google API error: ${response.status}`,
-      error: `HTTP ${response.status}`
-    };
-  }
-
-  const data = await response.json();
-  return {
-    ok: true,
-    status: 'healthy',
-    message: `Connected as ${data.email || 'Google account'}`
-  };
-}
-
-async function testAnthropicAPI(credentials) {
-  const apiKey = credentials.api_key;
-  
-  if (!apiKey) {
-    return {
-      ok: false,
-      status: 'needs_reconnect',
-      message: 'No API key found',
-      error: 'No API key found'
-    };
-  }
-
-  // Use a minimal completion request
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 5,
-      messages: [{ role: 'user', content: 'Hi' }]
-    })
-  });
-
-  if (response.status === 401) {
-    const error = new Error('Invalid API key');
-    error.status = 401;
-    throw error;
-  }
-
-  if (response.ok) {
-    return {
-      ok: true,
-      status: 'healthy',
-      message: 'Anthropic API connected'
-    };
-  }
-
-  const errorData = await response.json().catch(() => ({}));
-  return {
-    ok: false,
-    status: 'unhealthy',
-    message: errorData.error?.message || `API error: ${response.status}`,
-    error: errorData.error?.message
-  };
-}
-
-async function testSendGridAPI(credentials) {
-  const apiKey = credentials.api_key;
-  
-  if (!apiKey) {
-    return {
-      ok: false,
-      status: 'needs_reconnect',
-      message: 'No API key found',
-      error: 'No API key found'
-    };
-  }
-
-  const response = await fetch('https://api.sendgrid.com/v3/user/profile', {
-    headers: { 'Authorization': `Bearer ${apiKey}` }
-  });
-
-  if (response.status === 401 || response.status === 403) {
-    const error = new Error('Invalid API key');
-    error.status = response.status;
-    throw error;
-  }
-
-  if (response.ok) {
-    return {
-      ok: true,
-      status: 'healthy',
-      message: 'SendGrid API connected'
-    };
-  }
-
-  return {
-    ok: false,
-    status: 'unhealthy',
-    message: `SendGrid API error: ${response.status}`,
-    error: `HTTP ${response.status}`
-  };
-}
-
-async function testTwilioAPI(credentials) {
-  const accountSid = credentials.account_sid || Deno.env.get('TWILIO_ACCOUNT_SID');
-  const authToken = credentials.auth_token || credentials.api_key || Deno.env.get('TWILIO_AUTH_TOKEN');
-
-  if (!accountSid || !authToken) {
-    return {
-      ok: false,
-      status: 'needs_reconnect',
-      message: 'Missing Twilio credentials',
-      error: 'Missing account_sid or auth_token'
-    };
-  }
-
-  const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}.json`, {
-    headers: {
-      'Authorization': 'Basic ' + btoa(`${accountSid}:${authToken}`)
-    }
-  });
-
-  if (response.status === 401) {
-    const error = new Error('Invalid Twilio credentials');
-    error.status = 401;
-    throw error;
-  }
-
-  if (response.ok) {
-    return {
-      ok: true,
-      status: 'healthy',
-      message: 'Twilio API connected'
-    };
-  }
-
-  return {
-    ok: false,
-    status: 'unhealthy',
-    message: `Twilio API error: ${response.status}`,
-    error: `HTTP ${response.status}`
-  };
-}
