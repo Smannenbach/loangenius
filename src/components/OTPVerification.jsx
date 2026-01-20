@@ -157,6 +157,20 @@ function OTPVerification({
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       sessionStorage.setItem(storageKey, JSON.stringify({ code, expires: Date.now() + 600000 }));
       
+      // Store code temporarily
+      sessionStorage.setItem(`otp_phone_${cleanPhone}`, JSON.stringify({ code, expires: Date.now() + 600000 }));
+      
+      // Send SMS via Twilio
+      try {
+        await base44.functions.invoke('sendSMSOTP', { phone: cleanPhone, code });
+      } catch (smsError) {
+        console.error('SMS sending failed:', smsError);
+        // Remove stored code if SMS fails to prevent orphaned codes
+        sessionStorage.removeItem(`otp_phone_${cleanPhone}`);
+        toast.error('Failed to send SMS. Please try again or contact support.');
+        setIsSending(false);
+        return;
+      }
       await config.sendCode(normalizedId, code);
       
       setCodeSent(true);

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Sheet, RefreshCw, Check, AlertCircle, Loader } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 export default function GoogleSheetsSync() {
   const [spreadsheetId, setSpreadsheetId] = useState('');
@@ -47,12 +48,12 @@ export default function GoogleSheetsSync() {
       });
     },
     onSuccess: (data) => {
-      alert(`Successfully synced ${data.data.synced_count} leads to Google Sheets!`);
+      toast.success(`Successfully synced ${data.data?.synced_count || 0} leads to Google Sheets!`);
       setIsOpen(false);
       setSpreadsheetId('');
     },
     onError: (error) => {
-      alert(`Sync failed: ${error.message}`);
+      toast.error(`Sync failed: ${error.message}`);
     }
   });
 

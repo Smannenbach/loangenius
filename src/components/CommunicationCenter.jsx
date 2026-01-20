@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Mail, MessageSquare, Send, Phone } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function CommunicationCenter({ leadEmail, leadPhone }) {
   const queryClient = useQueryClient();
@@ -54,7 +55,7 @@ export default function CommunicationCenter({ leadEmail, leadPhone }) {
 
   const handleSend = () => {
     if (!message.recipient || !message.body) {
-      alert('Please fill in all fields');
+      toast.error('Please fill in all required fields');
       return;
     }
     sendMutation.mutate({

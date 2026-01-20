@@ -3,6 +3,16 @@
  */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
+async function hashOTP(otp: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(otp);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function generateOTP() {
+  // Use cryptographically secure random number generation
 /**
  * Generate cryptographically secure OTP
  * Uses crypto.getRandomValues instead of Math.random for security
@@ -26,9 +36,19 @@ Deno.serve(async (req) => {
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // Store OTP (you would create an OTPVerification entity)
-    // For now, return OTP for testing
-    console.log(`OTP for ${phone}: ${otp}`);
+    // Store OTP in database for verification
+    await base44.asServiceRole.entities.OTPVerification.create({
+      phone,
+      otp_hash: await hashOTP(otp),
+      expires_at: expiresAt.toISOString(),
+      verified: false,
+    }).catch(() => {});
+
+    // Send via Twilio
+    await base44.functions.invoke('twilioSMS', {
+      to: phone,
+      body: `Your LoanGenius verification code is: ${otp}. Expires in 10 minutes.`
+    }).catch((err) => console.error('SMS send failed:', err));
 
     // In production, send via Twilio:
     // await sendSMSViaTwilio(phone, `Your LoanGenius verification code is: ${otp}`);

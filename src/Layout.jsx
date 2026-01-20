@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import MobileBottomNav from '@/components/MobileBottomNav';
+import GlobalSearch, { useGlobalSearch } from '@/components/GlobalSearch';
 import {
   Tooltip,
   TooltipContent,
@@ -86,6 +87,7 @@ export default function Layout({ children, currentPageName }) {
     tools: true,
     admin: true,
   });
+  const globalSearch = useGlobalSearch();
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -332,14 +334,17 @@ export default function Layout({ children, currentPageName }) {
       >
         {/* Search */}
         <div className="flex-1 max-w-xl">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search deals, borrowers, documents..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+          <button
+            onClick={globalSearch.open}
+            className="w-full flex items-center gap-3 px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-sm text-slate-400 hover:bg-slate-700 hover:border-slate-500 transition-colors text-left"
+            aria-label="Open search (Ctrl+K)"
+          >
+            <Search className="h-4 w-4 flex-shrink-0" />
+            <span className="flex-1">Search deals, borrowers, documents...</span>
+            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-xs font-medium bg-slate-600 rounded">
+              <span className="text-[10px]">⌘</span>K
+            </kbd>
+          </button>
         </div>
 
         {/* Actions */}
@@ -484,6 +489,12 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Toast Notifications */}
       <Toaster />
+
+      {/* Global Search Modal */}
+      <GlobalSearch
+        isOpen={globalSearch.isOpen}
+        onClose={globalSearch.close}
+      />
       </div>
       );
       }

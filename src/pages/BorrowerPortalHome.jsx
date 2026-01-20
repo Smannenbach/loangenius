@@ -256,6 +256,7 @@ export default function BorrowerPortalHome() {
                     onClick={async () => {
                       const message = messageInputRef.current?.value?.trim();
                       if (!message) {
+                        toast.warning('Please enter a message');
                         toast.error('Please enter a message');
                         return;
                       }
@@ -265,6 +266,7 @@ export default function BorrowerPortalHome() {
                           deal_id: dealId,
                           message: message
                         });
+                        messageInput.value = '';
                         if (messageInputRef.current) {
                           messageInputRef.current.value = '';
                         }

@@ -21,6 +21,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Palette, Image, Type, FileText, RotateCcw } from 'lucide-react';
+import { toast } from 'sonner';
 import BrandingPreview from '@/components/BrandingPreview';
 
 const FONT_OPTIONS = ['Inter', 'Roboto', 'Open Sans', 'Lato', 'Poppins'];

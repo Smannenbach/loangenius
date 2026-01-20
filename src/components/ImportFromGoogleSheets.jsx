@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Upload, AlertCircle, CheckCircle, Loader, ToggleRight, Clock } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { toast } from 'sonner';
 
 export default function ImportFromGoogleSheets({ onImportSuccess }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,13 +40,13 @@ export default function ImportFromGoogleSheets({ onImportSuccess }) {
       }
     },
     onError: (error) => {
-      alert('Import failed: ' + error.message);
+      toast.error('Import failed: ' + error.message);
     },
   });
 
   const handleImport = () => {
     if (!spreadsheetId.trim()) {
-      alert('Please enter a Google Sheets spreadsheet ID');
+      toast.error('Please enter a Google Sheets spreadsheet ID');
       return;
     }
     importMutation.mutate();
@@ -58,17 +59,17 @@ export default function ImportFromGoogleSheets({ onImportSuccess }) {
     },
     onSuccess: () => {
       setAutoImport(true);
-      alert('Auto-import enabled! Leads will sync daily at 6 AM.');
+      toast.success('Auto-import enabled! Leads will sync daily at 6 AM.');
     },
     onError: (error) => {
-      alert('Failed to enable auto-import: ' + error.message);
+      toast.error('Failed to enable auto-import: ' + error.message);
       setAutoImport(false);
     },
   });
 
   const handleAutoImportToggle = async (checked) => {
     if (checked && !spreadsheetId.trim()) {
-      alert('Please enter a spreadsheet ID first');
+      toast.error('Please enter a spreadsheet ID first');
       return;
     }
     

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '../utils';
+import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,10 +32,22 @@ import {
   FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { SkeletonTable } from '@/components/ui/skeleton-cards';
+import { EmptyLoans, EmptySearchResults } from '@/components/ui/empty-states';
 
 export default function Deals() {
+  const navigate = useNavigate();
+  const searchInputRef = useRef(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    'n': () => navigate(createPageUrl('NewDeal')),        // New deal
+    '/': () => searchInputRef.current?.focus(),           // Focus search
+    'p': () => navigate(createPageUrl('Pipeline')),       // Go to pipeline
+    'Escape': () => searchInputRef.current?.blur(),
+  });
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -151,12 +164,14 @@ export default function Deals() {
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
               <Input
-                placeholder="Search deals..."
+                ref={searchInputRef}
+                placeholder="Search deals... (Press /)"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
+                aria-label="Search deals"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -182,17 +197,15 @@ export default function Deals() {
       {/* Deals Table */}
       <Card className="border-gray-200">
         <CardContent className="p-0">
-          {filteredDeals.length === 0 ? (
-            <div className="py-12 text-center">
-              <FileText className="h-8 w-8 mx-auto mb-3 text-gray-300" />
-              <p className="text-gray-500">No deals found</p>
-              <Link 
-                to={createPageUrl('NewDeal')}
-                className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
-              >
-                Create your first deal
-              </Link>
-            </div>
+          {isLoading ? (
+            <SkeletonTable rows={8} cols={8} />
+          ) : deals.length === 0 ? (
+            <EmptyLoans onAction={() => window.location.href = createPageUrl('NewDeal')} />
+          ) : filteredDeals.length === 0 ? (
+            <EmptySearchResults
+              query={searchTerm || statusFilter}
+              onClear={() => { setSearchTerm(''); setStatusFilter('all'); }}
+            />
           ) : (
             <Table>
               <TableHeader>

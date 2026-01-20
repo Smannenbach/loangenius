@@ -1,4 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
+// Simple debounce hook
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 import { base44 } from '@/api/base44Client';
 import { useOrgId, useOrgScopedQuery } from '@/components/useOrgId';
 import { Button } from '@/components/ui/button';
@@ -15,6 +32,7 @@ import { EmptyContacts, EmptySearchResults } from '@/components/ui/empty-states'
 
 export default function Contacts() {
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [contactType, setContactType] = useState('all');
   const [filterType, setFilterType] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -29,14 +47,14 @@ export default function Contacts() {
 
   const isLoading = orgLoading || contactsLoading;
 
-  // Filter contacts
+  // Filter contacts using debounced search term
   const filtered = contacts.filter(c => {
-    const matchSearch = !searchTerm || 
-      (c.first_name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (c.last_name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (c.entity_name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (c.email?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (c.phone?.includes(searchTerm));
+    const matchSearch = !debouncedSearchTerm ||
+      (c.first_name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+      (c.last_name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+      (c.entity_name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+      (c.email?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+      (c.phone?.includes(debouncedSearchTerm));
 
     const matchType = contactType === 'all' || c.contact_type === contactType;
     const matchFilter = filterType === 'all' || 
@@ -110,12 +128,13 @@ export default function Contacts() {
       <div className="bg-white rounded-lg shadow p-4 mb-6">
         <div className="flex gap-4 mb-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
             <Input
               placeholder="Search by name, email, phone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
+              aria-label="Search contacts"
             />
           </div>
           <Select value={contactType} onValueChange={setContactType}>
@@ -152,6 +171,18 @@ export default function Contacts() {
         <SkeletonTable rows={8} cols={6} />
       ) : (
       <div className="bg-white rounded-lg shadow overflow-hidden">
+        {isLoading ? (
+          <SkeletonTable rows={8} cols={6} />
+        ) : filtered.length === 0 && debouncedSearchTerm ? (
+          <EmptySearchResults
+            query={debouncedSearchTerm}
+            onClear={() => setSearchTerm('')}
+          />
+        ) : contacts.length === 0 ? (
+          <EmptyContacts
+            onAction={() => window.location.href = createPageUrl('ContactCreate')}
+          />
+        ) : (
         <table className="w-full">
           <thead>
             <tr className="bg-gray-50 border-b">
@@ -187,6 +218,8 @@ export default function Contacts() {
           <tbody className="divide-y">
             {filtered.length === 0 && searchTerm ? (
               <tr>
+                <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                  No contacts match your filters. Try adjusting your search criteria.
                 <td colSpan="6" className="px-6 py-4">
                   <EmptySearchResults query={searchTerm} onClear={() => setSearchTerm('')} />
                 </td>

@@ -68,7 +68,7 @@ export default function AdminWebhooks() {
 
   const handleCreate = async () => {
     if (!formData.webhook_url) {
-      alert('Webhook URL required');
+      toast.error('Webhook URL is required');
       return;
     }
     createMutation.mutate(formData);

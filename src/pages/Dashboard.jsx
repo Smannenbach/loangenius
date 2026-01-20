@@ -5,9 +5,12 @@ import { base44 } from '@/api/base44Client';
 import { useOrgId, useOrgScopedQuery } from '@/components/useOrgId';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, TrendingUp, Users, FileText, DollarSign, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Plus, TrendingUp, Users, FileText, DollarSign, ArrowRight, Keyboard } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { PageLoader } from '@/components/ui/skeleton-cards';
+import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Zod schemas for API response validation
 const ActivitySchema = z.object({
@@ -53,8 +56,20 @@ import MyTasksWidget from '@/components/dashboard/MyTasksWidget';
 import { SkeletonStats } from '@/components/ui/skeleton-cards';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+
   // Use canonical org resolver - handles user, memberships, and auto-creation
   const { orgId, user, isLoading: orgLoading } = useOrgId();
+
+  // Keyboard shortcuts for quick navigation
+  useKeyboardShortcuts({
+    'n': () => navigate(createPageUrl('LoanApplicationWizard')),   // New Deal
+    'l': () => navigate(createPageUrl('Leads')),                     // Leads
+    'p': () => navigate(createPageUrl('Pipeline')),                  // Pipeline
+    'q': () => navigate(createPageUrl('QuoteGenerator')),            // Quotes
+    'd': () => navigate(createPageUrl('Documents')),                 // Documents
+    'c': () => navigate(createPageUrl('Contacts')),                  // Contacts
+  });
 
   // Use org-scoped queries - NEVER fall back to list()
   const { data: deals = [] } = useOrgScopedQuery('Deal', { is_deleted: false });
@@ -122,6 +137,7 @@ export default function Dashboard() {
   // Show loading state
   const isLoading = orgLoading || (kpisLoading && deals.length === 0 && leads.length === 0);
   if (isLoading) {
+    return <PageLoader message="Loading dashboard..." />;
     return (
       <div className="p-6 bg-gray-50 min-h-screen">
         <div className="flex justify-between items-center mb-8">
@@ -149,12 +165,34 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold text-gray-900">Welcome, {user?.full_name || 'User'}!</h1>
           <p className="text-sm text-gray-500 mt-1">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
         </div>
-        <Button asChild data-testid="cta:Dashboard:NewDeal">
-          <Link to={createPageUrl('LoanApplicationWizard')} className="gap-2">
-            <Plus className="h-5 w-5" />
-            New Deal
-          </Link>
-        </Button>
+        <div className="flex items-center gap-3">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="hidden md:flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-100 text-gray-500 text-xs cursor-help">
+                  <Keyboard className="h-3 w-3" />
+                  <span>Shortcuts</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs">
+                <div className="text-xs space-y-1">
+                  <p><kbd className="px-1 bg-gray-100 rounded">N</kbd> New Deal</p>
+                  <p><kbd className="px-1 bg-gray-100 rounded">L</kbd> Leads</p>
+                  <p><kbd className="px-1 bg-gray-100 rounded">P</kbd> Pipeline</p>
+                  <p><kbd className="px-1 bg-gray-100 rounded">Q</kbd> Quotes</p>
+                  <p><kbd className="px-1 bg-gray-100 rounded">D</kbd> Documents</p>
+                  <p><kbd className="px-1 bg-gray-100 rounded">C</kbd> Contacts</p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <Button asChild data-testid="cta:Dashboard:NewDeal">
+            <Link to={createPageUrl('LoanApplicationWizard')} className="gap-2">
+              <Plus className="h-5 w-5" />
+              New Deal
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}

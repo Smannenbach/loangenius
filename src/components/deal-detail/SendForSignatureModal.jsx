@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
+import { FileText, Plus, X } from 'lucide-react';
 import { FileText, Plus, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -53,6 +54,8 @@ export default function SendForSignatureModal({ dealId, onClose }) {
   });
 
   const handleSend = () => {
+    if (!envelopeName || documents.length === 0 || signers.length === 0) {
+      toast.warning('Please fill in all required fields');
     // FIX: Replace alert() with toast and proper validation
     if (!envelopeName.trim()) {
       toast.error('Please enter an envelope name');

@@ -111,6 +111,7 @@ Deno.serve(async (req) => {
         // FIX: Derive org_id from phone number lookup instead of hardcoding
         const orgId = await resolveOrgFromPhone(base44, from) || 'default';
         await base44.asServiceRole.entities.SMSOptOut.create({
+          org_id: Deno.env.get('DEFAULT_ORG_ID') || 'default', // TODO: Extract org from phone number mapping
           org_id: orgId,
           phone_number: from,
           status: 'opted_out',
@@ -151,6 +152,7 @@ Deno.serve(async (req) => {
       // Log inbound message - derive org_id from phone
       const orgId = await resolveOrgFromPhone(base44, from) || 'default';
       await base44.asServiceRole.entities.Communication.create({
+        org_id: Deno.env.get('DEFAULT_ORG_ID') || 'default', // TODO: Extract org from phone number mapping
         org_id: orgId,
         channel: 'SMS',
         direction: 'Inbound',

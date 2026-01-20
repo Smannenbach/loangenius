@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useOrgId, useOrgScopedQuery } from '@/components/useOrgId';
+import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +62,24 @@ import { TCPAConsentCompact } from '@/components/TCPAConsent';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+
+// Simple debounce hook
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 import {
   AlertDialog,
   AlertDialogAction,
@@ -78,13 +97,24 @@ import { LeadStatusBadge } from '@/components/ui/status-badge';
 
 export default function Leads() {
   const queryClient = useQueryClient();
+  const searchInputRef = useRef(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [statusFilter, setStatusFilter] = useState('all');
   const [loanTypeFilter, setLoanTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('created_date');
   const [viewMode, setViewMode] = useState('table'); // table, cards
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    'a': () => setIsAddOpen(true),                                    // Add lead (full form)
+    'q': () => setIsQuickAddOpen(true),                               // Quick add
+    '/': () => searchInputRef.current?.focus(),                       // Focus search
+    't': () => setViewMode(v => v === 'table' ? 'cards' : 'table'),   // Toggle view
+    'Escape': () => { setIsAddOpen(false); setIsQuickAddOpen(false); searchInputRef.current?.blur(); },
+  });
   const [editingLead, setEditingLead] = useState(null);
   const [quoteModalOpen, setQuoteModalOpen] = useState(false);
   const [quoteSelectedLead, setQuoteSelectedLead] = useState(null);
@@ -141,6 +171,9 @@ export default function Leads() {
 
   // Use canonical org resolver - handles user, org lookup, and auto-creation
   const { orgId, user, isLoading: orgLoading, isReady } = useOrgId();
+
+  // Confirmation dialog for delete actions
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
 
   // Use org-scoped query - automatically filters by org_id, never falls back to list()
   const { data: leads = [], isLoading: leadsLoading, error } = useOrgScopedQuery(
@@ -268,8 +301,8 @@ export default function Leads() {
     .filter(lead => {
       if (statusFilter !== 'all' && lead.status !== statusFilter) return false;
       if (loanTypeFilter !== 'all' && lead.loan_type !== loanTypeFilter) return false;
-      if (!searchTerm) return true;
-      const search = searchTerm.toLowerCase();
+      if (!debouncedSearchTerm) return true;
+      const search = debouncedSearchTerm.toLowerCase();
       return (
         lead.first_name?.toLowerCase().includes(search) ||
         lead.last_name?.toLowerCase().includes(search) ||
@@ -1066,12 +1099,14 @@ export default function Leads() {
       {/* Filters & Controls */}
       <div className="space-y-4 mb-6">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
           <Input
-            placeholder="Search by name, email, phone, city, or state..."
+            ref={searchInputRef}
+            placeholder="Search by name, email, phone, city, or state... (Press /)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 h-10"
+            aria-label="Search leads"
           />
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
@@ -1115,12 +1150,12 @@ export default function Leads() {
               <SelectItem value="amount">Highest Loan Amount</SelectItem>
             </SelectContent>
           </Select>
-          <div className="flex gap-1 border border-gray-200 rounded-lg p-1 bg-white">
-            <Button variant={viewMode === 'table' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('table')}>
-              <List className="h-4 w-4" />
+          <div className="flex gap-1 border border-gray-200 rounded-lg p-1 bg-white" role="group" aria-label="View mode">
+            <Button variant={viewMode === 'table' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('table')} aria-label="Table view" aria-pressed={viewMode === 'table'}>
+              <List className="h-4 w-4" aria-hidden="true" />
             </Button>
-            <Button variant={viewMode === 'cards' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('cards')}>
-              <Grid className="h-4 w-4" />
+            <Button variant={viewMode === 'cards' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('cards')} aria-label="Card view" aria-pressed={viewMode === 'cards'}>
+              <Grid className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </div>
@@ -1203,6 +1238,19 @@ export default function Leads() {
                                 <Phone className="h-3 w-3 mr-2" />Call
                               </a>
                             </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={async () => {
+                                const confirmed = await confirm({
+                                  title: 'Delete Lead',
+                                  description: `Are you sure you want to delete ${lead.first_name} ${lead.last_name}? This action cannot be undone.`,
+                                  variant: 'delete',
+                                  confirmLabel: 'Delete Lead',
+                                });
+                                if (confirmed) {
+                                  deleteLeadMutation.mutate(lead.id);
+                                }
+                              }}
                             <DropdownMenuItem 
                               className="text-red-600" 
                               onClick={() => setDeleteConfirmLead(lead)}
@@ -1264,6 +1312,8 @@ export default function Leads() {
         />
       )}
 
+      {/* Confirmation Dialog */}
+      {ConfirmDialogComponent}
       <AlertDialog open={!!deleteConfirmLead} onOpenChange={() => setDeleteConfirmLead(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,8 @@ import {
   Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { SkeletonCard } from '@/components/ui/skeleton-cards';
+import { EmptyDocuments, EmptySearchResults } from '@/components/ui/empty-states';
 
 export default function Documents() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,7 +43,15 @@ export default function Documents() {
   const [uploadData, setUploadData] = useState({ name: '', document_type: 'other' });
   const [selectedFile, setSelectedFile] = useState(null);
   const fileInputRef = useRef(null);
+  const searchInputRef = useRef(null);
   const queryClient = useQueryClient();
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    'u': () => setIsUploadOpen(true),              // Upload document
+    '/': () => searchInputRef.current?.focus(),    // Focus search
+    'Escape': () => { setIsUploadOpen(false); searchInputRef.current?.blur(); },
+  });
 
   const uploadMutation = useMutation({
     mutationFn: async () => {
@@ -64,6 +75,10 @@ export default function Documents() {
       setIsUploadOpen(false);
       setUploadData({ name: '', document_type: 'other' });
       setSelectedFile(null);
+      // Reset file input to allow re-selecting the same file
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       // FIX: Also reset the file input ref
       if (fileInputRef.current) fileInputRef.current.value = '';
       toast.success('Document uploaded successfully!');
@@ -161,12 +176,14 @@ export default function Documents() {
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
               <Input
-                placeholder="Search documents..."
+                ref={searchInputRef}
+                placeholder="Search documents... (Press /)"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
+                aria-label="Search documents"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -190,18 +207,32 @@ export default function Documents() {
       {/* Documents List */}
       <Card className="border-gray-200">
         <CardContent className="p-0">
-          {filteredDocuments.length === 0 ? (
-            <div className="py-12 text-center">
-              <FileText className="h-8 w-8 mx-auto mb-3 text-gray-300" />
-              <p className="text-gray-500">No documents found</p>
-              <Button 
-                variant="link" 
-                className="text-blue-600 mt-2"
-                onClick={() => setIsUploadOpen(true)}
-              >
-                Upload your first document
-              </Button>
+          {isLoading ? (
+            <div className="divide-y divide-gray-100">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-lg bg-gray-200 animate-pulse" />
+                    <div className="space-y-2">
+                      <div className="h-4 w-48 bg-gray-200 rounded animate-pulse" />
+                      <div className="h-3 w-32 bg-gray-100 rounded animate-pulse" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" />
+                    <div className="h-8 w-8 bg-gray-100 rounded animate-pulse" />
+                    <div className="h-8 w-8 bg-gray-100 rounded animate-pulse" />
+                  </div>
+                </div>
+              ))}
             </div>
+          ) : documents.length === 0 ? (
+            <EmptyDocuments onAction={() => setIsUploadOpen(true)} />
+          ) : filteredDocuments.length === 0 ? (
+            <EmptySearchResults
+              query={searchTerm || statusFilter}
+              onClear={() => { setSearchTerm(''); setStatusFilter('all'); }}
+            />
           ) : (
             <div className="divide-y divide-gray-100">
               {filteredDocuments.map((doc) => (
@@ -230,9 +261,9 @@ export default function Documents() {
                       <span className="ml-1">{doc.status?.replace(/_/g, ' ')}</span>
                     </Badge>
                     <div className="flex gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="h-8 w-8"
                         aria-label="View document"
                         onClick={() => {
@@ -245,9 +276,9 @@ export default function Documents() {
                       >
                         <Eye className="h-4 w-4 text-gray-400" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="h-8 w-8"
                         aria-label="Download document"
                         onClick={() => {

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/Breadcrumbs';
 import {
   Settings,
   User,
@@ -17,6 +18,11 @@ import {
   Check,
   Loader2,
   Upload,
+  Shield,
+  Keyboard,
+  Palette,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import debounce from 'lodash/debounce';
 import { Link } from 'react-router-dom';
@@ -84,8 +90,8 @@ function OrgLogoUpload({ orgId, orgSettings, refetchOrgSettings }) {
             onChange={handleLogoUpload}
             className="hidden"
           />
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => logoInputRef.current?.click()}
             disabled={uploading}
             className="gap-2"
@@ -95,6 +101,24 @@ function OrgLogoUpload({ orgId, orgSettings, refetchOrgSettings }) {
           </Button>
           <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 2MB recommended</p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ShortcutRow({ keys, description }) {
+  return (
+    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+      <span className="text-sm text-gray-700">{description}</span>
+      <div className="flex items-center gap-1">
+        {keys.map((key, i) => (
+          <kbd
+            key={i}
+            className="px-2 py-1 text-xs font-mono bg-white border border-gray-300 rounded shadow-sm"
+          >
+            {key}
+          </kbd>
+        ))}
       </div>
     </div>
   );
@@ -276,16 +300,15 @@ export default function SettingsPage() {
 
   return (
     <div className="p-6 lg:p-8 max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-gray-900 flex items-center gap-3">
-          <Settings className="h-7 w-7 text-blue-600" />
-          Settings
-        </h1>
-        <p className="text-gray-500 mt-1">Manage your account and preferences</p>
-      </div>
+      <PageHeader
+        title="Settings"
+        description="Manage your account, organization, and preferences"
+        currentPage="Settings"
+        className="mb-8"
+      />
 
       <Tabs defaultValue="profile">
-        <TabsList className="mb-6">
+        <TabsList className="mb-6 flex-wrap">
           <TabsTrigger value="profile" className="gap-2">
             <User className="h-4 w-4" />
             Profile
@@ -298,8 +321,16 @@ export default function SettingsPage() {
             <Bell className="h-4 w-4" />
             Notifications
           </TabsTrigger>
+          <TabsTrigger value="security" className="gap-2">
+            <Shield className="h-4 w-4" />
+            Security
+          </TabsTrigger>
+          <TabsTrigger value="shortcuts" className="gap-2">
+            <Keyboard className="h-4 w-4" />
+            Shortcuts
+          </TabsTrigger>
           <TabsTrigger value="branding" className="gap-2">
-            <Building2 className="h-4 w-4" />
+            <Palette className="h-4 w-4" />
             Branding
           </TabsTrigger>
         </TabsList>
@@ -531,7 +562,7 @@ export default function SettingsPage() {
                   />
                 </div>
               </div>
-              <Button 
+              <Button
                 className="bg-blue-600 hover:bg-blue-500 gap-2"
                 onClick={() => saveNotificationsMutation.mutate(notifications)}
                 disabled={saveNotificationsMutation.isPending}
@@ -539,6 +570,120 @@ export default function SettingsPage() {
                 {saveNotificationsMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Save Preferences
               </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="security">
+          <Card className="border-gray-200">
+            <CardHeader>
+              <CardTitle>Security Settings</CardTitle>
+              <CardDescription>Manage your account security and authentication</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-green-700 font-medium">
+                    <Check className="h-4 w-4" />
+                    Your account is secured with SSO
+                  </div>
+                  <p className="text-sm text-green-600 mt-1">
+                    You sign in using your organization's identity provider
+                  </p>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="font-medium mb-3">Session Management</h3>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Auto-logout after inactivity</p>
+                      <p className="text-sm text-gray-500">Automatically sign out after 30 minutes of inactivity</p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="font-medium mb-3">Two-Factor Authentication</h3>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Enable 2FA</p>
+                      <p className="text-sm text-gray-500">Add an extra layer of security to your account</p>
+                    </div>
+                    <Button variant="outline" onClick={() => toast.info('2FA setup coming soon')}>
+                      Set Up
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="font-medium mb-3">Active Sessions</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-medium text-sm">Current Session</p>
+                        <p className="text-xs text-gray-500">Chrome on macOS • Last active: Now</p>
+                      </div>
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Active</span>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="mt-3 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => toast.success('Signed out of all other sessions')}
+                  >
+                    Sign Out All Other Sessions
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="shortcuts">
+          <Card className="border-gray-200">
+            <CardHeader>
+              <CardTitle>Keyboard Shortcuts</CardTitle>
+              <CardDescription>Quick keys to navigate and perform actions faster</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-medium mb-3 text-gray-700">Global Shortcuts</h3>
+                  <div className="grid gap-2">
+                    <ShortcutRow keys={['⌘', 'K']} description="Open global search" />
+                    <ShortcutRow keys={['N']} description="New loan application" />
+                    <ShortcutRow keys={['L']} description="Go to Leads" />
+                    <ShortcutRow keys={['P']} description="Go to Pipeline" />
+                    <ShortcutRow keys={['D']} description="Go to Documents" />
+                    <ShortcutRow keys={['C']} description="Go to Contacts" />
+                    <ShortcutRow keys={['Q']} description="Go to Quote Generator" />
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="font-medium mb-3 text-gray-700">Page-Specific Shortcuts</h3>
+                  <div className="grid gap-2">
+                    <ShortcutRow keys={['/']} description="Focus search input" />
+                    <ShortcutRow keys={['A']} description="Add new item (on list pages)" />
+                    <ShortcutRow keys={['T']} description="Toggle view mode (table/cards)" />
+                    <ShortcutRow keys={['Esc']} description="Close modal / Clear search" />
+                    <ShortcutRow keys={['↑', '↓']} description="Navigate search results" />
+                    <ShortcutRow keys={['Enter']} description="Select highlighted item" />
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="font-medium mb-3 text-gray-700">Preferences</h3>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Enable keyboard shortcuts</p>
+                      <p className="text-sm text-gray-500">Turn off if shortcuts conflict with other tools</p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

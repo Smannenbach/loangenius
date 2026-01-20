@@ -9,6 +9,7 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
+    const apiKey = Deno.env.get('Google_Maps_Platform_API_Key');
     // FIX: Corrected typo from 'Goolge' to 'Google'
     const apiKey = Deno.env.get('Google_Maps_Platform_API_Key') || Deno.env.get('Goolge_Maps_Platform_API_Key');
     

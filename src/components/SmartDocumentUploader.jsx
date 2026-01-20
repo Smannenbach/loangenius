@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, Camera, X, CheckCircle2, AlertCircle, Loader } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 export default function SmartDocumentUploader({ onUploadComplete, maxSize = 10, acceptedTypes = ['pdf', 'jpg', 'jpeg', 'png'] }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -79,7 +80,7 @@ export default function SmartDocumentUploader({ onUploadComplete, maxSize = 10, 
         if (videoRef.current) videoRef.current.srcObject = stream;
       }, 100);
     } catch (error) {
-      alert('Camera access denied: ' + error.message);
+      toast.error('Camera access denied: ' + error.message);
     }
   };
 
