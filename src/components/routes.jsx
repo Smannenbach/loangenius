@@ -92,6 +92,9 @@ export const routes = {
   ValidationDashboard: 'ValidationDashboard',
   ErrorTest: 'ErrorTest',
   
+  // Document Intelligence
+  DocumentIntelligenceHub: 'DocumentIntelligenceHub',
+  
   // Other
   AlertsNotifications: 'AlertsNotifications',
   SubmissionPrep: 'SubmissionPrep',
