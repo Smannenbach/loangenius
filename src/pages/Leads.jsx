@@ -56,6 +56,7 @@ import AddressAutocomplete from '@/components/AddressAutocomplete';
 import QuoteGeneratorModal from '@/components/QuoteGeneratorModal';
 import LeadDetailModal from '@/components/LeadDetailModal';
 import LeadImportWizard from '@/components/leads/LeadImportWizard';
+import GoogleSheetsImportWizard from '@/components/leads/GoogleSheetsImportWizard';
 import { TCPAConsentCompact } from '@/components/TCPAConsent';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
