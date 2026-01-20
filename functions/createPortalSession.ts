@@ -24,7 +24,17 @@ Deno.serve(async (req) => {
     }
 
     const stripeCustomerId = billing[0].stripe_customer_id;
-    const origin = req.headers.get('origin') || 'https://app.loangenius.com';
+    
+    // SECURITY FIX: Validate origin against allowlist
+    const ALLOWED_ORIGINS = [
+      'https://app.loangenius.com',
+      'https://portal.loangenius.com',
+      'https://loangenius.base44.app'
+    ];
+    const requestOrigin = req.headers.get('origin');
+    const origin = (requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin))
+      ? requestOrigin
+      : 'https://app.loangenius.com';
 
     // Create portal session
     const session = await stripe.billingPortal.sessions.create({
