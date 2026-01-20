@@ -335,6 +335,14 @@ export default function LeadImportWizard({ trigger, onImportComplete }) {
                               <p className="text-sm text-amber-700 mt-2">
                                 To connect Google Sheets, go to <strong>Admin → Integrations</strong> and authorize Google Sheets access.
                               </p>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="mt-3"
+                                onClick={() => setConnectorError(null)}
+                              >
+                                Try Again
+                              </Button>
                             </div>
                           </div>
                         </div>
