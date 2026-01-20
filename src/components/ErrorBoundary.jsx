@@ -141,6 +141,16 @@ User Agent: ${typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'
                   Try Again
                 </Button>
               </div>
+              
+              <div className="pt-2 border-t border-gray-200">
+                <Link 
+                  to="/Dashboard"
+                  className="flex items-center justify-center gap-2 text-sm text-gray-600 hover:text-blue-600"
+                >
+                  <Home className="h-4 w-4" />
+                  Return to Dashboard
+                </Link>
+              </div>
             </CardContent>
           </Card>
         </div>
