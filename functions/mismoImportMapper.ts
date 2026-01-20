@@ -1,37 +1,97 @@
+/**
+ * MISMO Import Mapper
+ * Maps inbound MISMO XML to canonical data model
+ * Retains unmapped nodes for audit/debugging
+ * 
+ * Features:
+ * - XPath-based field extraction
+ * - Enum reverse mapping
+ * - Datatype normalization
+ * - Unmapped node retention
+ * - Extension field extraction
+ */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-// MISMO Import Mapper with Unmapped Field Retention
-// Ensures no inbound data is silently discarded
+// ============================================================
+// REVERSE MAPPING (MISMO -> Canonical)
+// ============================================================
 
-// Sensitive field patterns for PII redaction
-const SENSITIVE_PATTERNS = [
-  /ssn/i, /socialsecurity/i, /taxpayer.*id/i, /tin/i,
-  /dob/i, /dateofbirth/i, /birthdate/i,
-  /taxid/i, /ein/i, /employeridentification/i,
-  /accountnumber/i, /routingnumber/i,
-  /password/i, /secret/i, /credential/i
-];
-
-// Field mapping from MISMO XPath to canonical fields
-const MISMO_TO_CANONICAL_MAP = {
+const XPATH_MAPPINGS = {
   // Loan fields
-  '/MESSAGE/DEAL_SETS/DEAL_SET/DEALS/DEAL/LOANS/LOAN/TERMS_OF_LOAN/NoteAmount': 'loan_amount',
-  '/MESSAGE/DEAL_SETS/DEAL_SET/DEALS/DEAL/LOANS/LOAN/TERMS_OF_LOAN/NoteRatePercent': 'interest_rate',
-  '/MESSAGE/DEAL_SETS/DEAL_SET/DEALS/DEAL/LOANS/LOAN/LOAN_DETAIL/LoanPurposeType': 'loan_purpose',
-  '/MESSAGE/DEAL_SETS/DEAL_SET/DEALS/DEAL/LOANS/LOAN/LOAN_DETAIL/ApplicationReceivedDate': 'application_date',
+  'TERMS_OF_LOAN/BaseLoanAmount': { field: 'loan_amount', type: 'currency' },
+  'TERMS_OF_LOAN/LoanPurposeType': { field: 'loan_purpose', type: 'enum', reverse_map: REVERSE_LOAN_PURPOSE_MAP() },
+  'TERMS_OF_LOAN/NoteRatePercent': { field: 'interest_rate', type: 'percent' },
+  'TERMS_OF_LOAN/LoanTermMonths': { field: 'loan_term_months', type: 'integer' },
+  'TERMS_OF_LOAN/MortgageType': { field: 'mortgage_type', type: 'string' },
+  'LOAN_DETAIL/ApplicationReceivedDate': { field: 'application_date', type: 'date' },
+  'LOAN_IDENTIFIERS/LOAN_IDENTIFIER/LoanIdentifier': { field: 'deal_number', type: 'string' },
   
   // Property fields
-  '/MESSAGE/DEAL_SETS/DEAL_SET/DEALS/DEAL/COLLATERALS/COLLATERAL/SUBJECT_PROPERTY/ADDRESS/AddressLineText': 'property_street',
-  '/MESSAGE/DEAL_SETS/DEAL_SET/DEALS/DEAL/COLLATERALS/COLLATERAL/SUBJECT_PROPERTY/ADDRESS/CityName': 'property_city',
-  '/MESSAGE/DEAL_SETS/DEAL_SET/DEALS/DEAL/COLLATERALS/COLLATERAL/SUBJECT_PROPERTY/ADDRESS/StateCode': 'property_state',
-  '/MESSAGE/DEAL_SETS/DEAL_SET/DEALS/DEAL/COLLATERALS/COLLATERAL/SUBJECT_PROPERTY/ADDRESS/PostalCode': 'property_zip',
-  '/MESSAGE/DEAL_SETS/DEAL_SET/DEALS/DEAL/COLLATERALS/COLLATERAL/SUBJECT_PROPERTY/PROPERTY_DETAIL/PropertyEstimatedValueAmount': 'appraised_value',
+  'COLLATERAL/SUBJECT_PROPERTY/ADDRESS/AddressLineText': { field: 'property_street', type: 'string' },
+  'COLLATERAL/SUBJECT_PROPERTY/ADDRESS/CityName': { field: 'property_city', type: 'string' },
+  'COLLATERAL/SUBJECT_PROPERTY/ADDRESS/StateCode': { field: 'property_state', type: 'string' },
+  'COLLATERAL/SUBJECT_PROPERTY/ADDRESS/PostalCode': { field: 'property_zip', type: 'string' },
+  'COLLATERAL/SUBJECT_PROPERTY/ADDRESS/CountyName': { field: 'property_county', type: 'string' },
+  'COLLATERAL/SUBJECT_PROPERTY/PROPERTY_DETAIL/PropertyType': { field: 'property_type', type: 'string' },
+  'COLLATERAL/SUBJECT_PROPERTY/PROPERTY_DETAIL/PropertyUsageType': { field: 'occupancy_type', type: 'enum', reverse_map: REVERSE_OCCUPANCY_MAP() },
+  'COLLATERAL/SUBJECT_PROPERTY/PROPERTY_VALUATIONS/PROPERTY_VALUATION/PropertyValuationAmount': { field: 'appraised_value', type: 'currency' },
   
   // Borrower fields (primary)
-  '/MESSAGE/DEAL_SETS/DEAL_SET/DEALS/DEAL/PARTIES/PARTY[ROLES/ROLE/BORROWER]/INDIVIDUAL/NAME/FirstName': 'borrower_first_name',
-  '/MESSAGE/DEAL_SETS/DEAL_SET/DEALS/DEAL/PARTIES/PARTY[ROLES/ROLE/BORROWER]/INDIVIDUAL/NAME/LastName': 'borrower_last_name',
-  '/MESSAGE/DEAL_SETS/DEAL_SET/DEALS/DEAL/PARTIES/PARTY[ROLES/ROLE/BORROWER]/INDIVIDUAL/CONTACT_POINTS/CONTACT_POINT/CONTACT_POINT_EMAIL/ContactPointEmailValue': 'borrower_email',
-  '/MESSAGE/DEAL_SETS/DEAL_SET/DEALS/DEAL/PARTIES/PARTY[ROLES/ROLE/BORROWER]/INDIVIDUAL/CONTACT_POINTS/CONTACT_POINT/CONTACT_POINT_TELEPHONE/ContactPointTelephoneValue': 'borrower_phone',
+  'PARTY/INDIVIDUAL/NAME/FirstName': { field: 'first_name', type: 'string', party_role: 'Borrower' },
+  'PARTY/INDIVIDUAL/NAME/LastName': { field: 'last_name', type: 'string', party_role: 'Borrower' },
+  'PARTY/INDIVIDUAL/NAME/MiddleName': { field: 'middle_name', type: 'string', party_role: 'Borrower' },
+  'PARTY/INDIVIDUAL/NAME/SuffixName': { field: 'suffix', type: 'string', party_role: 'Borrower' },
+  'PARTY/BORROWER/BORROWER_DETAIL/MaritalStatusType': { field: 'marital_status', type: 'string', party_role: 'Borrower' },
+  'PARTY/BORROWER/BORROWER_DETAIL/BorrowerClassificationType': { field: 'borrower_classification', type: 'string', party_role: 'Borrower' },
+  
+  // Entity fields
+  'PARTY/LEGAL_ENTITY/LEGAL_ENTITY_DETAIL/LegalEntityName': { field: 'entity_name', type: 'string' },
+  'PARTY/LEGAL_ENTITY/LEGAL_ENTITY_DETAIL/LegalEntityType': { field: 'entity_type', type: 'string' }
+};
+
+function REVERSE_LOAN_PURPOSE_MAP() {
+  return {
+    'Purchase': 'Purchase',
+    'Refinance': 'Refinance',
+    'NoCashOutRefinance': 'Rate & Term',
+    'CashOutRefinance': 'Cash-Out',
+    'HELOC': 'HELOC',
+    'SecondMortgage': 'Home Equity',
+    'ConstructionToPermanent': 'Construction',
+    'ConstructionOnly': 'Construction'
+  };
+}
+
+function REVERSE_OCCUPANCY_MAP() {
+  return {
+    'Investment': 'Investment',
+    'PrimaryResidence': 'Primary Residence',
+    'SecondHome': 'Second Home'
+  };
+}
+
+// ============================================================
+// LG EXTENSION FIELD MAPPINGS
+// ============================================================
+
+const EXTENSION_MAPPINGS = {
+  'DSCRatio': { field: 'dscr', type: 'decimal' },
+  'DSCRCalculationMethod': { field: 'dscr_calculation_method', type: 'string' },
+  'GrossRentalIncome': { field: 'gross_rental_income', type: 'currency' },
+  'NetOperatingIncome': { field: 'net_operating_income', type: 'currency' },
+  'IsBusinessPurposeLoan': { field: 'is_business_purpose_loan', type: 'boolean' },
+  'InvestmentStrategy': { field: 'investment_strategy', type: 'string' },
+  'ExitStrategy': { field: 'exit_strategy', type: 'string' },
+  'EntityEIN': { field: 'entity_ein', type: 'string' },
+  'EntityFormationDate': { field: 'entity_formation_date', type: 'date' },
+  'EntityFormationState': { field: 'entity_formation_state', type: 'string' },
+  'PrepayPenaltyType': { field: 'prepay_penalty_type', type: 'string' },
+  'PrepayPenaltyTermMonths': { field: 'prepay_penalty_term_months', type: 'integer' },
+  'InterestOnlyPeriodMonths': { field: 'interest_only_period_months', type: 'integer' },
+  'PropertyMonthlyRent': { field: 'property_monthly_rent', type: 'currency' },
+  'PropertyAnnualTaxes': { field: 'property_annual_taxes', type: 'currency' },
+  'PropertyAnnualInsurance': { field: 'property_annual_insurance', type: 'currency' },
+  'PropertyMonthlyHOA': { field: 'property_monthly_hoa', type: 'currency' }
 };
 
 Deno.serve(async (req) => {
@@ -43,32 +103,35 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { action, xml_content, pack_id, raw_only_mode } = await req.json();
+    const body = await req.json();
+    const { action, xml_content, pack_id, raw_only_mode } = body;
 
-    // ACTION: Import and map MISMO XML
+    // ACTION: Import XML to canonical
     if (action === 'import') {
-      const result = await importMismoXml(base44, xml_content, pack_id, raw_only_mode, user);
+      const result = importXmlToCanonical(xml_content, pack_id);
       return Response.json({
         success: true,
         import_result: result
       });
     }
 
-    // ACTION: Analyze XML for unmapped fields
-    if (action === 'analyze_unmapped') {
-      const analysis = analyzeUnmappedFields(xml_content);
+    // ACTION: Get mapping definitions
+    if (action === 'get_mappings') {
       return Response.json({
         success: true,
-        analysis
+        xpath_mappings: XPATH_MAPPINGS,
+        extension_mappings: EXTENSION_MAPPINGS
       });
     }
 
-    // ACTION: Get mapping coverage
-    if (action === 'get_mapping_coverage') {
+    // ACTION: Extract single field
+    if (action === 'extract_field') {
+      const { xpath } = body;
+      const value = extractValueByXpath(xml_content, xpath);
       return Response.json({
         success: true,
-        mapped_fields: Object.keys(MISMO_TO_CANONICAL_MAP).length,
-        mapping: MISMO_TO_CANONICAL_MAP
+        xpath,
+        value
       });
     }
 
@@ -76,273 +139,309 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Import Mapper error:', error);
-    return Response.json({ 
-      error: 'Internal server error', 
-      details: error.message 
-    }, { status: 500 });
+    return Response.json({ error: error.message }, { status: 500 });
   }
 });
 
-// Main import function
-async function importMismoXml(base44, xmlContent, packId, rawOnlyMode, user) {
-  const importRun = {
-    id: `IMP-${Date.now()}`,
-    imported_at: new Date().toISOString(),
-    imported_by: user.email,
-    pack_id: packId || 'PACK_A_GENERIC_MISMO_34_B324',
-    raw_only_mode: rawOnlyMode || false,
-    status: 'processing',
-    mapped_fields: {},
-    unmapped_nodes: [],
-    validation_report: null
-  };
+// ============================================================
+// IMPORT LOGIC
+// ============================================================
 
-  try {
-    // Step 1: Parse XML
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlContent, 'text/xml');
-    
-    // Check for parse errors
-    const parseErrors = xmlDoc.getElementsByTagName('parsererror');
-    if (parseErrors.length > 0) {
-      importRun.status = 'failed';
-      importRun.validation_report = {
-        status: 'FAIL',
-        errors: [{
-          category: 'well-formedness',
-          message: 'XML is not well-formed',
-          severity: 'error'
-        }]
-      };
-      return importRun;
+function importXmlToCanonical(xmlContent, packId) {
+  const mappedFields = {};
+  const unmappedNodes = [];
+  const extensionFields = {};
+  const parsingErrors = [];
+
+  // Track which elements we've mapped
+  const mappedElements = new Set();
+
+  // Extract core fields using XPath mappings
+  for (const [xpath, mapping] of Object.entries(XPATH_MAPPINGS)) {
+    try {
+      const value = extractValueByXpath(xmlContent, xpath);
+      if (value !== null && value !== undefined && value !== '') {
+        // Apply type conversion
+        const convertedValue = convertValue(value, mapping.type, mapping.reverse_map);
+        if (convertedValue !== null) {
+          mappedFields[mapping.field] = convertedValue;
+          mappedElements.add(xpath);
+        }
+      }
+    } catch (e) {
+      parsingErrors.push({ xpath, error: e.message });
     }
+  }
 
-    // Step 2: Extract mapped fields
-    const canonicalData = {};
-    const mappedXPaths = new Set();
-
-    for (const [xpath, canonicalField] of Object.entries(MISMO_TO_CANONICAL_MAP)) {
-      const value = extractValueByXPath(xmlDoc, xpath);
-      if (value !== null) {
-        canonicalData[canonicalField] = value;
-        mappedXPaths.add(xpath);
+  // Extract extension fields
+  const extensionContent = extractExtensionContent(xmlContent);
+  if (extensionContent) {
+    for (const [lgElement, mapping] of Object.entries(EXTENSION_MAPPINGS)) {
+      const pattern = new RegExp(`<LG:${lgElement}>([^<]*)</LG:${lgElement}>`);
+      const match = extensionContent.match(pattern);
+      if (match && match[1]) {
+        const value = convertValue(match[1], mapping.type);
+        if (value !== null) {
+          mappedFields[mapping.field] = value;
+          extensionFields[mapping.field] = value;
+        }
       }
     }
-
-    importRun.mapped_fields = canonicalData;
-
-    // Step 3: Find unmapped nodes
-    const allNodes = getAllTextNodes(xmlDoc.documentElement, '');
-    const unmappedNodes = [];
-
-    for (const node of allNodes) {
-      const isPartiallyMapped = Array.from(mappedXPaths).some(mp => 
-        node.xpath.includes(mp.split('/').slice(-1)[0])
-      );
-      
-      if (!isPartiallyMapped && node.value && node.value.trim()) {
-        // Redact sensitive values
-        const redactedValue = redactSensitiveValue(node.xpath, node.value);
-        
-        unmappedNodes.push({
-          xpath: node.xpath,
-          element_name: node.elementName,
-          value_hash: await hashValue(node.value),
-          value_preview: redactedValue.substring(0, 50) + (redactedValue.length > 50 ? '...' : ''),
-          is_sensitive: redactedValue !== node.value
-        });
-      }
-    }
-
-    importRun.unmapped_nodes = unmappedNodes;
-
-    // Step 4: Generate validation report
-    importRun.validation_report = generateValidationReport(canonicalData, unmappedNodes, packId);
-
-    // Step 5: Determine status
-    if (importRun.validation_report.status === 'FAIL' && !rawOnlyMode) {
-      importRun.status = 'blocked';
-      importRun.message = 'Validation failed - import blocked (enable raw-only mode to force)';
-    } else {
-      importRun.status = rawOnlyMode ? 'imported_raw_only' : 'imported';
-    }
-
-    // Step 6: Encrypt raw XML for storage
-    importRun.raw_xml_size = xmlContent.length;
-    importRun.raw_xml_hash = await hashValue(xmlContent);
-    // In production: importRun.raw_xml_encrypted = await encrypt(xmlContent);
-
-    return importRun;
-
-  } catch (error) {
-    importRun.status = 'failed';
-    importRun.error = error.message;
-    return importRun;
   }
-}
 
-// Extract value by simplified XPath
-function extractValueByXPath(xmlDoc, xpath) {
-  try {
-    // Simplified XPath extraction (handles basic paths)
-    const parts = xpath.split('/').filter(p => p && p !== 'MESSAGE');
-    let current = xmlDoc.documentElement;
+  // Determine vesting type
+  if (mappedFields.entity_name) {
+    mappedFields.vesting_type = 'Entity';
+  } else if (mappedFields.first_name || mappedFields.last_name) {
+    mappedFields.vesting_type = 'Individual';
+  }
+
+  // Extract assets
+  mappedFields.assets = extractAssets(xmlContent);
+
+  // Extract REO properties
+  mappedFields.reo_properties = extractREOProperties(xmlContent);
+
+  // Extract borrowers (multi-party)
+  mappedFields.borrowers = extractBorrowers(xmlContent);
+
+  // Find unmapped nodes
+  const allElements = findAllElements(xmlContent);
+  for (const element of allElements) {
+    const isKnownPath = Array.from(mappedElements).some(path => element.xpath.includes(path) || path.includes(element.xpath));
+    const isStructural = isStructuralElement(element.name);
+    const isExtension = element.xpath.includes('EXTENSION') || element.xpath.includes('LG:');
     
-    for (const part of parts) {
-      if (!current) return null;
-      
-      // Handle predicates like [ROLES/ROLE/BORROWER]
-      const match = part.match(/^([^[]+)(?:\[.+\])?$/);
-      const tagName = match ? match[1] : part;
-      
-      const children = current.getElementsByTagName(tagName);
-      current = children.length > 0 ? children[0] : null;
-    }
-    
-    return current?.textContent?.trim() || null;
-  } catch {
-    return null;
-  }
-}
-
-// Get all text nodes with their XPaths
-function getAllTextNodes(element, parentPath) {
-  const nodes = [];
-  const currentPath = parentPath + '/' + element.tagName;
-  
-  // Check if element has direct text content
-  for (const child of element.childNodes) {
-    if (child.nodeType === 3) { // Text node
-      const value = child.textContent?.trim();
-      if (value) {
-        nodes.push({
-          xpath: currentPath,
-          elementName: element.tagName,
-          value: value
-        });
-      }
-    } else if (child.nodeType === 1) { // Element node
-      nodes.push(...getAllTextNodes(child, currentPath));
-    }
-  }
-  
-  return nodes;
-}
-
-// Analyze unmapped fields
-function analyzeUnmappedFields(xmlContent) {
-  const parser = new DOMParser();
-  const xmlDoc = parser.parseFromString(xmlContent, 'text/xml');
-  
-  const allNodes = getAllTextNodes(xmlDoc.documentElement, '');
-  const mappedXPaths = new Set(Object.keys(MISMO_TO_CANONICAL_MAP));
-  
-  const unmapped = allNodes.filter(node => {
-    return !Array.from(mappedXPaths).some(mp => 
-      node.xpath.includes(mp.split('/').slice(-1)[0])
-    );
-  });
-
-  // Group by parent element
-  const grouped = {};
-  for (const node of unmapped) {
-    const parent = node.xpath.split('/').slice(0, -1).join('/');
-    if (!grouped[parent]) {
-      grouped[parent] = [];
-    }
-    grouped[parent].push(node.elementName);
-  }
-
-  return {
-    total_nodes: allNodes.length,
-    unmapped_count: unmapped.length,
-    mapping_coverage: ((allNodes.length - unmapped.length) / allNodes.length * 100).toFixed(1) + '%',
-    unmapped_by_section: grouped
-  };
-}
-
-// Generate validation report
-function generateValidationReport(canonicalData, unmappedNodes, packId) {
-  const errors = [];
-  const warnings = [];
-
-  // Check required fields
-  const requiredFields = ['loan_amount', 'property_street', 'property_city', 'property_state', 'property_zip'];
-  for (const field of requiredFields) {
-    if (!canonicalData[field]) {
-      errors.push({
-        category: 'missing_required',
-        field,
-        xpath: Object.entries(MISMO_TO_CANONICAL_MAP).find(([_, v]) => v === field)?.[0] || 'unknown',
-        message: `Required field '${field}' not found in import`,
-        severity: 'error'
+    if (!isKnownPath && !isStructural && !isExtension) {
+      unmappedNodes.push({
+        xpath: element.xpath,
+        element: element.name,
+        value_snippet: element.value?.substring(0, 50),
+        reason: 'No mapping defined'
       });
     }
   }
 
-  // Warn about unmapped nodes
-  if (unmappedNodes.length > 0) {
-    warnings.push({
-      category: 'mapping_gaps',
-      count: unmappedNodes.length,
-      message: `${unmappedNodes.length} fields not mapped to canonical model (retained in raw storage)`,
-      severity: 'warning'
-    });
-  }
-
-  // Warn about sensitive unmapped data
-  const sensitiveUnmapped = unmappedNodes.filter(n => n.is_sensitive);
-  if (sensitiveUnmapped.length > 0) {
-    warnings.push({
-      category: 'sensitive_data',
-      count: sensitiveUnmapped.length,
-      message: `${sensitiveUnmapped.length} potentially sensitive fields detected (values redacted in reports)`,
-      severity: 'warning'
-    });
-  }
-
-  let status = 'PASS';
-  if (errors.length > 0) {
-    status = 'FAIL';
-  } else if (warnings.length > 0) {
-    status = 'PASS_WITH_WARNINGS';
-  }
+  // Detect MISMO version
+  const versionMatch = xmlContent.match(/MISMOVersionID="([^"]+)"/);
+  const lddMatch = xmlContent.match(/<MISMOLogicalDataDictionaryIdentifier>([^<]+)<\/MISMOLogicalDataDictionaryIdentifier>/);
 
   return {
-    status,
-    errors,
-    warnings,
-    summary: {
-      mapped_fields: Object.keys(canonicalData).length,
-      unmapped_nodes: unmappedNodes.length,
-      error_count: errors.length,
-      warning_count: warnings.length
-    },
-    pack_id: packId,
-    generated_at: new Date().toISOString()
+    mapped_fields: mappedFields,
+    unmapped_nodes: unmappedNodes.slice(0, 50), // Limit for performance
+    unmapped_count: unmappedNodes.length,
+    extension_fields: extensionFields,
+    detected_version: versionMatch?.[1] || 'unknown',
+    detected_ldd: lddMatch?.[1] || 'unknown',
+    pack_used: packId,
+    parsing_errors: parsingErrors
   };
 }
 
-// Redact sensitive values
-function redactSensitiveValue(xpath, value) {
-  const isSensitive = SENSITIVE_PATTERNS.some(pattern => pattern.test(xpath));
-  
-  if (isSensitive) {
-    // Redact all but last 4 characters
-    if (value.length > 4) {
-      return '***' + value.slice(-4);
-    }
-    return '****';
+// ============================================================
+// EXTRACTION HELPERS
+// ============================================================
+
+function extractValueByXpath(xml, xpath) {
+  // Split xpath into parts
+  const parts = xpath.split('/');
+  let current = xml;
+
+  for (const part of parts) {
+    if (!part) continue;
+    
+    // Find the element
+    const pattern = new RegExp(`<${part}[^>]*>([\\s\\S]*?)</${part}>`, 'i');
+    const match = current.match(pattern);
+    
+    if (!match) return null;
+    current = match[1];
   }
-  
-  return value;
+
+  // Clean up the value
+  if (current.includes('<')) {
+    // This is a container, get the text content
+    const textMatch = current.match(/^([^<]*)/);
+    return textMatch ? textMatch[1].trim() : null;
+  }
+
+  return current.trim();
 }
 
-// Hash value for storage reference
-async function hashValue(value) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(value);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('');
+function extractExtensionContent(xml) {
+  const match = xml.match(/<EXTENSION>([\s\S]*?)<\/EXTENSION>/);
+  return match ? match[1] : null;
+}
+
+function extractAssets(xml) {
+  const assets = [];
+  const assetPattern = /<ASSET[^>]*>([\s\S]*?)<\/ASSET>/g;
+  let match;
+  let sequence = 1;
+
+  while ((match = assetPattern.exec(xml)) !== null) {
+    const assetContent = match[1];
+    const asset = {
+      sequence_number: sequence++,
+      asset_type: extractElement(assetContent, 'AssetType'),
+      institution_name: extractElement(assetContent, 'FullName') || extractElement(assetContent, 'AssetHolderName'),
+      market_value: parseFloat(extractElement(assetContent, 'OwnedPropertyMarketValueAmount') || extractElement(assetContent, 'AssetCashOrMarketValueAmount')) || 0,
+      account_number: extractElement(assetContent, 'AssetAccountIdentifier')
+    };
+    assets.push(asset);
+  }
+
+  return assets;
+}
+
+function extractREOProperties(xml) {
+  const reoProperties = [];
+  // Look for REO_PROPERTY or OWNED_PROPERTY elements
+  const reoPattern = /<(?:REO_PROPERTY|OWNED_PROPERTY)[^>]*>([\s\S]*?)<\/(?:REO_PROPERTY|OWNED_PROPERTY)>/g;
+  let match;
+  let sequence = 1;
+
+  while ((match = reoPattern.exec(xml)) !== null) {
+    const reoContent = match[1];
+    const reo = {
+      sequence_number: sequence++,
+      property_street: extractElement(reoContent, 'AddressLineText'),
+      property_city: extractElement(reoContent, 'CityName'),
+      property_state: extractElement(reoContent, 'StateCode'),
+      property_zip: extractElement(reoContent, 'PostalCode'),
+      market_value: parseFloat(extractElement(reoContent, 'OwnedPropertyMarketValueAmount')) || 0,
+      monthly_rent: parseFloat(extractElement(reoContent, 'OwnedPropertyRentalIncomeGrossAmount')) || 0,
+      mortgage_balance: parseFloat(extractElement(reoContent, 'OwnedPropertyLienUPBAmount')) || 0
+    };
+    reoProperties.push(reo);
+  }
+
+  return reoProperties;
+}
+
+function extractBorrowers(xml) {
+  const borrowers = [];
+  const partyPattern = /<PARTY[^>]*>([\s\S]*?)<\/PARTY>/g;
+  let match;
+
+  while ((match = partyPattern.exec(xml)) !== null) {
+    const partyContent = match[1];
+    
+    // Check if this party is a borrower
+    if (!partyContent.includes('<BORROWER') && !partyContent.includes('PartyRoleType>Borrower')) {
+      continue;
+    }
+
+    // Check if individual or entity
+    if (partyContent.includes('<INDIVIDUAL>')) {
+      const borrower = {
+        is_entity: false,
+        first_name: extractElement(partyContent, 'FirstName'),
+        last_name: extractElement(partyContent, 'LastName'),
+        middle_name: extractElement(partyContent, 'MiddleName'),
+        suffix: extractElement(partyContent, 'SuffixName'),
+        marital_status: extractElement(partyContent, 'MaritalStatusType'),
+        classification: extractElement(partyContent, 'BorrowerClassificationType')
+      };
+      borrowers.push(borrower);
+    } else if (partyContent.includes('<LEGAL_ENTITY>')) {
+      const borrower = {
+        is_entity: true,
+        entity_name: extractElement(partyContent, 'LegalEntityName'),
+        entity_type: extractElement(partyContent, 'LegalEntityType')
+      };
+      borrowers.push(borrower);
+    }
+  }
+
+  return borrowers;
+}
+
+function extractElement(content, elementName) {
+  const pattern = new RegExp(`<${elementName}>([^<]*)</${elementName}>`);
+  const match = content.match(pattern);
+  return match ? match[1].trim() : null;
+}
+
+function findAllElements(xml) {
+  const elements = [];
+  const elementPattern = /<([A-Z_]+)[^/>]*>([^<]*)<\/\1>/g;
+  let match;
+  
+  while ((match = elementPattern.exec(xml)) !== null) {
+    elements.push({
+      name: match[1],
+      value: match[2],
+      xpath: match[1] // Simplified xpath
+    });
+  }
+  
+  return elements;
+}
+
+function isStructuralElement(name) {
+  const structural = [
+    'MESSAGE', 'DEAL_SETS', 'DEAL_SET', 'DEALS', 'DEAL',
+    'LOANS', 'LOAN', 'COLLATERALS', 'COLLATERAL', 'PARTIES', 'PARTY',
+    'ASSETS', 'ASSET', 'LIABILITIES', 'LIABILITY', 'RELATIONSHIPS',
+    'ROLES', 'ROLE', 'INDIVIDUAL', 'LEGAL_ENTITY', 'NAME', 'ADDRESS',
+    'CONTACT_POINTS', 'CONTACT_POINT', 'SUBJECT_PROPERTY', 'PROPERTY_DETAIL',
+    'PROPERTY_VALUATIONS', 'PROPERTY_VALUATION', 'LOAN_IDENTIFIERS', 'LOAN_IDENTIFIER',
+    'ABOUT_VERSIONS', 'ABOUT_VERSION', 'MESSAGE_HEADER', 'EXTENSION', 'OTHER',
+    'BORROWER', 'BORROWER_DETAIL', 'ASSET_DETAIL', 'ASSET_HOLDER', 'ASSET_ACCOUNTS',
+    'ASSET_ACCOUNT', 'OWNED_PROPERTY', 'TERMS_OF_LOAN', 'LOAN_DETAIL',
+    'TAXPAYER_IDENTIFIERS', 'TAXPAYER_IDENTIFIER', 'LEGAL_ENTITY_DETAIL'
+  ];
+  return structural.includes(name);
+}
+
+// ============================================================
+// VALUE CONVERSION
+// ============================================================
+
+function convertValue(value, type, reverseMap) {
+  if (value === null || value === undefined || value === '') return null;
+
+  switch (type) {
+    case 'currency':
+      const num = parseFloat(value);
+      return isNaN(num) ? null : num;
+    
+    case 'integer':
+      const int = parseInt(value);
+      return isNaN(int) ? null : int;
+    
+    case 'percent':
+      // MISMO stores as decimal (0.075 for 7.5%)
+      const pct = parseFloat(value);
+      return isNaN(pct) ? null : pct;
+    
+    case 'decimal':
+      const dec = parseFloat(value);
+      return isNaN(dec) ? null : dec;
+    
+    case 'boolean':
+      return value.toLowerCase() === 'true';
+    
+    case 'date':
+      // Validate date format
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return value;
+      }
+      // Try to parse other formats
+      const date = new Date(value);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().split('T')[0];
+      }
+      return null;
+    
+    case 'enum':
+      if (reverseMap && reverseMap[value]) {
+        return reverseMap[value];
+      }
+      return value;
+    
+    default:
+      return value;
+  }
 }
