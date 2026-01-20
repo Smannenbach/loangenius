@@ -5,8 +5,58 @@
  */
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { decryptJson } from './_shared/crypto.js';
-import { resolveOrgId, isOrgAdmin } from './_shared/org.js';
+
+// ============ Inline Crypto Helpers ============
+const KEY_LENGTH = 32;
+
+async function getEncryptionKey() {
+  const rawKey = Deno.env.get('INTEGRATION_ENCRYPTION_KEY');
+  if (!rawKey) throw new Error('INTEGRATION_ENCRYPTION_KEY not configured');
+  
+  let keyBytes;
+  try {
+    const decoded = atob(rawKey);
+    if (decoded.length === KEY_LENGTH) {
+      keyBytes = new Uint8Array(decoded.split('').map(c => c.charCodeAt(0)));
+    }
+  } catch (e) { /* not base64 */ }
+
+  if (!keyBytes && rawKey.length === 64 && /^[0-9a-fA-F]+$/.test(rawKey)) {
+    keyBytes = new Uint8Array(32);
+    for (let i = 0; i < 32; i++) keyBytes[i] = parseInt(rawKey.substr(i * 2, 2), 16);
+  }
+
+  if (!keyBytes) {
+    const keyHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawKey));
+    keyBytes = new Uint8Array(keyHash);
+  }
+
+  return await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+}
+
+async function decryptJson(encryptedData) {
+  if (!encryptedData?.iv_b64 || !encryptedData?.ciphertext_b64) {
+    throw new Error('Invalid encrypted data');
+  }
+  const cryptoKey = await getEncryptionKey();
+  const iv = Uint8Array.from(atob(encryptedData.iv_b64), c => c.charCodeAt(0));
+  const ciphertext = Uint8Array.from(atob(encryptedData.ciphertext_b64), c => c.charCodeAt(0));
+  const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, cryptoKey, ciphertext);
+  return JSON.parse(new TextDecoder().decode(decrypted));
+}
+
+// ============ Inline Org Helpers ============
+async function resolveOrgId(base44, user) {
+  if (!user?.email) throw new Error('User not authenticated');
+  const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
+  if (memberships.length === 0) throw new Error('User not associated with any organization');
+  return { orgId: memberships[0].org_id, membership: memberships[0] };
+}
+
+function isOrgAdmin(membership) {
+  const role = membership?.role_id || membership?.role || 'user';
+  return ['admin', 'owner', 'super_admin'].includes(role);
+}
 
 Deno.serve(async (req) => {
   try {
