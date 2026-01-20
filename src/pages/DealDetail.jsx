@@ -43,6 +43,9 @@ import DealCalculator from '@/components/deal-wizard/DealCalculator';
 import DealStatusUpdate from '@/components/deal-detail/DealStatusUpdate';
 import TasksTab from '@/components/deal-detail/TasksTab';
 import SubmitToLenderModal from '@/components/deal-detail/SubmitToLenderModal';
+import DocumentGenerator from '@/components/documents/DocumentGenerator';
+import SmartDocumentReview from '@/components/documents/SmartDocumentReview';
+import LenderSyncPanel from '@/components/lender/LenderSyncPanel';
 import LenderOutreachPanel from '@/components/deal-detail/LenderOutreachPanel';
 import OfferLetterGenerator from '@/components/deal-detail/OfferLetterGenerator';
 
