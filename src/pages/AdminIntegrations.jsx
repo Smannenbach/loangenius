@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useOrgId } from '@/components/useOrgId';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Zap,
   Mail,
@@ -15,16 +16,14 @@ import {
   Brain,
   Database,
   FileText,
-  Link as LinkIcon,
   Check,
   AlertCircle,
   Trash2,
-  Lock,
   Loader2,
   RefreshCw,
-  Shield
+  Shield,
+  AlertTriangle
 } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 
 const INTEGRATION_CATEGORIES = {
