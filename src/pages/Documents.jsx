@@ -71,16 +71,40 @@ export default function Documents() {
     }
   });
 
-  const { data: documents = [], isLoading } = useQuery({
+  const { data: documents = [], isLoading, error } = useQuery({
     queryKey: ['documents'],
     queryFn: async () => {
       try {
         return await base44.entities.Document.filter({ is_deleted: false });
-      } catch {
-        return await base44.entities.Document.list();
+      } catch (e) {
+        // FIX: Log error and show to user instead of silently failing
+        console.error('Failed to fetch documents:', e);
+        throw e;
       }
     },
   });
+
+  // FIX: Show error state to user
+  if (error) {
+    return (
+      <div className="p-6 lg:p-8">
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="h-8 w-8 mx-auto mb-3 text-red-500" />
+            <h3 className="font-medium text-red-800">Failed to load documents</h3>
+            <p className="text-red-600 text-sm mt-1">{error.message}</p>
+            <Button 
+              variant="outline" 
+              className="mt-4"
+              onClick={() => queryClient.invalidateQueries(['documents'])}
+            >
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -208,6 +232,7 @@ export default function Documents() {
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8"
+                        aria-label="View document"
                         onClick={() => {
                           if (doc.file_url) {
                             window.open(doc.file_url, '_blank');
@@ -222,6 +247,7 @@ export default function Documents() {
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8"
+                        aria-label="Download document"
                         onClick={() => {
                           if (doc.file_url) {
                             const a = document.createElement('a');
@@ -286,7 +312,19 @@ export default function Documents() {
               <input
                 type="file"
                 ref={fileInputRef}
-                onChange={(e) => setSelectedFile(e.target.files[0])}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  
+                  // FIX: Add client-side file size validation
+                  const maxSize = 15 * 1024 * 1024; // 15MB
+                  if (file.size > maxSize) {
+                    toast.error('File size exceeds 15MB limit');
+                    e.target.value = '';
+                    return;
+                  }
+                  setSelectedFile(file);
+                }}
                 accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                 className="hidden"
               />
