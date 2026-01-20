@@ -16,6 +16,8 @@ import AgentPerformanceDashboard from './pages/AgentPerformanceDashboard';
 import AlertsNotifications from './pages/AlertsNotifications';
 import Assumptions from './pages/Assumptions';
 import AuditComplianceViewer from './pages/AuditComplianceViewer';
+import base44ClickMap from './pages/BASE44_CLICK_MAP';
+import bugfixChangelog from './pages/BUGFIX_CHANGELOG';
 import BorrowerOnboarding from './pages/BorrowerOnboarding';
 import BorrowerPortal from './pages/BorrowerPortal';
 import BorrowerPortalDashboard from './pages/BorrowerPortalDashboard';
@@ -59,6 +61,7 @@ import ReportBuilder from './pages/ReportBuilder';
 import ReportViewer from './pages/ReportViewer';
 import Reports from './pages/Reports';
 import Roadmap from './pages/Roadmap';
+import smokeTestResults from './pages/SMOKE_TEST_RESULTS';
 import Settings from './pages/Settings';
 import SubmissionPrep from './pages/SubmissionPrep';
 import SuperAdmin from './pages/SuperAdmin';
@@ -68,9 +71,11 @@ import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
-import base44ClickMap from './pages/BASE44_CLICK_MAP';
-import bugfixChangelog from './pages/BUGFIX_CHANGELOG';
-import smokeTestResults from './pages/SMOKE_TEST_RESULTS';
+import Trust from './pages/Trust';
+import Security from './pages/Security';
+import Subprocessors from './pages/Subprocessors';
+import Privacy from './pages/Privacy';
+import Status from './pages/Status';
 import __Layout from './Layout.jsx';
 
 
@@ -93,6 +98,8 @@ export const PAGES = {
     "AlertsNotifications": AlertsNotifications,
     "Assumptions": Assumptions,
     "AuditComplianceViewer": AuditComplianceViewer,
+    "BASE44_CLICK_MAP": base44ClickMap,
+    "BUGFIX_CHANGELOG": bugfixChangelog,
     "BorrowerOnboarding": BorrowerOnboarding,
     "BorrowerPortal": BorrowerPortal,
     "BorrowerPortalDashboard": BorrowerPortalDashboard,
@@ -136,6 +143,7 @@ export const PAGES = {
     "ReportViewer": ReportViewer,
     "Reports": Reports,
     "Roadmap": Roadmap,
+    "SMOKE_TEST_RESULTS": smokeTestResults,
     "Settings": Settings,
     "SubmissionPrep": SubmissionPrep,
     "SuperAdmin": SuperAdmin,
@@ -145,9 +153,11 @@ export const PAGES = {
     "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
-    "BASE44_CLICK_MAP": base44ClickMap,
-    "BUGFIX_CHANGELOG": bugfixChangelog,
-    "SMOKE_TEST_RESULTS": smokeTestResults,
+    "Trust": Trust,
+    "Security": Security,
+    "Subprocessors": Subprocessors,
+    "Privacy": Privacy,
+    "Status": Status,
 }
 
 export const pagesConfig = {
