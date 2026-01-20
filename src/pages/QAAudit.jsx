@@ -518,38 +518,61 @@ export default function QAAudit() {
             
             <Card>
               <CardHeader>
-                <CardTitle>PASS 1 Status</CardTitle>
+                <CardTitle>Click Contract Status</CardTitle>
+                <CardDescription>Interactive element health check</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 text-sm">
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span>Button component defaults to type="button" (prevents form submit bugs)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span>Mobile header bell button wired to notifications dropdown</span>
+                  </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
                     <span>All sidebar navigation items route to existing pages</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Leads CRUD fully functional with toast feedback</span>
+                    <span>Primary CTAs have data-testid for E2E testing</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Google Sheets import wizard working end-to-end</span>
+                    <span>Radix trigger buttons correctly detected as exempt</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Canonical org_id resolver used across all pages</span>
+                    <span>ErrorBoundary catches and logs errors safely (no PII)</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>NotFound page catches unknown routes</span>
+                    <span>safeLogger prevents sensitive data in backend logs</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>AI Provider configuration fully wired</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Integration connections with encrypted token storage</span>
-                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Documentation</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm">
+                  <a href="#" className="flex items-center gap-2 text-blue-600 hover:underline">
+                    <FileCode className="h-4 w-4" />
+                    components/docs/CLICK_CONTRACT.md - Button guidelines
+                  </a>
+                  <a href="#" className="flex items-center gap-2 text-blue-600 hover:underline">
+                    <FileCode className="h-4 w-4" />
+                    components/routes.js - Central route registry
+                  </a>
+                  <a href="#" className="flex items-center gap-2 text-blue-600 hover:underline">
+                    <FileCode className="h-4 w-4" />
+                    components/testing/E2ETestSpec.md - Playwright specs
+                  </a>
                 </div>
               </CardContent>
             </Card>
