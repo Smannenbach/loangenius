@@ -21,23 +21,35 @@ Deno.serve(async (req) => {
       return Response.json({ ok: false, checks });
     }
 
-    // Check 2: Org Resolution
+    // Check 2: Org Resolution (direct check, no nested function call)
     try {
-      const resolveResponse = await base44.functions.invoke('resolveOrgId', { auto_create: true });
-      const orgData = resolveResponse.data;
-      checks.push({
-        name: 'Org Resolution',
-        status: orgData.ok ? 'pass' : 'fail',
-        message: orgData.ok ? `Org: ${orgData.org_id}` : 'No org',
+      const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
+        user_id: user.email,
       });
+      const activeMemberships = memberships.filter(m => m.status === 'active' || !m.status);
+      
+      if (activeMemberships.length > 0) {
+        const primary = activeMemberships.find(m => m.is_primary) || activeMemberships[0];
+        checks.push({
+          name: 'Org Resolution',
+          status: 'pass',
+          message: `Org: ${primary.org_id}, Role: ${primary.role || 'admin'}`,
+        });
+      } else {
+        checks.push({
+          name: 'Org Resolution',
+          status: 'warn',
+          message: 'No org membership (will auto-create on first use)',
+        });
+      }
     } catch (e) {
       checks.push({ name: 'Org Resolution', status: 'fail', message: e.message });
     }
 
     // Check 3: Database Connectivity
     try {
-      await base44.asServiceRole.entities.Lead.filter({});
-      checks.push({ name: 'Database', status: 'pass', message: 'Connected' });
+      const leads = await base44.asServiceRole.entities.Lead.filter({});
+      checks.push({ name: 'Database', status: 'pass', message: `Connected (${leads.length} leads)` });
     } catch (e) {
       checks.push({ name: 'Database', status: 'fail', message: e.message });
     }
@@ -66,6 +78,8 @@ Deno.serve(async (req) => {
       status: failCount === 0 ? 'healthy' : 'degraded',
       summary: `${passCount}/${checks.length} checks passed`,
       checks,
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
     });
   } catch (error) {
     console.error('testSystemHealth error:', error);

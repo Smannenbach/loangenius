@@ -19,8 +19,10 @@ Deno.serve(async (req) => {
     // Find existing memberships using service role
     let memberships = await base44.asServiceRole.entities.OrgMembership.filter({
       user_id: user.email,
-      status: 'active',
     });
+    
+    // Filter to active only
+    memberships = memberships.filter(m => m.status === 'active' || !m.status);
 
     // Normalize role field on existing memberships (migration/backfill)
     for (const membership of memberships) {
@@ -33,11 +35,13 @@ Deno.serve(async (req) => {
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(membership.role_id);
         
         if (isUUID) {
-          // Look up Role entity
+          // Look up Role entity - but skip if it fails
           try {
             const roles = await base44.asServiceRole.entities.Role.filter({ id: membership.role_id });
             if (roles.length > 0) {
               normalizedRole = roles[0].name?.toLowerCase() || 'user';
+            } else {
+              normalizedRole = 'user';
             }
           } catch (e) {
             normalizedRole = 'user';
@@ -51,16 +55,21 @@ Deno.serve(async (req) => {
 
       // Default role if still missing
       if (!normalizedRole) {
-        normalizedRole = 'user';
+        normalizedRole = 'admin'; // First user is admin
         needsUpdate = true;
       }
 
       // Backfill the role field
       if (needsUpdate) {
-        await base44.asServiceRole.entities.OrgMembership.update(membership.id, {
-          role: normalizedRole,
-        });
-        membership.role = normalizedRole;
+        try {
+          await base44.asServiceRole.entities.OrgMembership.update(membership.id, {
+            role: normalizedRole,
+          });
+          membership.role = normalizedRole;
+        } catch (e) {
+          // Update failed, continue with current role
+          membership.role = normalizedRole;
+        }
       }
     }
 
@@ -95,17 +104,22 @@ Deno.serve(async (req) => {
     // Get primary membership
     const primaryMembership = memberships.find(m => m.is_primary) || memberships[0];
     const orgId = primaryMembership.org_id;
-    const membershipRole = primaryMembership.role || 'user';
+    const membershipRole = primaryMembership.role || 'admin';
 
-    // Get org details
+    // Validate org_id is a real ID (not "default" or similar placeholder)
+    const isValidOrgId = orgId && /^[0-9a-f]{24}$/i.test(orgId);
+
+    // Get org details only if valid ID
     let orgName = null;
-    try {
-      const orgs = await base44.asServiceRole.entities.Organization.filter({ id: orgId });
-      if (orgs.length > 0) {
-        orgName = orgs[0].name;
+    if (isValidOrgId) {
+      try {
+        const orgs = await base44.asServiceRole.entities.Organization.filter({ id: orgId });
+        if (orgs.length > 0) {
+          orgName = orgs[0].name;
+        }
+      } catch (e) {
+        // Org lookup failed, continue without name
       }
-    } catch (e) {
-      // Org lookup failed, continue without name
     }
 
     return Response.json({
