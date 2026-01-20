@@ -1,123 +1,223 @@
 # Click Contract - Interactive Element Guidelines
 
 ## Overview
-Every interactive element in the app must follow these rules to prevent "dead clicks" - situations where users click something that looks interactive but nothing happens.
+This document defines the "Click Contract" for LoanGenius - a set of rules ensuring every interactive element provides meaningful feedback to users.
 
-## Button Types
+## Core Principle
+**No Dead Clicks**: Every clickable element must result in one of:
+- Navigation (page change or external link)
+- Action (data mutation, API call)
+- Modal/Dialog/Dropdown opening
+- Loading state visible to user
+- Error toast if something fails
+- Disabled state with explanation
 
-### A) Navigation Buttons
-Navigate to another page. Use `<Link>` or `<Button asChild><Link/></Button>`:
+---
 
+## Button Types & Patterns
+
+### 1. Navigation Buttons
 ```jsx
-// Direct link
-<Link to={createPageUrl('PageName')}>Go to Page</Link>
-
-// Styled as button
+// ✅ CORRECT: Using Link with asChild
 <Button asChild>
-  <Link to={createPageUrl('PageName')}>Go to Page</Link>
+  <Link to={createPageUrl('Dashboard')}>Go to Dashboard</Link>
+</Button>
+
+// ✅ CORRECT: Direct Link styling
+<Link to={createPageUrl('Settings')} className="...">Settings</Link>
+```
+
+### 2. Action Buttons
+```jsx
+// ✅ CORRECT: With onClick handler
+<Button 
+  onClick={() => handleSave()} 
+  data-testid="cta:Settings:Save"
+>
+  Save Changes
+</Button>
+
+// ✅ CORRECT: With loading state
+<Button 
+  onClick={() => mutation.mutate()}
+  disabled={mutation.isPending}
+  data-testid="cta:Leads:Import"
+>
+  {mutation.isPending ? <Loader2 className="animate-spin" /> : null}
+  Import Leads
 </Button>
 ```
 
-### B) Action Buttons
-Perform an action. Must have `onClick`:
-
+### 3. Submit Buttons (Forms)
 ```jsx
-<Button onClick={handleAction} data-testid="cta:PageName:ActionName">
-  Do Something
-</Button>
+// ✅ CORRECT: Explicit type="submit" in form
+<form onSubmit={handleSubmit}>
+  <Button type="submit" data-testid="cta:Login:Submit">
+    Sign In
+  </Button>
+</form>
+
+// ⚠️ IMPORTANT: Non-submit buttons in forms need type="button"
+// (Our Button component defaults to type="button" so this is handled)
 ```
 
-### C) Submit Buttons
-Submit a form. Must have `type="submit"`:
-
+### 4. Trigger Buttons (Radix UI)
 ```jsx
-<Button type="submit" data-testid="cta:FormName:Submit">
-  Submit Form
-</Button>
-```
-
-### D) Disabled Buttons
-Intentionally non-interactive. Must have `disabled` with explanation:
-
-```jsx
-<Tooltip content="Connect your account first">
-  <Button disabled>Feature Not Available</Button>
-</Tooltip>
-```
-
-### E) Trigger Buttons
-Open dropdowns/modals. Wrapped by Radix trigger components:
-
-```jsx
+// ✅ CORRECT: Inside trigger wrapper (exempt from onClick requirement)
 <DropdownMenuTrigger asChild>
-  <Button>Open Menu</Button>
+  <Button variant="ghost">
+    <MoreVertical />
+  </Button>
 </DropdownMenuTrigger>
+
+<DialogTrigger asChild>
+  <Button>Open Dialog</Button>
+</DialogTrigger>
 ```
 
-## Data Test IDs
+### 5. Disabled Buttons
+```jsx
+// ✅ CORRECT: Disabled with explanation
+<Tooltip>
+  <TooltipTrigger asChild>
+    <span>
+      <Button disabled>Submit to Lenders</Button>
+    </span>
+  </TooltipTrigger>
+  <TooltipContent>
+    Complete all required documents before submitting
+  </TooltipContent>
+</Tooltip>
 
-Every primary CTA must have a data-testid following this pattern:
+// ✅ CORRECT: Coming soon feature
+<Button disabled className="opacity-50">
+  AI Analysis (Coming Soon)
+</Button>
+```
+
+---
+
+## Data Test ID Convention
+
+Every primary CTA should have a `data-testid` attribute:
+
 ```
 data-testid="cta:<PageName>:<ActionName>"
 ```
 
 Examples:
+- `data-testid="cta:Dashboard:CreateDeal"`
 - `data-testid="cta:Leads:Import"`
-- `data-testid="cta:Dashboard:NewDeal"`
+- `data-testid="cta:DealDetail:SubmitToLenders"`
 - `data-testid="cta:Settings:Save"`
 
-## Button Type Default
+---
 
-Our Button component defaults to `type="button"` to prevent accidental form submissions.
-Only use `type="submit"` for actual form submit buttons.
+## Mutation Feedback Requirements
 
-## Feedback Requirements
-
-Every action button must provide user feedback:
-1. **Loading state**: Show spinner while action is in progress
-2. **Success**: Toast notification on success
-3. **Error**: Toast notification or error message on failure
+Every data mutation MUST show feedback:
 
 ```jsx
-const [isLoading, setIsLoading] = useState(false);
-
-const handleAction = async () => {
-  setIsLoading(true);
-  try {
-    await doSomething();
-    toast.success('Action completed!');
-  } catch (error) {
-    toast.error('Action failed: ' + error.message);
-  } finally {
-    setIsLoading(false);
+// ✅ CORRECT: Toast on success/error
+const mutation = useMutation({
+  mutationFn: (data) => base44.entities.Lead.create(data),
+  onSuccess: () => {
+    toast.success('Lead created successfully');
+    queryClient.invalidateQueries(['leads']);
+  },
+  onError: (error) => {
+    toast.error('Failed to create lead: ' + error.message);
   }
-};
-
-<Button onClick={handleAction} disabled={isLoading}>
-  {isLoading ? <Loader2 className="animate-spin" /> : null}
-  Do Something
-</Button>
+});
 ```
 
-## Adding New Routes
+---
 
-1. Create the page file in `pages/PageName.jsx`
-2. Add to Layout sidebar if needed
-3. Use `createPageUrl('PageName')` for navigation
-4. Never hardcode routes as strings
+## Adding a New Route Safely
 
-## QA Audit
+1. **Add to routes.js**:
+```js
+// components/routes.js
+export const routes = {
+  ...
+  MyNewPage: 'MyNewPage',
+};
+```
 
-Run the QA Audit page (`/QAAudit`) to check for:
-- Missing backend functions
-- Dead buttons
-- Broken routes
-- Silent mutations (no toast feedback)
+2. **Create the page file**: `pages/MyNewPage.jsx`
 
-## Exempt Patterns (Not Dead Clicks)
+3. **Add to Layout sidebar** (if needed):
+```jsx
+// Layout.js - add to appropriate nav section
+{ name: 'My New Page', href: '/MyNewPage', icon: SomeIcon },
+```
 
-These patterns are intentionally "no-op" and should not be flagged:
-1. **Trigger buttons**: Inside `*Trigger` components (Dialog, Dropdown, Popover, etc.)
-2. **Card click patterns**: Button inside clickable card (parent handles click)
-3. **Disabled buttons**: Intentionally non-interactive
-4. **Loading buttons**: Disabled during async operations
+4. **Update QAAudit SIDEBAR_PAGES** (if in sidebar):
+```js
+// pages/QAAudit.jsx
+const SIDEBAR_PAGES = [..., 'MyNewPage'];
+```
+
+5. **Test**: Run QAAudit to verify no broken routes
+
+---
+
+## QA Audit Detection
+
+The QAAudit page (`/QAAudit`) automatically detects:
+
+### TRUE Dead Buttons (Must Fix)
+- `<Button>` without onClick, type="submit", or asChild
+- Not inside a Radix trigger wrapper
+- Not inside a clickable parent container
+
+### Exempt Patterns (Valid, No Fix Needed)
+- Inside `DropdownMenuTrigger`, `DialogTrigger`, etc.
+- Inside clickable parent (Card with onClick, Link)
+- Disabled buttons
+- Buttons with mutation patterns in context
+
+---
+
+## Common Mistakes to Avoid
+
+```jsx
+// ❌ WRONG: Button with no handler
+<Button>Do Something</Button>
+
+// ❌ WRONG: Button that does console.log only
+<Button onClick={() => console.log('clicked')}>Test</Button>
+
+// ❌ WRONG: Fake button (looks interactive, does nothing)
+<div className="bg-blue-500 cursor-pointer p-2">Click Me</div>
+
+// ❌ WRONG: Silent mutation (no toast)
+await base44.entities.Lead.delete(id);
+// User has no idea if it worked or failed
+```
+
+---
+
+## Checklist for PRs
+
+- [ ] All new buttons have onClick, type="submit", or asChild
+- [ ] Primary CTAs have `data-testid="cta:Page:Action"`
+- [ ] Mutations show toast on success AND error
+- [ ] Loading states visible during async operations
+- [ ] Disabled buttons have tooltips explaining why
+- [ ] New routes added to `components/routes.js`
+- [ ] QAAudit shows 0 TRUE dead buttons
+
+---
+
+## Error Handling
+
+All UI errors are caught by the ErrorBoundary:
+- Friendly fallback UI shown
+- Debug details available (copy button)
+- Route context logged (no PII)
+- Option to retry or navigate home
+
+---
+
+*Last updated: 2026-01-20*

@@ -39,6 +39,7 @@ export const routes = {
   // Tools
   QuoteGenerator: 'QuoteGenerator',
   AIAssistant: 'AIAssistant',
+  DocumentIntelligenceHub: 'DocumentIntelligenceHub',
   Communications: 'Communications',
   Conversations: 'Conversations',
   EmailSequences: 'EmailSequences',
