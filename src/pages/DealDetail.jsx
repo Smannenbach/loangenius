@@ -51,6 +51,10 @@ import OfferLetterGenerator from '@/components/deal-detail/OfferLetterGenerator'
 import ExportDealPDFModal from '@/components/deal-detail/ExportDealPDFModal';
 import UploadDocumentModal from '@/components/deal-detail/UploadDocumentModal';
 import AddConditionModal from '@/components/deal-detail/AddConditionModal';
+import SendForSignatureModal from '@/components/deal-detail/SendForSignatureModal';
+import EnvelopeStatusCard from '@/components/deal-detail/EnvelopeStatusCard';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { FileSignature } from 'lucide-react';
 
 export default function DealDetail() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -62,6 +66,7 @@ export default function DealDetail() {
   const [showExportPDFModal, setShowExportPDFModal] = useState(false);
   const [showUploadDocModal, setShowUploadDocModal] = useState(false);
   const [showAddConditionModal, setShowAddConditionModal] = useState(false);
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
 
   const { data: deal, isLoading: dealLoading, error: dealError } = useQuery({
     queryKey: ['deal', dealId],
@@ -335,6 +340,15 @@ export default function DealDetail() {
               </Link>
             </Button>
             <Button 
+              variant="outline"
+              className="gap-2"
+              onClick={() => setShowSignatureModal(true)}
+              data-testid="cta:DealDetail:SendForSignature"
+            >
+              <FileSignature className="h-4 w-4" />
+              Send for Signature
+            </Button>
+            <Button 
               className="gap-2 bg-green-600 hover:bg-green-700"
               onClick={() => setShowSubmitToLenderModal(true)}
               data-testid="cta:DealDetail:SubmitToLenders"
@@ -464,18 +478,28 @@ export default function DealDetail() {
 
         <TabsContent value="documents">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-6">
               <Card className="border-gray-200">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-lg">Documents</CardTitle>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowUploadDocModal(true)}
-                    data-testid="cta:DealDetail:UploadDocument"
-                  >
-                    Upload Document
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowSignatureModal(true)}
+                    >
+                      <FileSignature className="h-4 w-4 mr-2" />
+                      Send for Signature
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowUploadDocModal(true)}
+                      data-testid="cta:DealDetail:UploadDocument"
+                    >
+                      Upload Document
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {documents.length === 0 ? (
@@ -505,6 +529,7 @@ export default function DealDetail() {
               </Card>
             </div>
             <div className="space-y-4">
+              <EnvelopeStatusCard dealId={dealId} />
               <DocumentGenerator dealId={dealId} deal={deal} />
               <SmartDocumentReview dealId={dealId} />
             </div>
@@ -861,6 +886,21 @@ export default function DealDetail() {
         open={showAddConditionModal}
         onOpenChange={setShowAddConditionModal}
       />
+
+      <Dialog open={showSignatureModal} onOpenChange={setShowSignatureModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSignature className="h-5 w-5 text-blue-600" />
+              Send Documents for Signature
+            </DialogTitle>
+          </DialogHeader>
+          <SendForSignatureModal 
+            dealId={dealId} 
+            onClose={() => setShowSignatureModal(false)} 
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
