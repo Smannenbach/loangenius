@@ -7,8 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { 
   AlertTriangle, CheckCircle2, Clock, FileText, 
-  Loader2, ChevronDown, ChevronUp, Info
+  Loader2, ChevronDown, ChevronUp, Info, Upload
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import PortalDocumentUploadEnhanced from './PortalDocumentUploadEnhanced';
 import { toast } from 'sonner';
 
 const conditionPriorityConfig = {
@@ -29,6 +31,7 @@ export default function PortalConditionsTab({ sessionId, dealId }) {
   const queryClient = useQueryClient();
   const [expandedCondition, setExpandedCondition] = useState(null);
   const [acknowledgedIds, setAcknowledgedIds] = useState(new Set());
+  const [uploadModalCondition, setUploadModalCondition] = useState(null);
 
   const { data: conditions = [], isLoading } = useQuery({
     queryKey: ['portalConditions', dealId],
@@ -278,6 +281,14 @@ export default function PortalConditionsTab({ sessionId, dealId }) {
                                       <li key={idx}>{doc}</li>
                                     ))}
                                   </ul>
+                                  <Button
+                                    size="sm"
+                                    className="mt-3 bg-blue-600 hover:bg-blue-700"
+                                    onClick={() => setUploadModalCondition(condition)}
+                                  >
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    Upload Document
+                                  </Button>
                                 </div>
                               )}
                             </div>
@@ -304,6 +315,35 @@ export default function PortalConditionsTab({ sessionId, dealId }) {
           </p>
         </div>
       </div>
+
+      {/* Upload Modal for Conditions */}
+      <Dialog open={!!uploadModalCondition} onOpenChange={() => setUploadModalCondition(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5 text-blue-600" />
+              Upload for: {uploadModalCondition?.condition_name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            {uploadModalCondition?.description && (
+              <p className="text-sm text-slate-600 mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                💡 {uploadModalCondition.description}
+              </p>
+            )}
+            <PortalDocumentUploadEnhanced
+              sessionId={sessionId}
+              conditionId={uploadModalCondition?.id}
+              requirementName={uploadModalCondition?.condition_name}
+              onUploadComplete={() => {
+                setUploadModalCondition(null);
+                queryClient.invalidateQueries({ queryKey: ['portalConditions'] });
+                toast.success('Document uploaded for condition');
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
