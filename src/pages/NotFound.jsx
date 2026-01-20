@@ -1,11 +1,13 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Home, ArrowLeft, Search } from 'lucide-react';
+import { Home, ArrowLeft } from 'lucide-react';
 
 export default function NotFound() {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-[80vh] flex items-center justify-center p-6">
       <Card className="max-w-md w-full">
@@ -17,16 +19,14 @@ export default function NotFound() {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button asChild variant="outline">
-              <Link to={createPageUrl('Dashboard')}>
-                <Home className="h-4 w-4 mr-2" />
-                Go to Dashboard
-              </Link>
+            <Button variant="outline" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Go Back
             </Button>
             <Button asChild>
-              <Link to={createPageUrl('Leads')}>
-                <Search className="h-4 w-4 mr-2" />
-                View Leads
+              <Link to={createPageUrl('Dashboard')}>
+                <Home className="h-4 w-4 mr-2" />
+                Go Home
               </Link>
             </Button>
           </div>
