@@ -222,7 +222,7 @@ export function useOrgScopedMutation(entityName, options = {}) {
 
 /**
  * Hook for updating org-scoped entities
- * Verifies the entity belongs to the current org before updating
+ * Verifies the entity belongs to the current org before updating (IDOR prevention)
  */
 export function useOrgScopedUpdate(entityName, options = {}) {
   const { orgId } = useOrgId();
@@ -231,16 +231,28 @@ export function useOrgScopedUpdate(entityName, options = {}) {
   return useMutation({
     mutationFn: async ({ id, data }) => {
       if (!orgId) {
-        throw new Error('No organization found. Please refresh the page.');
+        throw new Error('No organization context');
       }
       
-      // Never allow changing org_id via update
-      const { org_id: _, ...safeData } = data;
+      // SECURITY: Verify record belongs to current org (IDOR prevention)
+      const records = await base44.entities[entityName].filter({ id });
+      if (records.length === 0) {
+        throw new Error('Record not found');
+      }
+      const record = records[0];
+      if (record.org_id && record.org_id !== orgId) {
+        console.error(`IDOR attempt blocked: user org ${orgId} tried to update record from org ${record.org_id}`);
+        throw new Error('Access denied');
+      }
+      
+      // Never allow changing org_id, id, or system fields via update
+      const { org_id: _, id: __, created_by, created_date, ...safeData } = data;
       
       return base44.entities[entityName].update(id, safeData);
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [entityName, 'org', orgId] });
+      queryClient.invalidateQueries({ queryKey: [entityName] });
       options.onSuccess?.(data);
     },
     onError: options.onError
@@ -249,6 +261,7 @@ export function useOrgScopedUpdate(entityName, options = {}) {
 
 /**
  * Hook for deleting (soft-delete) org-scoped entities
+ * Verifies the entity belongs to the current org before deleting (IDOR prevention)
  */
 export function useOrgScopedDelete(entityName, options = {}) {
   const { orgId } = useOrgId();
@@ -257,7 +270,18 @@ export function useOrgScopedDelete(entityName, options = {}) {
   return useMutation({
     mutationFn: async (id) => {
       if (!orgId) {
-        throw new Error('No organization found. Please refresh the page.');
+        throw new Error('No organization context');
+      }
+      
+      // SECURITY: Verify record belongs to current org (IDOR prevention)
+      const records = await base44.entities[entityName].filter({ id });
+      if (records.length === 0) {
+        throw new Error('Record not found');
+      }
+      const record = records[0];
+      if (record.org_id && record.org_id !== orgId) {
+        console.error(`IDOR attempt blocked: user org ${orgId} tried to delete record from org ${record.org_id}`);
+        throw new Error('Access denied');
       }
       
       // Soft delete by setting is_deleted = true
@@ -265,6 +289,7 @@ export function useOrgScopedDelete(entityName, options = {}) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [entityName, 'org', orgId] });
+      queryClient.invalidateQueries({ queryKey: [entityName] });
       options.onSuccess?.();
     },
     onError: options.onError
