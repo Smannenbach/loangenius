@@ -634,6 +634,7 @@ export default function QuoteGenerator() {
             <Button 
               onClick={handleGenerate}
               className="w-full bg-blue-600 hover:bg-blue-500 h-12 text-base"
+              data-testid="cta:QuoteGenerator:Generate"
               disabled={!isFormValid}
             >
               <FileOutput className="h-5 w-5 mr-2" />
@@ -832,6 +833,7 @@ export default function QuoteGenerator() {
                 <Button 
                   onClick={downloadPDF}
                   className="flex-1 gap-2"
+                  data-testid="cta:QuoteGenerator:DownloadPDF"
                   variant="outline"
                 >
                   <Download className="h-4 w-4" />

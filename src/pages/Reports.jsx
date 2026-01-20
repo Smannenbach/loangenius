@@ -86,7 +86,7 @@ export default function Reports() {
           <p className="text-gray-500 mt-1">View analytics and generate reports</p>
         </div>
         <Link to={createPageUrl('ReportBuilder')}>
-          <Button className="gap-2 bg-blue-600 hover:bg-blue-700">
+          <Button className="gap-2 bg-blue-600 hover:bg-blue-700" data-testid="cta:Reports:NewReport">
             <Plus className="h-4 w-4" />
             New Report
           </Button>

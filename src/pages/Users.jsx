@@ -132,7 +132,7 @@ export default function UsersPage() {
         <div className="flex gap-2">
           <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-500 gap-2">
+              <Button className="bg-blue-600 hover:bg-blue-500 gap-2" data-testid="cta:Users:InviteUser">
                 <UserPlus className="h-4 w-4" />
                 Invite User
               </Button>
@@ -181,7 +181,9 @@ export default function UsersPage() {
                 </div>
               </div>
               <Button 
+                type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-500"
+                data-testid="cta:Users:SendInvitation"
                 onClick={handleInvite}
                 disabled={!inviteData.email || inviteMutation.isPending}
               >
