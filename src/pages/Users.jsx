@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useOrgId } from '@/components/useOrgId';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,31 +40,19 @@ export default function UsersPage() {
     role: 'loan_officer',
   });
 
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-  });
+  // Use canonical org resolver
+  const { orgId, user, isLoading: orgLoading } = useOrgId();
 
-  // Get user's org membership first
-  const { data: userMemberships = [] } = useQuery({
-    queryKey: ['userMembership', user?.email],
-    queryFn: async () => {
-      if (!user?.email) return [];
-      return await base44.entities.OrgMembership.filter({ user_id: user.email });
-    },
-    enabled: !!user?.email,
-  });
-
-  const orgId = userMemberships[0]?.org_id;
-
-  const { data: memberships = [], isLoading } = useQuery({
-    queryKey: ['orgMemberships', orgId],
+  const { data: memberships = [], isLoading: membershipsLoading } = useQuery({
+    queryKey: ['orgMemberships', 'all', orgId],
     queryFn: async () => {
       if (!orgId) return [];
       return await base44.entities.OrgMembership.filter({ org_id: orgId });
     },
     enabled: !!orgId,
   });
+
+  const isLoading = orgLoading || membershipsLoading;
 
   const queryClient = useQueryClient();
   
@@ -86,7 +75,7 @@ export default function UsersPage() {
     onSuccess: () => {
       setIsInviteOpen(false);
       setInviteData({ email: '', role: 'loan_officer' });
-      queryClient.invalidateQueries({ queryKey: ['orgMemberships'] });
+      queryClient.invalidateQueries({ queryKey: ['orgMemberships', 'all', orgId] });
       toast.success('Invitation sent successfully!');
     },
     onError: (error) => {
