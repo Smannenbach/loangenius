@@ -77,6 +77,7 @@ import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
 import QAAudit from './pages/QAAudit';
+import NotFound from './pages/NotFound';
 import __Layout from './Layout.jsx';
 
 
@@ -160,6 +161,7 @@ export const PAGES = {
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
     "QAAudit": QAAudit,
+    "NotFound": NotFound,
 }
 
 export const pagesConfig = {
