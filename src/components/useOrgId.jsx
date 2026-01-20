@@ -1,197 +1,87 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useEffect, useRef } from 'react';
 
 /**
- * Canonical organization resolver hook
- * Used across all pages to ensure consistent org_id handling
- * 
- * USAGE: Import this hook in any page that needs org-scoped data.
- * It handles:
- * - Getting current user
- * - Looking up OrgMembership
- * - Auto-creating org if none exists (for new users)
- * - Caching to prevent duplicate queries
- * 
- * CRITICAL: This is the ONLY source of truth for orgId in the frontend.
- * Never use user.org_id, user.id, or any other fallback for org_id.
+ * useOrgId - SINGLE SOURCE OF TRUTH for org resolution
+ * Uses backend resolveOrgId function (never queries OrgMembership directly)
  */
 export function useOrgId() {
   const queryClient = useQueryClient();
-  const hasAttemptedBootstrap = useRef(false);
 
-  // Get current user - cached globally with long stale time
-  const { data: user, isLoading: userLoading, error: userError } = useQuery({
+  // Get current user
+  const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
-    staleTime: 10 * 60 * 1000, // 10 minutes - user doesn't change often
-    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    staleTime: 10 * 60 * 1000,
     retry: 1
   });
 
-  // Get user's org memberships - cached and dependent on user
+  // Resolve org via backend function
   const { 
-    data: memberships = [], 
-    isLoading: membershipLoading, 
-    error: membershipError,
-    refetch: refetchMemberships
+    data: orgData, 
+    isLoading: orgLoading,
+    refetch: refetchOrg
   } = useQuery({
-    queryKey: ['orgMemberships', user?.email],
+    queryKey: ['resolveOrgId', user?.email],
     queryFn: async () => {
-      if (!user?.email) return [];
-      const results = await base44.entities.OrgMembership.filter({ 
-        user_id: user.email 
-      });
-      return results || [];
-    },
-    enabled: !!user?.email,
-    staleTime: 5 * 60 * 1000, // 5 minutes - check more frequently for bootstrap
-    gcTime: 30 * 60 * 1000,
-    retry: 1
-  });
-
-  // Get the primary membership (first one, or the one marked as default)
-  const primaryMembership = memberships.find(m => m.is_primary) || memberships[0] || null;
-  const orgId = primaryMembership?.org_id || null;
-
-  // Get the organization details if we have an org_id
-  const { data: org, isLoading: orgLoading } = useQuery({
-    queryKey: ['organization', orgId],
-    queryFn: async () => {
-      if (!orgId) return null;
-      try {
-        const orgs = await base44.entities.Organization.filter({ id: orgId });
-        return orgs[0] || null;
-      } catch {
-        return null;
-      }
-    },
-    enabled: !!orgId,
-    staleTime: 10 * 60 * 1000
-  });
-
-  // Mutation to ensure org exists (creates if needed via backend)
-  const ensureOrgMutation = useMutation({
-    mutationFn: async () => {
-      // Call the canonical backend bootstrap function
-      const response = await base44.functions.invoke('seedOrgAndUsers', {});
+      const response = await base44.functions.invoke('resolveOrgId', { auto_create: true });
       return response.data;
     },
-    onSuccess: (data) => {
-      console.log('Org bootstrap complete:', data);
-      // Invalidate and refetch all org-related queries
-      queryClient.invalidateQueries({ queryKey: ['orgMemberships'] });
-      queryClient.invalidateQueries({ queryKey: ['organization'] });
-      // Also invalidate any org-scoped entity queries that may have run with null orgId
-      queryClient.invalidateQueries({ queryKey: ['Lead'] });
-      queryClient.invalidateQueries({ queryKey: ['Deal'] });
-      queryClient.invalidateQueries({ queryKey: ['Contact'] });
-      queryClient.invalidateQueries({ queryKey: ['Task'] });
-      refetchMemberships();
-    },
-    onError: (error) => {
-      console.error('Org bootstrap failed:', error);
-    }
+    enabled: !!user?.email,
+    staleTime: 5 * 60 * 1000,
+    retry: 1
   });
 
-  // Auto-ensure org exists for new users (only once per session)
-  useEffect(() => {
-    if (
-      user?.email && 
-      !membershipLoading && 
-      memberships.length === 0 && 
-      !ensureOrgMutation.isPending &&
-      !hasAttemptedBootstrap.current
-    ) {
-      // User exists but has no org - create one
-      hasAttemptedBootstrap.current = true;
-      console.log('No org membership found for user, bootstrapping...');
-      ensureOrgMutation.mutate();
-    }
-  }, [user?.email, membershipLoading, memberships.length]);
-
-  // Reset bootstrap flag if user changes
-  useEffect(() => {
-    hasAttemptedBootstrap.current = false;
-  }, [user?.email]);
-
-  const isLoading = userLoading || membershipLoading || orgLoading || ensureOrgMutation.isPending;
-  const error = userError || membershipError || ensureOrgMutation.error;
-  const bootstrapError = ensureOrgMutation.error && memberships.length === 0;
+  const orgId = orgData?.org_id || null;
+  const userRole = orgData?.membership_role || 'user';
+  const hasOrg = orgData?.has_org || false;
+  const isLoading = userLoading || orgLoading;
+  const isReady = !!orgId && !isLoading && hasOrg;
 
   return {
-    // Core values - NEVER use fallbacks like user.org_id or user.id
     orgId,
-    org,
-    membership: primaryMembership,
-    memberships,
     user,
-    userRole: primaryMembership?.role || user?.role || 'user',
-    
-    // Status
+    userRole,
+    hasOrg,
     isLoading,
-    isReady: !!orgId && !isLoading,
-    error: bootstrapError ? ensureOrgMutation.error : error,
-    hasOrg: !!orgId,
-    
-    // Actions
-    ensureOrg: () => {
-      hasAttemptedBootstrap.current = false;
-      ensureOrgMutation.mutate();
-    },
-    isEnsuringOrg: ensureOrgMutation.isPending,
-    refetchMemberships
+    isReady,
+    orgName: orgData?.org_name,
+    refetchOrg,
   };
 }
 
 /**
- * Hook for org-scoped entity queries
- * Automatically adds org_id filter and handles loading states
- * 
- * CRITICAL: NEVER falls back to list() - returns empty array if no org.
- * This ensures data isolation between organizations.
+ * useOrgScopedQuery - Query entities scoped to current org
  */
-export function useOrgScopedQuery(entityName, additionalFilters = {}, options = {}) {
-  const { orgId, isLoading: orgLoading, isReady } = useOrgId();
+export function useOrgScopedQuery(entityName, additionalFilters = {}, sortBy = '-created_date', limit = 1000) {
+  const { orgId, isReady } = useOrgId();
 
   return useQuery({
-    queryKey: [entityName, 'org', orgId, JSON.stringify(additionalFilters)],
+    queryKey: [entityName, 'org', orgId, JSON.stringify(additionalFilters), sortBy],
     queryFn: async () => {
-      // SECURITY: Never query without org_id - this is critical for data isolation
       if (!orgId) {
-        console.warn(`useOrgScopedQuery(${entityName}): No orgId available, returning empty array`);
+        console.warn(`useOrgScopedQuery(${entityName}): No orgId, returning []`);
         return [];
       }
       
-      const filters = {
-        org_id: orgId,
-        ...additionalFilters
-      };
-      
-      // Remove undefined/null filters but NEVER remove org_id
+      const filters = { org_id: orgId, ...additionalFilters };
       Object.keys(filters).forEach(key => {
         if (key !== 'org_id' && (filters[key] === undefined || filters[key] === null)) {
           delete filters[key];
         }
       });
 
-      const results = await base44.entities[entityName].filter(filters);
+      const results = await base44.entities[entityName].filter(filters, sortBy, limit);
       return results || [];
     },
-    // Only enable when org is ready and we have an orgId
-    enabled: isReady && !!orgId && !orgLoading,
-    staleTime: options.staleTime || 30000, // 30 seconds default
+    enabled: isReady && !!orgId,
+    staleTime: 30000,
     retry: 2,
-    ...options
   });
 }
 
 /**
- * Hook for creating org-scoped entities
- * Automatically adds org_id to created records
- * 
- * CRITICAL: Always uses the canonical orgId from useOrgId hook.
- * Never accepts org_id from external sources.
+ * useOrgScopedMutation - Create org-scoped entities
  */
 export function useOrgScopedMutation(entityName, options = {}) {
   const { orgId } = useOrgId();
@@ -199,21 +89,13 @@ export function useOrgScopedMutation(entityName, options = {}) {
 
   return useMutation({
     mutationFn: async (data) => {
-      if (!orgId) {
-        throw new Error('No organization found. Please refresh the page and try again.');
-      }
-      
-      // Always set org_id from the canonical resolver, never from input data
-      const dataWithOrg = {
-        ...data,
-        org_id: orgId  // This MUST come from useOrgId, never from user input
-      };
-      
+      if (!orgId) throw new Error('No organization context');
+      const dataWithOrg = { ...data, org_id: orgId };
       return base44.entities[entityName].create(dataWithOrg);
     },
     onSuccess: (data) => {
-      // Invalidate the specific entity query for this org
       queryClient.invalidateQueries({ queryKey: [entityName, 'org', orgId] });
+      queryClient.invalidateQueries({ queryKey: [entityName] });
       options.onSuccess?.(data);
     },
     onError: options.onError
@@ -221,8 +103,7 @@ export function useOrgScopedMutation(entityName, options = {}) {
 }
 
 /**
- * Hook for updating org-scoped entities
- * Verifies the entity belongs to the current org before updating (IDOR prevention)
+ * useOrgScopedUpdate - Update org-scoped entities (IDOR-safe)
  */
 export function useOrgScopedUpdate(entityName, options = {}) {
   const { orgId } = useOrgId();
@@ -230,24 +111,20 @@ export function useOrgScopedUpdate(entityName, options = {}) {
 
   return useMutation({
     mutationFn: async ({ id, data }) => {
-      if (!orgId) {
-        throw new Error('No organization context');
-      }
+      if (!orgId) throw new Error('No organization context');
       
       // SECURITY: Verify record belongs to current org (IDOR prevention)
       const records = await base44.entities[entityName].filter({ id });
-      if (records.length === 0) {
-        throw new Error('Record not found');
-      }
+      if (records.length === 0) throw new Error('Record not found');
+      
       const record = records[0];
       if (record.org_id && record.org_id !== orgId) {
-        console.error(`IDOR attempt blocked: user org ${orgId} tried to update record from org ${record.org_id}`);
+        console.error(`IDOR blocked: org ${orgId} attempted update on org ${record.org_id}`);
         throw new Error('Access denied');
       }
       
-      // Never allow changing org_id, id, or system fields via update
+      // Never allow changing org_id or system fields
       const { org_id: _, id: __, created_by, created_date, ...safeData } = data;
-      
       return base44.entities[entityName].update(id, safeData);
     },
     onSuccess: (data) => {
@@ -260,8 +137,7 @@ export function useOrgScopedUpdate(entityName, options = {}) {
 }
 
 /**
- * Hook for deleting (soft-delete) org-scoped entities
- * Verifies the entity belongs to the current org before deleting (IDOR prevention)
+ * useOrgScopedDelete - Soft-delete org-scoped entities (IDOR-safe)
  */
 export function useOrgScopedDelete(entityName, options = {}) {
   const { orgId } = useOrgId();
@@ -269,22 +145,18 @@ export function useOrgScopedDelete(entityName, options = {}) {
 
   return useMutation({
     mutationFn: async (id) => {
-      if (!orgId) {
-        throw new Error('No organization context');
-      }
+      if (!orgId) throw new Error('No organization context');
       
       // SECURITY: Verify record belongs to current org (IDOR prevention)
       const records = await base44.entities[entityName].filter({ id });
-      if (records.length === 0) {
-        throw new Error('Record not found');
-      }
+      if (records.length === 0) throw new Error('Record not found');
+      
       const record = records[0];
       if (record.org_id && record.org_id !== orgId) {
-        console.error(`IDOR attempt blocked: user org ${orgId} tried to delete record from org ${record.org_id}`);
+        console.error(`IDOR blocked: org ${orgId} attempted delete on org ${record.org_id}`);
         throw new Error('Access denied');
       }
       
-      // Soft delete by setting is_deleted = true
       return base44.entities[entityName].update(id, { is_deleted: true });
     },
     onSuccess: () => {

@@ -1,5 +1,5 @@
 /**
- * Get Audit Log - Retrieve audit events for compliance
+ * Get Audit Log - Retrieve audit trail for compliance
  */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
@@ -7,35 +7,43 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
-    const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
-    if (memberships.length === 0) return Response.json({ error: 'No organization' }, { status: 403 });
-    const orgId = memberships[0].org_id;
+    const resolveResponse = await base44.functions.invoke('resolveOrgId', { auto_create: false });
+    const orgData = resolveResponse.data;
+    if (!orgData.ok) return Response.json({ ok: false, error: 'No organization' }, { status: 403 });
+    const orgId = orgData.org_id;
+
+    // Only admin can view full audit log
+    if (!['admin', 'owner'].includes(orgData.membership_role)) {
+      return Response.json({ ok: false, error: 'Admin access required' }, { status: 403 });
+    }
 
     const body = await req.json().catch(() => ({}));
-    const { entity_type, entity_id, user_email, limit = 50, offset = 0 } = body;
+    const { entity_type, entity_id, limit = 100 } = body;
 
-    // Build filter
-    const filter = { org_id: orgId };
-    if (entity_type) filter.entity_type = entity_type;
-    if (entity_id) filter.entity_id = entity_id;
-    if (user_email) filter.user_email = user_email;
+    let filters = { org_id: orgId };
+    if (entity_type) filters.entity_type = entity_type;
+    if (entity_id) filters.entity_id = entity_id;
 
-    const auditLogs = await base44.entities.AuditLog.filter(filter);
-    
-    // Sort by date descending and paginate
-    const sorted = auditLogs.sort((a, b) => 
-      new Date(b.created_date) - new Date(a.created_date)
-    );
+    const logs = await base44.asServiceRole.entities.ActivityLog.filter(filters);
+    const sorted = logs.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, limit);
 
     return Response.json({
-      logs: sorted.slice(offset, offset + limit),
-      total: sorted.length,
-      limit,
-      offset,
+      ok: true,
+      logs: sorted.map(log => ({
+        id: log.id,
+        entity_type: log.entity_type,
+        entity_id: log.entity_id,
+        action: log.action,
+        user_email: log.user_email,
+        timestamp: log.created_date,
+        details: log.details_json,
+      })),
+      count: sorted.length,
     });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('getAuditLog error:', error);
+    return Response.json({ ok: false, error: error.message }, { status: 500 });
   }
 });
