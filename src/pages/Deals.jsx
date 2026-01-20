@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '../utils';
+import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,8 +36,18 @@ import { SkeletonTable } from '@/components/ui/skeleton-cards';
 import { EmptyLoans, EmptySearchResults } from '@/components/ui/empty-states';
 
 export default function Deals() {
+  const navigate = useNavigate();
+  const searchInputRef = useRef(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    'n': () => navigate(createPageUrl('NewDeal')),        // New deal
+    '/': () => searchInputRef.current?.focus(),           // Focus search
+    'p': () => navigate(createPageUrl('Pipeline')),       // Go to pipeline
+    'Escape': () => searchInputRef.current?.blur(),
+  });
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -156,7 +167,8 @@ export default function Deals() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
               <Input
-                placeholder="Search deals..."
+                ref={searchInputRef}
+                placeholder="Search deals... (Press /)"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,7 +43,15 @@ export default function Documents() {
   const [uploadData, setUploadData] = useState({ name: '', document_type: 'other' });
   const [selectedFile, setSelectedFile] = useState(null);
   const fileInputRef = useRef(null);
+  const searchInputRef = useRef(null);
   const queryClient = useQueryClient();
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    'u': () => setIsUploadOpen(true),              // Upload document
+    '/': () => searchInputRef.current?.focus(),    // Focus search
+    'Escape': () => { setIsUploadOpen(false); searchInputRef.current?.blur(); },
+  });
 
   const uploadMutation = useMutation({
     mutationFn: async () => {
@@ -143,7 +152,8 @@ export default function Documents() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
               <Input
-                placeholder="Search documents..."
+                ref={searchInputRef}
+                placeholder="Search documents... (Press /)"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"

@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useOrgId, useOrgScopedQuery } from '@/components/useOrgId';
+import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -82,6 +83,7 @@ function useDebounce(value, delay) {
 
 export default function Leads() {
   const queryClient = useQueryClient();
+  const searchInputRef = useRef(null);
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -90,6 +92,15 @@ export default function Leads() {
   const [viewMode, setViewMode] = useState('table'); // table, cards
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    'a': () => setIsAddOpen(true),                                    // Add lead (full form)
+    'q': () => setIsQuickAddOpen(true),                               // Quick add
+    '/': () => searchInputRef.current?.focus(),                       // Focus search
+    't': () => setViewMode(v => v === 'table' ? 'cards' : 'table'),   // Toggle view
+    'Escape': () => { setIsAddOpen(false); setIsQuickAddOpen(false); searchInputRef.current?.blur(); },
+  });
   const [editingLead, setEditingLead] = useState(null);
   const [quoteModalOpen, setQuoteModalOpen] = useState(false);
   const [quoteSelectedLead, setQuoteSelectedLead] = useState(null);
@@ -1075,7 +1086,8 @@ export default function Leads() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
           <Input
-            placeholder="Search by name, email, phone, city, or state..."
+            ref={searchInputRef}
+            placeholder="Search by name, email, phone, city, or state... (Press /)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 h-10"
