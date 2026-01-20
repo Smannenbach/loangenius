@@ -226,10 +226,46 @@ export default function AdminIntegrations() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {INTEGRATION_CATEGORIES[category].map(integration => {
                 const Icon = integration.icon;
-                const connected = integrations.some(
-                  i => i.integration_name === integration.name && i.status === 'connected'
-                );
                 const config = integrations.find(i => i.integration_name === integration.name);
+                const isConnected = config && ['connected', 'healthy'].includes(config.status);
+                const needsReconnect = config?.status === 'needs_reconnect';
+                const isUnhealthy = config?.status === 'unhealthy' || config?.status === 'error';
+
+                const getStatusBadge = () => {
+                  if (needsReconnect) {
+                    return (
+                      <Badge className="bg-amber-100 text-amber-800">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        Needs Reconnect
+                      </Badge>
+                    );
+                  }
+                  if (isUnhealthy) {
+                    return (
+                      <Badge className="bg-red-100 text-red-800">
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        Unhealthy
+                      </Badge>
+                    );
+                  }
+                  if (config?.status === 'healthy') {
+                    return (
+                      <Badge className="bg-green-100 text-green-800">
+                        <Check className="h-3 w-3 mr-1" />
+                        Healthy
+                      </Badge>
+                    );
+                  }
+                  if (isConnected) {
+                    return (
+                      <Badge className="bg-green-100 text-green-800">
+                        <Check className="h-3 w-3 mr-1" />
+                        Connected
+                      </Badge>
+                    );
+                  }
+                  return null;
+                };
 
                 return (
                   <Card key={integration.name}>
@@ -243,25 +279,32 @@ export default function AdminIntegrations() {
                           <p className="text-xs text-slate-500 mt-1">{integration.description}</p>
                         </div>
                       </div>
-                      {connected && (
-                        <Badge className="bg-green-100 text-green-800">
-                          <Check className="h-3 w-3 mr-1" />
-                          Connected
-                        </Badge>
-                      )}
+                      {getStatusBadge()}
                     </CardHeader>
 
                     <CardContent>
-                      {connected ? (
+                      {needsReconnect && (
+                        <Alert className="mb-3 bg-amber-50 border-amber-200">
+                          <AlertTriangle className="h-4 w-4 text-amber-600" />
+                          <AlertDescription className="text-amber-800 text-xs">
+                            Authentication expired or invalid. Please reconnect.
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                      
+                      {(isConnected || needsReconnect || isUnhealthy) && config ? (
                         <div className="space-y-3">
                           <div className="text-xs text-slate-500 space-y-1">
-                            {config?.connected_at && (
+                            {config.account_email && (
+                              <p>Account: {config.account_email}</p>
+                            )}
+                            {config.connected_at && (
                               <p>Connected: {new Date(config.connected_at).toLocaleDateString()}</p>
                             )}
-                            {config?.last_tested_at && (
+                            {config.last_tested_at && (
                               <p>Last tested: {new Date(config.last_tested_at).toLocaleString()}</p>
                             )}
-                            {config?.last_error && (
+                            {config.last_error && (
                               <p className="text-red-600 flex items-center gap-1">
                                 <AlertCircle className="h-3 w-3" />
                                 {config.last_error}
@@ -269,34 +312,80 @@ export default function AdminIntegrations() {
                             )}
                           </div>
                           <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleTest(integration.name)}
-                              disabled={testingId === integration.name}
-                            >
-                              {testingId === integration.name ? (
-                                <>
-                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                  Testing...
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw className="h-3 w-3 mr-1" />
-                                  Test
-                                </>
-                              )}
-                            </Button>
+                            {needsReconnect ? (
+                              <Button
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => {
+                                  // Clear any existing input and show input for reconnect
+                                  setApiKeyInputs(prev => ({ ...prev, [integration.name]: '' }));
+                                }}
+                              >
+                                <RefreshCw className="h-3 w-3 mr-1" />
+                                Reconnect
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleTest(integration.name)}
+                                disabled={testingId === integration.name}
+                              >
+                                {testingId === integration.name ? (
+                                  <>
+                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                    Testing...
+                                  </>
+                                ) : (
+                                  <>
+                                    <RefreshCw className="h-3 w-3 mr-1" />
+                                    Test
+                                  </>
+                                )}
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="destructive"
-                              onClick={() => disconnectMutation.mutate(config.id)}
+                              onClick={() => disconnectMutation.mutate(integration.name)}
                               disabled={disconnectMutation.isPending}
                             >
                               <Trash2 className="h-3 w-3 mr-1" />
                               Disconnect
                             </Button>
                           </div>
+                          
+                          {/* Show reconnect input if needs_reconnect and user clicked Reconnect */}
+                          {needsReconnect && apiKeyInputs[integration.name] !== undefined && integration.requiresApiKey && (
+                            <div className="pt-2 border-t space-y-2">
+                              <Input
+                                type="password"
+                                placeholder="Enter new API Key"
+                                value={apiKeyInputs[integration.name] || ''}
+                                onChange={(e) =>
+                                  setApiKeyInputs(prev => ({
+                                    ...prev,
+                                    [integration.name]: e.target.value
+                                  }))
+                                }
+                              />
+                              <Button
+                                size="sm"
+                                className="w-full"
+                                onClick={() => handleConnect(integration.name, true)}
+                                disabled={connectingId === integration.name || !apiKeyInputs[integration.name]}
+                              >
+                                {connectingId === integration.name ? (
+                                  <>
+                                    <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                                    Reconnecting...
+                                  </>
+                                ) : (
+                                  'Save New Credentials'
+                                )}
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="space-y-3">
