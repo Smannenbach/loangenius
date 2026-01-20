@@ -25,7 +25,12 @@ Deno.serve(async (req) => {
     }
 
     // Get the provider config
-    const provider = await base44.asServiceRole.entities.AIProvider.get(provider_id);
+    let provider;
+    try {
+      provider = await base44.asServiceRole.entities.AIProvider.get(provider_id);
+    } catch (e) {
+      return Response.json({ error: 'Provider not found' }, { status: 404 });
+    }
     
     if (!provider) {
       return Response.json({ error: 'Provider not found' }, { status: 404 });
