@@ -189,6 +189,9 @@ export function useOrgScopedQuery(entityName, additionalFilters = {}, options = 
 /**
  * Hook for creating org-scoped entities
  * Automatically adds org_id to created records
+ * 
+ * CRITICAL: Always uses the canonical orgId from useOrgId hook.
+ * Never accepts org_id from external sources.
  */
 export function useOrgScopedMutation(entityName, options = {}) {
   const { orgId } = useOrgId();
@@ -196,18 +199,73 @@ export function useOrgScopedMutation(entityName, options = {}) {
 
   return useMutation({
     mutationFn: async (data) => {
-      if (!orgId) throw new Error('No organization found. Please refresh the page.');
+      if (!orgId) {
+        throw new Error('No organization found. Please refresh the page and try again.');
+      }
       
+      // Always set org_id from the canonical resolver, never from input data
       const dataWithOrg = {
         ...data,
-        org_id: orgId
+        org_id: orgId  // This MUST come from useOrgId, never from user input
       };
       
       return base44.entities[entityName].create(dataWithOrg);
     },
     onSuccess: (data) => {
+      // Invalidate the specific entity query for this org
       queryClient.invalidateQueries({ queryKey: [entityName, 'org', orgId] });
       options.onSuccess?.(data);
+    },
+    onError: options.onError
+  });
+}
+
+/**
+ * Hook for updating org-scoped entities
+ * Verifies the entity belongs to the current org before updating
+ */
+export function useOrgScopedUpdate(entityName, options = {}) {
+  const { orgId } = useOrgId();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }) => {
+      if (!orgId) {
+        throw new Error('No organization found. Please refresh the page.');
+      }
+      
+      // Never allow changing org_id via update
+      const { org_id: _, ...safeData } = data;
+      
+      return base44.entities[entityName].update(id, safeData);
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [entityName, 'org', orgId] });
+      options.onSuccess?.(data);
+    },
+    onError: options.onError
+  });
+}
+
+/**
+ * Hook for deleting (soft-delete) org-scoped entities
+ */
+export function useOrgScopedDelete(entityName, options = {}) {
+  const { orgId } = useOrgId();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id) => {
+      if (!orgId) {
+        throw new Error('No organization found. Please refresh the page.');
+      }
+      
+      // Soft delete by setting is_deleted = true
+      return base44.entities[entityName].update(id, { is_deleted: true });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [entityName, 'org', orgId] });
+      options.onSuccess?.();
     },
     onError: options.onError
   });
