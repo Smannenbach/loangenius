@@ -1,5 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { z } from 'zod';
 import { base44 } from '@/api/base44Client';
 import { useOrgId, useOrgScopedQuery } from '@/components/useOrgId';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,42 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, TrendingUp, Users, FileText, DollarSign, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+
+// Zod schemas for API response validation
+const ActivitySchema = z.object({
+  id: z.string().optional(),
+  type: z.string().optional(),
+  timestamp: z.string().optional(),
+  description: z.string().optional(),
+  deal_id: z.string().optional(),
+}).passthrough();
+
+const DashboardActivityResponseSchema = z.object({
+  data: z.object({
+    activities: z.array(ActivitySchema).default([]),
+  }).default({ activities: [] }),
+}).passthrough();
+
+const DashboardKPIResponseSchema = z.object({
+  data: z.object({
+    kpis: z.object({
+      deals: z.record(z.unknown()).default({}),
+      leads: z.record(z.unknown()).default({}),
+    }).default({ deals: {}, leads: {} }),
+    recentActivities: z.array(ActivitySchema).optional(),
+  }).default({ kpis: { deals: {}, leads: {} } }),
+}).passthrough();
+
+const AttentionDealsResponseSchema = z.object({
+  data: z.object({
+    deals: z.array(z.object({
+      id: z.string(),
+      deal_number: z.string().optional(),
+      loan_amount: z.number().optional(),
+      stage: z.string().optional(),
+    }).passthrough()).default([]),
+  }).default({ deals: [] }),
+}).passthrough();
 
 import KPICard from '../components/dashboard/KPICard';
 import PipelineChart from '../components/dashboard/PipelineChart';
@@ -26,8 +63,10 @@ export default function Dashboard() {
     queryKey: ['dashboardKPIs', orgId],
     queryFn: async () => {
       try {
-        return await base44.functions.invoke('getDashboardKPIs', { org_id: orgId, period: 'month' });
+        const result = await base44.functions.invoke('getDashboardKPIs', { org_id: orgId, period: 'month' });
+        return DashboardKPIResponseSchema.parse(result);
       } catch (e) {
+        console.warn('KPI fetch/validation failed:', e);
         return { data: { kpis: { deals: {}, leads: {} } } };
       }
     },
@@ -38,8 +77,10 @@ export default function Dashboard() {
     queryKey: ['dashboardActivity', orgId],
     queryFn: async () => {
       try {
-        return await base44.functions.invoke('getDashboardActivity', { org_id: orgId, limit: 10 });
+        const result = await base44.functions.invoke('getDashboardActivity', { org_id: orgId, limit: 10 });
+        return DashboardActivityResponseSchema.parse(result);
       } catch (e) {
+        console.warn('Activity fetch/validation failed:', e);
         return { data: { activities: [] } };
       }
     },
@@ -50,8 +91,10 @@ export default function Dashboard() {
     queryKey: ['dealsNeedingAttention', orgId],
     queryFn: async () => {
       try {
-        return await base44.functions.invoke('getDealsNeedingAttention', { org_id: orgId, limit: 5 });
+        const result = await base44.functions.invoke('getDealsNeedingAttention', { org_id: orgId, limit: 5 });
+        return AttentionDealsResponseSchema.parse(result);
       } catch (e) {
+        console.warn('Attention deals fetch/validation failed:', e);
         return { data: { deals: [] } };
       }
     },
