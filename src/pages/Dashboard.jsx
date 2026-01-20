@@ -50,6 +50,7 @@ import PipelineChart from '../components/dashboard/PipelineChart';
 import ActivityFeed from '../components/dashboard/ActivityFeed';
 import AttentionDeals from '../components/dashboard/AttentionDeals';
 import MyTasksWidget from '@/components/dashboard/MyTasksWidget';
+import { SkeletonStats } from '@/components/ui/skeleton-cards';
 
 export default function Dashboard() {
   // Use canonical org resolver - handles user, memberships, and auto-creation
@@ -122,10 +123,19 @@ export default function Dashboard() {
   const isLoading = orgLoading || (kpisLoading && deals.length === 0 && leads.length === 0);
   if (isLoading) {
     return (
-      <div className="p-6 bg-gray-50 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
+      <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-2" />
+            <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+          </div>
+          <div className="h-10 w-28 bg-gray-200 rounded animate-pulse" />
+        </div>
+        <SkeletonStats count={4} />
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => (
+            <div key={i} className="h-24 bg-gray-200 rounded-lg animate-pulse" />
+          ))}
         </div>
       </div>
     );
