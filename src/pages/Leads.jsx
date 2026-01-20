@@ -80,6 +80,20 @@ function useDebounce(value, delay) {
 
   return debouncedValue;
 }
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2 } from 'lucide-react';
+import { SkeletonTable } from '@/components/ui/skeleton-cards';
+import { EmptyLeads, EmptySearchResults } from '@/components/ui/empty-states';
+import { LeadStatusBadge } from '@/components/ui/status-badge';
 
 export default function Leads() {
   const queryClient = useQueryClient();
@@ -105,6 +119,7 @@ export default function Leads() {
   const [quoteModalOpen, setQuoteModalOpen] = useState(false);
   const [quoteSelectedLead, setQuoteSelectedLead] = useState(null);
   const [selectedLeads, setSelectedLeads] = useState(new Set());
+  const [deleteConfirmLead, setDeleteConfirmLead] = useState(null);
   const [newLead, setNewLead] = useState({
     first_name: '',
     last_name: '',
@@ -1147,12 +1162,7 @@ export default function Leads() {
       </div>
 
       {/* Loading State */}
-      {isLoading && (
-        <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-          <div className="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading leads...</p>
-        </div>
-      )}
+      {isLoading && <SkeletonTable rows={8} cols={7} />}
 
       {/* Error State */}
       {error && !isLoading && (
@@ -1164,21 +1174,7 @@ export default function Leads() {
 
       {/* Empty State */}
       {!isLoading && !error && leads.length === 0 && (
-        <Card className="p-8 text-center">
-          <TrendingUp className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">No leads yet</h3>
-          <p className="text-gray-500 mb-4">Start building your pipeline by adding leads</p>
-          <div className="flex gap-3 justify-center">
-            <Button onClick={() => setIsQuickAddOpen(true)} className="bg-blue-600 hover:bg-blue-500 gap-2">
-              <Plus className="h-4 w-4" />
-              Quick Add Lead
-            </Button>
-            <LeadImportWizard 
-              trigger={<Button variant="outline" className="gap-2"><Upload className="h-4 w-4" />Import Leads</Button>}
-              onImportComplete={() => queryClient.invalidateQueries({ queryKey: ['Lead', 'org'] })} 
-            />
-          </div>
-        </Card>
+        <EmptyLeads onAction={() => setIsQuickAddOpen(true)} />
       )}
 
       {/* View Mode */}
@@ -1198,8 +1194,10 @@ export default function Leads() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredLeads.length === 0 ? (
-                  <tr><td colSpan="7" className="px-6 py-12 text-center text-gray-400"><AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" /><p>No leads match your filters</p></td></tr>
+                {filteredLeads.length === 0 && searchTerm ? (
+                  <tr><td colSpan="7" className="px-6 py-4"><EmptySearchResults query={searchTerm} onClear={() => setSearchTerm('')} /></td></tr>
+                ) : filteredLeads.length === 0 ? (
+                  <tr><td colSpan="7" className="px-6 py-4"><EmptyLeads onAction={() => setIsQuickAddOpen(true)} /></td></tr>
                 ) : (
                   filteredLeads.map((lead) => (
                     <tr key={lead.id} className="hover:bg-blue-50 transition-colors">
@@ -1210,7 +1208,7 @@ export default function Leads() {
                           {lead.mobile_phone && <div className="flex items-center gap-1 text-gray-600"><Phone className="h-3 w-3" />{lead.mobile_phone}</div>}
                         </div>
                       </td>
-                      <td className="px-6 py-4"><Badge className={getStatusColor(lead.status)}>{lead.status}</Badge></td>
+                      <td className="px-6 py-4"><LeadStatusBadge status={lead.status} /></td>
                       <td className="px-6 py-4 text-sm text-gray-600">{lead.loan_type}</td>
                       <td className="px-6 py-4 font-semibold text-gray-900">{lead.loan_amount ? `$${(lead.loan_amount / 1000).toFixed(0)}K` : '-'}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">{lead.property_city}, {lead.property_state}</td>
@@ -1253,6 +1251,9 @@ export default function Leads() {
                                   deleteLeadMutation.mutate(lead.id);
                                 }
                               }}
+                            <DropdownMenuItem 
+                              className="text-red-600" 
+                              onClick={() => setDeleteConfirmLead(lead)}
                             >Delete</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -1267,8 +1268,10 @@ export default function Leads() {
         </div>
       ) : !isLoading && !error && leads.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredLeads.length === 0 ? (
-            <div className="col-span-full text-center py-12 text-gray-400"><AlertCircle className="h-8 w-8 mx-auto mb-2" /><p>No leads match your filters</p></div>
+          {filteredLeads.length === 0 && searchTerm ? (
+            <div className="col-span-full"><EmptySearchResults query={searchTerm} onClear={() => setSearchTerm('')} /></div>
+          ) : filteredLeads.length === 0 ? (
+            <div className="col-span-full"><EmptyLeads onAction={() => setIsQuickAddOpen(true)} /></div>
           ) : (
             filteredLeads.map((lead) => (
               <Card key={lead.id} className="border-gray-200 hover:shadow-lg hover:border-blue-300 transition-all">
@@ -1311,6 +1314,28 @@ export default function Leads() {
 
       {/* Confirmation Dialog */}
       {ConfirmDialogComponent}
+      <AlertDialog open={!!deleteConfirmLead} onOpenChange={() => setDeleteConfirmLead(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Lead</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {deleteConfirmLead?.first_name} {deleteConfirmLead?.last_name}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                deleteLeadMutation.mutate(deleteConfirmLead.id);
+                setDeleteConfirmLead(null);
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

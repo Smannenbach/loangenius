@@ -7,11 +7,24 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BookOpen, Plus, Search, Edit, Trash2, FileText, Tag } from 'lucide-react';
 import { toast } from 'sonner';
+import AddKnowledgeItemModal from '@/components/knowledge/AddKnowledgeItemModal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function AgentKnowledgeBase() {
   const [searchTerm, setSearchTerm] = useState('');
-
-  const knowledgeItems = [
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [deletingItem, setDeletingItem] = useState(null);
+  const [items, setItems] = useState([
     { 
       id: 1, 
       title: 'DSCR Calculation Standards', 
@@ -44,16 +57,31 @@ export default function AgentKnowledgeBase() {
       content: 'All MISMO 3.4 exports must include proper AssetBase types, borrower demographics, and property details. Use OWNED_PROPERTY for subject property.',
       lastUpdated: '2026-01-12'
     },
-  ];
+  ]);
 
-  const filteredItems = knowledgeItems.filter(item =>
+  const handleAddItem = async (newItem) => {
+    setItems([...items, newItem]);
+  };
+
+  const handleEdit = (item) => {
+    setEditingItem(item);
+    setShowAddModal(true);
+  };
+
+  const handleDelete = (itemId) => {
+    setItems(items.filter(i => i.id !== itemId));
+    setDeletingItem(null);
+    toast.success('Knowledge item deleted');
+  };
+
+  const filteredItems = items.filter(item =>
     !searchTerm || 
     item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const categories = [...new Set(knowledgeItems.map(i => i.category))];
+  const categories = [...new Set(items.map(i => i.category))];
 
   return (
     <div className="p-6 lg:p-8">
@@ -65,7 +93,13 @@ export default function AgentKnowledgeBase() {
           </h1>
           <p className="text-gray-500 mt-1">Manage training data and knowledge for AI agents</p>
         </div>
-        <Button className="bg-purple-600 hover:bg-purple-700 gap-2">
+        <Button 
+          className="bg-purple-600 hover:bg-purple-700 gap-2"
+          onClick={() => {
+            setEditingItem(null);
+            setShowAddModal(true);
+          }}
+        >
           <Plus className="h-4 w-4" />
           Add Knowledge Item
         </Button>
@@ -88,10 +122,10 @@ export default function AgentKnowledgeBase() {
 
       <Tabs defaultValue="all">
         <TabsList className="mb-6">
-          <TabsTrigger value="all">All Items ({knowledgeItems.length})</TabsTrigger>
+          <TabsTrigger value="all">All Items ({items.length})</TabsTrigger>
           {categories.map(cat => (
             <TabsTrigger key={cat} value={cat}>
-              {cat} ({knowledgeItems.filter(i => i.category === cat).length})
+              {cat} ({items.filter(i => i.category === cat).length})
             </TabsTrigger>
           ))}
         </TabsList>
@@ -122,10 +156,10 @@ export default function AgentKnowledgeBase() {
                       </div>
                     </div>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => toast.info('Edit functionality coming soon')}>
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
                         <Edit className="h-4 w-4 text-gray-400" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => toast.info('Delete functionality coming soon')}>
+                      <Button variant="ghost" size="icon" onClick={() => setDeletingItem(item.id)}>
                         <Trash2 className="h-4 w-4 text-gray-400" />
                       </Button>
                     </div>
@@ -142,7 +176,7 @@ export default function AgentKnowledgeBase() {
 
         {categories.map(category => (
           <TabsContent key={category} value={category} className="space-y-4">
-            {knowledgeItems.filter(i => i.category === category).map(item => (
+            {items.filter(i => i.category === category).map(item => (
               <Card key={item.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <CardTitle className="text-lg">{item.title}</CardTitle>
@@ -163,6 +197,32 @@ export default function AgentKnowledgeBase() {
           </TabsContent>
         ))}
       </Tabs>
+
+      <AddKnowledgeItemModal
+        open={showAddModal}
+        onOpenChange={setShowAddModal}
+        onAdd={handleAddItem}
+      />
+
+      <AlertDialog open={!!deletingItem} onOpenChange={() => setDeletingItem(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Knowledge Item</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this knowledge item? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleDelete(deletingItem)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

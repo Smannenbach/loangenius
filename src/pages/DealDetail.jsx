@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MISMOExportPanel from '@/components/deal-detail/MISMOExportPanel';
 import MISMOImportPanel from '@/components/deal-detail/MISMOImportPanel';
+import UnderwritingTab from '@/components/deal-detail/UnderwritingTab';
 import CommunicationsTab from "../components/deal-detail/CommunicationsTab";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -47,7 +48,15 @@ import DocumentGenerator from '@/components/documents/DocumentGenerator';
 import SmartDocumentReview from '@/components/documents/SmartDocumentReview';
 import LenderSyncPanel from '@/components/lender/LenderSyncPanel';
 import LenderOutreachPanel from '@/components/deal-detail/LenderOutreachPanel';
+import LenderSubmissionsPanel from '@/components/deal-detail/LenderSubmissionsPanel';
 import OfferLetterGenerator from '@/components/deal-detail/OfferLetterGenerator';
+import ExportDealPDFModal from '@/components/deal-detail/ExportDealPDFModal';
+import UploadDocumentModal from '@/components/deal-detail/UploadDocumentModal';
+import AddConditionModal from '@/components/deal-detail/AddConditionModal';
+import SendForSignatureModal from '@/components/deal-detail/SendForSignatureModal';
+import EnvelopeStatusCard from '@/components/deal-detail/EnvelopeStatusCard';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { FileSignature } from 'lucide-react';
 
 export default function DealDetail() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -56,6 +65,10 @@ export default function DealDetail() {
   const [showPortalInviteModal, setShowPortalInviteModal] = useState(false);
   const [showSubmitToLenderModal, setShowSubmitToLenderModal] = useState(false);
   const [selectedBorrower, setSelectedBorrower] = useState(null);
+  const [showExportPDFModal, setShowExportPDFModal] = useState(false);
+  const [showUploadDocModal, setShowUploadDocModal] = useState(false);
+  const [showAddConditionModal, setShowAddConditionModal] = useState(false);
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
 
   const { data: deal, isLoading: dealLoading, error: dealError } = useQuery({
     queryKey: ['deal', dealId],
@@ -242,8 +255,25 @@ export default function DealDetail() {
     return (
       <div className="p-6 lg:p-8">
         <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded w-64" />
-          <div className="h-48 bg-gray-200 rounded" />
+          <div className="flex items-center gap-2 mb-4">
+            <div className="h-4 w-4 bg-gray-200 rounded" />
+            <div className="h-4 bg-gray-200 rounded w-24" />
+          </div>
+          <div className="flex justify-between items-start">
+            <div>
+              <div className="h-8 bg-gray-200 rounded w-48 mb-2" />
+              <div className="h-4 bg-gray-200 rounded w-32" />
+            </div>
+            <div className="flex gap-2">
+              <div className="h-10 bg-gray-200 rounded w-24" />
+              <div className="h-10 bg-gray-200 rounded w-24" />
+              <div className="h-10 bg-gray-200 rounded w-32" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="h-48 bg-gray-200 rounded-lg" />
+            <div className="h-48 bg-gray-200 rounded-lg" />
+          </div>
         </div>
       </div>
     );
@@ -316,7 +346,7 @@ export default function DealDetail() {
             <Button 
               variant="outline" 
               className="gap-2"
-              onClick={() => toast.info('PDF export coming soon')}
+              onClick={() => setShowExportPDFModal(true)}
               data-testid="cta:DealDetail:ExportPDF"
             >
               <Download className="h-4 w-4" />
@@ -327,6 +357,15 @@ export default function DealDetail() {
                 <Edit className="h-4 w-4" />
                 Edit
               </Link>
+            </Button>
+            <Button 
+              variant="outline"
+              className="gap-2"
+              onClick={() => setShowSignatureModal(true)}
+              data-testid="cta:DealDetail:SendForSignature"
+            >
+              <FileSignature className="h-4 w-4" />
+              Send for Signature
             </Button>
             <Button 
               className="gap-2 bg-green-600 hover:bg-green-700"
@@ -354,7 +393,7 @@ export default function DealDetail() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview">
-        <TabsList className="mb-6">
+        <TabsList className="mb-6 flex-wrap">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="borrowers">Borrowers</TabsTrigger>
           <TabsTrigger value="property">Property</TabsTrigger>
@@ -364,9 +403,10 @@ export default function DealDetail() {
           <TabsTrigger value="conditions">Conditions ({conditions.length})</TabsTrigger>
           <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
-          <TabsTrigger value="lenders">Lender Outreach</TabsTrigger>
+          <TabsTrigger value="lenders">Lenders</TabsTrigger>
+          <TabsTrigger value="underwriting">Underwriting</TabsTrigger>
           <TabsTrigger value="portal">Portal</TabsTrigger>
-          <TabsTrigger value="mismo">MISMO Export</TabsTrigger>
+          <TabsTrigger value="mismo">MISMO</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -458,18 +498,28 @@ export default function DealDetail() {
 
         <TabsContent value="documents">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-6">
               <Card className="border-gray-200">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-lg">Documents</CardTitle>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => toast.info('Document upload coming soon')}
-                    data-testid="cta:DealDetail:UploadDocument"
-                  >
-                    Upload Document
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowSignatureModal(true)}
+                    >
+                      <FileSignature className="h-4 w-4 mr-2" />
+                      Send for Signature
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowUploadDocModal(true)}
+                      data-testid="cta:DealDetail:UploadDocument"
+                    >
+                      Upload Document
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {documents.length === 0 ? (
@@ -499,6 +549,7 @@ export default function DealDetail() {
               </Card>
             </div>
             <div className="space-y-4">
+              <EnvelopeStatusCard dealId={dealId} />
               <DocumentGenerator dealId={dealId} deal={deal} />
               <SmartDocumentReview dealId={dealId} />
             </div>
@@ -512,7 +563,7 @@ export default function DealDetail() {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => toast.info('Add condition coming soon')}
+                onClick={() => setShowAddConditionModal(true)}
                 data-testid="cta:DealDetail:AddCondition"
               >
                 Add Condition
@@ -687,8 +738,9 @@ export default function DealDetail() {
 
         <TabsContent value="lenders">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-6">
               <LenderOutreachPanel dealId={dealId} deal={deal} />
+              <LenderSubmissionsPanel dealId={dealId} orgId={deal?.org_id} />
             </div>
             <LenderSyncPanel dealId={dealId} orgId={deal?.org_id} />
           </div>
@@ -733,7 +785,7 @@ export default function DealDetail() {
                       <Button 
                         size="sm" 
                         variant="outline"
-                        onClick={() => toast.info('Portal preview coming soon')}
+                        onClick={() => window.open(createPageUrl(`BorrowerPortalHome?deal_id=${dealId}`), '_blank')}
                       >
                         <Eye className="h-4 w-4 mr-2" />
                         Preview
@@ -781,8 +833,15 @@ export default function DealDetail() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="underwriting">
+          <UnderwritingTab dealId={dealId} deal={deal} />
+        </TabsContent>
+
         <TabsContent value="mismo">
-          <MISMOExportPanel dealId={dealId} />
+          <div className="space-y-6">
+            <MISMOExportPanel dealId={dealId} />
+            <MISMOImportPanel dealId={dealId} />
+          </div>
         </TabsContent>
       </Tabs>
 
@@ -834,6 +893,42 @@ export default function DealDetail() {
         open={showSubmitToLenderModal}
         onOpenChange={setShowSubmitToLenderModal}
       />
+
+      <ExportDealPDFModal
+        dealId={dealId}
+        deal={deal}
+        open={showExportPDFModal}
+        onOpenChange={setShowExportPDFModal}
+      />
+
+      <UploadDocumentModal
+        dealId={dealId}
+        orgId={deal.org_id}
+        open={showUploadDocModal}
+        onOpenChange={setShowUploadDocModal}
+      />
+
+      <AddConditionModal
+        dealId={dealId}
+        orgId={deal.org_id}
+        open={showAddConditionModal}
+        onOpenChange={setShowAddConditionModal}
+      />
+
+      <Dialog open={showSignatureModal} onOpenChange={setShowSignatureModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSignature className="h-5 w-5 text-blue-600" />
+              Send Documents for Signature
+            </DialogTitle>
+          </DialogHeader>
+          <SendForSignatureModal 
+            dealId={dealId} 
+            onClose={() => setShowSignatureModal(false)} 
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

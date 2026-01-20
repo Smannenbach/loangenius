@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from './utils';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
+import { useTenantSafe } from '@/components/useBranding';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Toaster } from "@/components/ui/sonner";
@@ -54,6 +55,7 @@ import {
         Zap,
         CheckCircle,
         Globe,
+        Palette,
 } from 'lucide-react';
 
 const scrollbarStyles = `
@@ -69,6 +71,10 @@ const scrollbarStyles = `
   }
   .sidebar-scroll::-webkit-scrollbar-thumb:hover {
     background-color: #64748b;
+  }
+  .sidebar-nav-container {
+    scrollbar-width: thin;
+    scrollbar-color: #475569 transparent;
   }
 `;
 
@@ -87,6 +93,8 @@ export default function Layout({ children, currentPageName }) {
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
   });
+
+  const { branding, tenant_name, features } = useTenantSafe();
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -112,7 +120,7 @@ export default function Layout({ children, currentPageName }) {
       { name: 'Quote Generator', href: '/QuoteGenerator', icon: FileOutput },
       { name: 'AI Hub', href: '/AIAssistant', icon: Bot },
       { name: 'Doc Intelligence', href: '/DocumentIntelligenceHub', icon: Sparkles },
-      { name: 'Communications', href: '/Communications', icon: Mail },
+      { name: 'Conversations', href: '/Conversations', icon: Mail },
       { name: 'Email Sequences', href: '/EmailSequences', icon: Zap },
       { name: 'Reports', href: '/Reports', icon: FileText },
     ];
@@ -127,9 +135,11 @@ export default function Layout({ children, currentPageName }) {
   const adminNav = [
     { name: 'Users & Permissions', href: '/Users', icon: Users },
     { name: 'Lender Partners', href: '/LenderIntegrations', icon: Building },
+    { name: 'Custom Domains', href: '/TenantDomains', icon: Globe },
+    { name: 'Branding', href: '/TenantBrandingSettings', icon: Palette },
     { name: 'Borrower Portal', href: '/PortalSettings', icon: Globe },
-    { name: 'System Health', href: '/SystemHealth', icon: Zap },
-    { name: 'Preflight', href: '/Preflight', icon: Rocket },
+    { name: 'Diagnostics', href: '/SystemDiagnostics', icon: Zap },
+      { name: 'Billing', href: '/AdminBilling', icon: Building },
     { name: 'Underwriting', href: '/Underwriting', icon: Scale },
     { name: 'Compliance', href: '/ComplianceDashboard', icon: CheckCircle },
     { name: 'MISMO Profiles', href: '/MISMOExportProfiles', icon: FileOutput },
@@ -138,11 +148,10 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Integrations', href: '/AdminIntegrations', icon: Zap },
     { name: 'Settings', href: '/Settings', icon: Settings },
     // Internal/testing pages only in dev mode
-    ...(showInternalPages ? [
-      { name: 'Smoke Tests', href: '/SmokeTests', icon: Sparkles },
-      { name: 'Testing Hub', href: '/TestingHub', icon: Sparkles },
-      { name: 'QA Audit', href: '/QAAudit', icon: Search },
-    ] : []),
+        ...(showInternalPages ? [
+          { name: 'Smoke Tests', href: '/SmokeTests', icon: Sparkles },
+          { name: 'Testing Hub', href: '/TestingHub', icon: Sparkles },
+        ] : []),
   ];
 
   const NavItem = ({ item, collapsed = false }) => {
@@ -235,20 +244,30 @@ export default function Layout({ children, currentPageName }) {
         <div className={`h-16 flex items-center border-b border-slate-700 ${isSidebarOpen ? 'px-4' : 'justify-center'}`}>
           {isSidebarOpen ? (
             <div className="flex items-center gap-2">
+              {branding?.logo_dark_url ? (
+                <img src={branding.logo_dark_url} alt={branding.app_name || tenant_name} className="h-8 object-contain" />
+              ) : (
+                <>
+                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                    <Building2 className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="font-bold text-lg text-white">{branding?.app_name || tenant_name || 'LoanGenius'}</span>
+                </>
+              )}
+            </div>
+          ) : (
+            branding?.logo_square_url ? (
+              <img src={branding.logo_square_url} alt="Logo" className="h-8 w-8 object-contain" />
+            ) : (
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                 <Building2 className="h-5 w-5 text-white" />
               </div>
-              <span className="font-bold text-lg text-white">LoanGenius</span>
-            </div>
-          ) : (
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-white" />
-            </div>
+            )
           )}
         </div>
 
-        {/* Navigation - scrollable */}
-        <nav className="flex-1 overflow-y-auto p-3 space-y-1 sidebar-scroll">
+        {/* Navigation - scrollable with smooth scroll */}
+        <nav className="flex-1 overflow-y-auto p-3 space-y-1 sidebar-scroll sidebar-nav-container" style={{ maxHeight: 'calc(100vh - 8rem)', scrollBehavior: 'smooth' }}>
           {/* Main Section */}
           <div className="space-y-1">
             <SectionHeader
@@ -415,7 +434,7 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-slate-800 border-b border-slate-700 z-20 flex items-center justify-between px-16">
-        <span className="font-bold text-white">LoanGenius</span>
+        <span className="font-bold text-white">{branding?.app_name || tenant_name || 'LoanGenius'}</span>
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

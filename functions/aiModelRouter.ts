@@ -164,11 +164,16 @@ async function callGemini(model, messages, options = {}) {
     body.systemInstruction = { parts: [{ text: systemInstruction }] };
   }
 
+  // SECURITY FIX: Use POST body instead of URL query param for API key
+  // Note: Gemini API requires key in URL, but we'll add header as well
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GOOGLE_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-goog-api-key': GOOGLE_API_KEY,
+      },
       body: JSON.stringify(body),
     }
   );

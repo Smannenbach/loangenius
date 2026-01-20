@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 export default function BorrowerPortalHome() {
   const [selectedTab, setSelectedTab] = useState('overview');
   const [dealId, setDealId] = useState(null);
+  const messageInputRef = useRef(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -244,18 +245,19 @@ export default function BorrowerPortalHome() {
                 
                 <div className="mt-6 pt-6 border-t">
                   <textarea
-                    id="message-input"
+                    ref={messageInputRef}
                     placeholder="Type a message..."
                     className="w-full p-3 border rounded-lg text-sm"
                     rows="3"
+                    aria-label="Message input"
                   />
                   <Button 
                     className="mt-3 bg-blue-600"
                     onClick={async () => {
-                      const messageInput = document.getElementById('message-input');
-                      const message = messageInput.value.trim();
+                      const message = messageInputRef.current?.value?.trim();
                       if (!message) {
                         toast.warning('Please enter a message');
+                        toast.error('Please enter a message');
                         return;
                       }
                       try {
@@ -265,6 +267,9 @@ export default function BorrowerPortalHome() {
                           message: message
                         });
                         messageInput.value = '';
+                        if (messageInputRef.current) {
+                          messageInputRef.current.value = '';
+                        }
                         toast.success('Message sent successfully!');
                       } catch (error) {
                         toast.error('Error sending message: ' + error.message);

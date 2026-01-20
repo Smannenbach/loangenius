@@ -1,5 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { z } from 'zod';
 import { base44 } from '@/api/base44Client';
 import { useOrgId, useOrgScopedQuery } from '@/components/useOrgId';
 import { Button } from '@/components/ui/button';
@@ -11,11 +12,48 @@ import { PageLoader } from '@/components/ui/skeleton-cards';
 import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
+// Zod schemas for API response validation
+const ActivitySchema = z.object({
+  id: z.string().optional(),
+  type: z.string().optional(),
+  timestamp: z.string().optional(),
+  description: z.string().optional(),
+  deal_id: z.string().optional(),
+}).passthrough();
+
+const DashboardActivityResponseSchema = z.object({
+  data: z.object({
+    activities: z.array(ActivitySchema).default([]),
+  }).default({ activities: [] }),
+}).passthrough();
+
+const DashboardKPIResponseSchema = z.object({
+  data: z.object({
+    kpis: z.object({
+      deals: z.record(z.unknown()).default({}),
+      leads: z.record(z.unknown()).default({}),
+    }).default({ deals: {}, leads: {} }),
+    recentActivities: z.array(ActivitySchema).optional(),
+  }).default({ kpis: { deals: {}, leads: {} } }),
+}).passthrough();
+
+const AttentionDealsResponseSchema = z.object({
+  data: z.object({
+    deals: z.array(z.object({
+      id: z.string(),
+      deal_number: z.string().optional(),
+      loan_amount: z.number().optional(),
+      stage: z.string().optional(),
+    }).passthrough()).default([]),
+  }).default({ deals: [] }),
+}).passthrough();
+
 import KPICard from '../components/dashboard/KPICard';
 import PipelineChart from '../components/dashboard/PipelineChart';
 import ActivityFeed from '../components/dashboard/ActivityFeed';
 import AttentionDeals from '../components/dashboard/AttentionDeals';
 import MyTasksWidget from '@/components/dashboard/MyTasksWidget';
+import { SkeletonStats } from '@/components/ui/skeleton-cards';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -41,8 +79,10 @@ export default function Dashboard() {
     queryKey: ['dashboardKPIs', orgId],
     queryFn: async () => {
       try {
-        return await base44.functions.invoke('getDashboardKPIs', { org_id: orgId, period: 'month' });
+        const result = await base44.functions.invoke('getDashboardKPIs', { org_id: orgId, period: 'month' });
+        return DashboardKPIResponseSchema.parse(result);
       } catch (e) {
+        console.warn('KPI fetch/validation failed:', e);
         return { data: { kpis: { deals: {}, leads: {} } } };
       }
     },
@@ -53,8 +93,10 @@ export default function Dashboard() {
     queryKey: ['dashboardActivity', orgId],
     queryFn: async () => {
       try {
-        return await base44.functions.invoke('getDashboardActivity', { org_id: orgId, limit: 10 });
+        const result = await base44.functions.invoke('getDashboardActivity', { org_id: orgId, limit: 10 });
+        return DashboardActivityResponseSchema.parse(result);
       } catch (e) {
+        console.warn('Activity fetch/validation failed:', e);
         return { data: { activities: [] } };
       }
     },
@@ -65,8 +107,10 @@ export default function Dashboard() {
     queryKey: ['dealsNeedingAttention', orgId],
     queryFn: async () => {
       try {
-        return await base44.functions.invoke('getDealsNeedingAttention', { org_id: orgId, limit: 5 });
+        const result = await base44.functions.invoke('getDealsNeedingAttention', { org_id: orgId, limit: 5 });
+        return AttentionDealsResponseSchema.parse(result);
       } catch (e) {
+        console.warn('Attention deals fetch/validation failed:', e);
         return { data: { deals: [] } };
       }
     },
@@ -94,6 +138,23 @@ export default function Dashboard() {
   const isLoading = orgLoading || (kpisLoading && deals.length === 0 && leads.length === 0);
   if (isLoading) {
     return <PageLoader message="Loading dashboard..." />;
+    return (
+      <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-2" />
+            <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+          </div>
+          <div className="h-10 w-28 bg-gray-200 rounded animate-pulse" />
+        </div>
+        <SkeletonStats count={4} />
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => (
+            <div key={i} className="h-24 bg-gray-200 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (

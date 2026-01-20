@@ -78,7 +78,6 @@ export default function MISMOValidator() {
       setConformanceReport(reportResponse.data?.report);
 
     } catch (error) {
-      console.error('Validation error:', error);
       setValidationResult({
         success: false,
         error: error.message
@@ -100,9 +99,13 @@ export default function MISMOValidator() {
       
       if (response.data?.success) {
         toast.success(`Hash: ${response.data.hash} (${response.data.content_length} bytes)`);
+        toast.info(`Content Hash: ${response.data.hash.substring(0, 32)}...`, {
+          description: `Length: ${response.data.content_length} bytes`,
+          duration: 5000
+        });
       }
     } catch (error) {
-      console.error('Hash computation error:', error);
+      toast.error('Hash computation failed');
     }
   };
 

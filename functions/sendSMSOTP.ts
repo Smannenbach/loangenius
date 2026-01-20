@@ -13,6 +13,11 @@ async function hashOTP(otp: string): Promise<string> {
 
 function generateOTP() {
   // Use cryptographically secure random number generation
+/**
+ * Generate cryptographically secure OTP
+ * Uses crypto.getRandomValues instead of Math.random for security
+ */
+function generateOTP() {
   const array = new Uint32Array(1);
   crypto.getRandomValues(array);
   return String(100000 + (array[0] % 900000));
@@ -48,6 +53,7 @@ Deno.serve(async (req) => {
     // In production, send via Twilio:
     // await sendSMSViaTwilio(phone, `Your LoanGenius verification code is: ${otp}`);
 
+    // SECURITY FIX: Never expose OTP in response - removed otp_for_testing
     return Response.json({
       success: true,
       message: 'OTP sent successfully',

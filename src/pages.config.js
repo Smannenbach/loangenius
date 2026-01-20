@@ -43,6 +43,7 @@ import DealMobile from './pages/DealMobile';
 import DealWizard from './pages/DealWizard';
 import Deals from './pages/Deals';
 import DocumentIntelligence from './pages/DocumentIntelligence';
+import DocumentIntelligenceHub from './pages/DocumentIntelligenceHub';
 import Documents from './pages/Documents';
 import EmailSequences from './pages/EmailSequences';
 import ErrorTest from './pages/ErrorTest';
@@ -80,6 +81,8 @@ import SubmissionPrep from './pages/SubmissionPrep';
 import Subprocessors from './pages/Subprocessors';
 import SuperAdmin from './pages/SuperAdmin';
 import SystemHealth from './pages/SystemHealth';
+import TenantBrandingSettings from './pages/TenantBrandingSettings';
+import TenantDomains from './pages/TenantDomains';
 import TestingHub from './pages/TestingHub';
 import TestingValidationHub from './pages/TestingValidationHub';
 import Trust from './pages/Trust';
@@ -87,7 +90,8 @@ import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
-import DocumentIntelligenceHub from './pages/DocumentIntelligenceHub';
+import AdminBilling from './pages/AdminBilling';
+import SystemDiagnostics from './pages/SystemDiagnostics';
 import __Layout from './Layout.jsx';
 
 
@@ -137,6 +141,7 @@ export const PAGES = {
     "DealWizard": DealWizard,
     "Deals": Deals,
     "DocumentIntelligence": DocumentIntelligence,
+    "DocumentIntelligenceHub": DocumentIntelligenceHub,
     "Documents": Documents,
     "EmailSequences": EmailSequences,
     "ErrorTest": ErrorTest,
@@ -174,6 +179,8 @@ export const PAGES = {
     "Subprocessors": Subprocessors,
     "SuperAdmin": SuperAdmin,
     "SystemHealth": SystemHealth,
+    "TenantBrandingSettings": TenantBrandingSettings,
+    "TenantDomains": TenantDomains,
     "TestingHub": TestingHub,
     "TestingValidationHub": TestingValidationHub,
     "Trust": Trust,
@@ -181,7 +188,8 @@ export const PAGES = {
     "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
-    "DocumentIntelligenceHub": DocumentIntelligenceHub,
+    "AdminBilling": AdminBilling,
+    "SystemDiagnostics": SystemDiagnostics,
 }
 
 export const pagesConfig = {

@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 
 export default function PortalSettings() {
   const [copied, setCopied] = useState(false);
@@ -343,8 +345,10 @@ export default function PortalSettings() {
                 {['DSCR Purchase', 'DSCR Refinance', 'Cash-Out Refinance', 'Commercial Loan'].map((template) => (
                   <div key={template} className="flex items-center justify-between p-3 border rounded-lg">
                     <span className="font-medium">{template}</span>
-                    <Button size="sm" variant="outline" onClick={() => toast.success(`Template editor for ${template} coming soon`)}>
-                      Edit
+                    <Button size="sm" variant="outline" asChild>
+                      <Link to={createPageUrl(`DocumentTemplates?type=${encodeURIComponent(template)}`)}>
+                        Edit
+                      </Link>
                     </Button>
                   </div>
                 ))}

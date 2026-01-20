@@ -3,6 +3,10 @@
  */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
+/**
+ * Generate cryptographically secure OTP
+ * Uses crypto.getRandomValues instead of Math.random for security
+ */
 function generateOTP() {
   // Use cryptographically secure random number generation
   const array = new Uint32Array(1);

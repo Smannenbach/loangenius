@@ -1,10 +1,41 @@
 /**
  * Generate Term Sheet PDF from deal canonical snapshot
  * Shows loan terms, rate, fees, property, borrower summary
+ * Now includes organization branding
  */
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { jsPDF } from 'npm:jspdf@2.5.1';
+
+/**
+ * Fetch organization branding settings
+ */
+async function getOrgBranding(base44, orgId) {
+  try {
+    const settings = await base44.asServiceRole.entities.OrgSettings.filter({ org_id: orgId });
+    const orgSettings = settings[0] || {};
+    
+    return {
+      company_name: orgSettings.company_name || 'Your Company',
+      logo_url: orgSettings.logo_url || null,
+      nmls_id: orgSettings.nmls_id || '',
+      phone: orgSettings.phone || '',
+      address: orgSettings.address || '',
+      website: orgSettings.website || '',
+      primary_color: orgSettings.primary_color || '#2563eb',
+    };
+  } catch {
+    return {
+      company_name: 'Your Company',
+      logo_url: null,
+      nmls_id: '',
+      phone: '',
+      address: '',
+      website: '',
+      primary_color: '#2563eb',
+    };
+  }
+}
 
 Deno.serve(async (req) => {
   try {
@@ -29,6 +60,9 @@ Deno.serve(async (req) => {
 
     const deal = deals[0];
 
+    // Get organization branding
+    const branding = await getOrgBranding(base44, deal.org_id);
+
     const borrowers = await base44.asServiceRole.entities.DealBorrower.filter({
       deal_id
     });
@@ -43,12 +77,41 @@ Deno.serve(async (req) => {
 
     // Generate PDF
     const pdf = new jsPDF();
-    let yPos = 20;
+    let yPos = 15;
 
-    // Header
-    pdf.setFontSize(20);
-    pdf.text('LOAN TERM SHEET', 20, yPos);
-    yPos += 10;
+    // Branded Header
+    pdf.setFontSize(16);
+    pdf.setTextColor(37, 99, 235); // Blue
+    pdf.text(branding.company_name, 20, yPos);
+    
+    yPos += 5;
+    pdf.setFontSize(9);
+    pdf.setTextColor(100);
+    if (branding.nmls_id) {
+      pdf.text(`NMLS# ${branding.nmls_id}`, 20, yPos);
+      yPos += 4;
+    }
+    if (branding.address) {
+      pdf.text(branding.address, 20, yPos);
+      yPos += 4;
+    }
+    if (branding.phone) {
+      pdf.text(branding.phone, 20, yPos);
+      yPos += 4;
+    }
+    
+    yPos += 6;
+    
+    // Document Title
+    pdf.setFontSize(14);
+    pdf.setTextColor(0);
+    pdf.text('LOAN TERM SHEET', 105, yPos, { align: 'center' });
+    yPos += 4;
+    
+    // Separator line
+    pdf.setDrawColor(200);
+    pdf.line(20, yPos, 190, yPos);
+    yPos += 8;
 
     pdf.setFontSize(10);
     pdf.setTextColor(100);
@@ -158,14 +221,14 @@ Deno.serve(async (req) => {
 
     yPos += 15;
 
-    // Footer / Disclaimer
+    // Footer / Disclaimer with branding
     pdf.setFontSize(8);
     pdf.setTextColor(150);
     pdf.text(
-      'This Term Sheet is confidential and subject to completion of underwriting and appraisal. Not a binding commitment.',
-      20,
-      pdf.internal.pageSize.height - 15,
-      { maxWidth: 170 }
+      `${branding.company_name} | NMLS# ${branding.nmls_id || 'N/A'} | This Term Sheet is confidential and subject to completion of underwriting and appraisal. Not a binding commitment.`,
+      105,
+      pdf.internal.pageSize.height - 10,
+      { align: 'center', maxWidth: 170 }
     );
 
     const pdfBuffer = pdf.output('arraybuffer');

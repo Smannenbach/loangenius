@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { KPICardSkeleton, TableRowSkeleton } from '@/components/LoadingSkeletons';
+import { SkeletonStats, SkeletonTable, PageLoader } from '@/components/ui/skeleton-cards';
+import { DealStageBadge } from '@/components/ui/status-badge';
+import { EmptyLoans, EmptySearchResults } from '@/components/ui/empty-states';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import {
   Dialog,
@@ -128,12 +130,7 @@ export default function LoansPage() {
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
             {dealsLoading ? (
-              <>
-                <KPICardSkeleton />
-                <KPICardSkeleton />
-                <KPICardSkeleton />
-                <KPICardSkeleton />
-              </>
+              <SkeletonStats count={4} />
             ) : (
               <>
                 {/* KPIs */}
@@ -254,16 +251,25 @@ export default function LoansPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {dealsLoading ? (
-                    <>
-                      <TableRowSkeleton cols={8} />
-                      <TableRowSkeleton cols={8} />
-                      <TableRowSkeleton cols={8} />
-                    </>
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={i}>
+                        {Array.from({ length: 8 }).map((_, j) => (
+                          <td key={j} className="px-8 py-4">
+                            <div className="h-5 bg-slate-200 rounded animate-pulse w-20" />
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  ) : filteredLoans.length === 0 && searchTerm ? (
+                    <tr>
+                      <td colSpan="8" className="px-4 md:px-8 py-8">
+                        <EmptySearchResults query={searchTerm} onClear={() => setSearchTerm('')} />
+                      </td>
+                    </tr>
                   ) : filteredLoans.length === 0 ? (
                     <tr>
-                      <td colSpan="8" className="px-4 md:px-8 py-12 text-center">
-                        <MessageSquare className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                        <p className="text-slate-500 font-medium">No loans found matching your criteria</p>
+                      <td colSpan="8" className="px-4 md:px-8 py-8">
+                        <EmptyLoans onAction={() => window.location.href = createPageUrl('LoanApplicationWizard')} />
                       </td>
                     </tr>
                   ) : (
@@ -283,9 +289,7 @@ export default function LoansPage() {
                           ${(loan.loan_amount / 1000000).toFixed(2)}M
                         </td>
                         <td className="px-8 py-4">
-                          <Badge className={getStatusColor(loan.stage)}>
-                            {loan.stage?.replace(/_/g, ' ')}
-                          </Badge>
+                          <DealStageBadge stage={loan.stage} />
                         </td>
                         <td className="px-8 py-4 text-sm">
                           <div className="flex items-center gap-3">

@@ -23,7 +23,7 @@ import { Input } from '@/components/ui/input';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
-import { Users, Plus, Search, Filter } from 'lucide-react';
+import { Users, Plus, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -36,6 +36,8 @@ export default function Contacts() {
   const [contactType, setContactType] = useState('all');
   const [filterType, setFilterType] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortColumn, setSortColumn] = useState('created_date');
+  const [sortDirection, setSortDirection] = useState('desc');
 
   // Use canonical org resolver
   const { isLoading: orgLoading } = useOrgId();
@@ -60,6 +62,20 @@ export default function Contacts() {
       (filterType === 'entities' && c.contact_type === 'entity');
 
     return matchSearch && matchType && matchFilter;
+  }).sort((a, b) => {
+    const getValue = (contact, col) => {
+      if (col === 'name') return getContactName(contact).toLowerCase();
+      if (col === 'email') return (contact.email || '').toLowerCase();
+      if (col === 'type') return contact.contact_type || '';
+      if (col === 'created_date') return contact.created_date || '';
+      return '';
+    };
+    const aVal = getValue(a, sortColumn);
+    const bVal = getValue(b, sortColumn);
+    if (sortDirection === 'asc') {
+      return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+    }
+    return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
   });
 
   const getContactName = (contact) => {
@@ -72,6 +88,28 @@ export default function Contacts() {
     { label: 'Leads', value: 'leads' },
     { label: 'Entities', value: 'entities' },
   ];
+
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const SortIcon = ({ column }) => {
+    if (sortColumn !== column) return <ArrowUpDown className="h-3 w-3 text-gray-400" />;
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="h-3 w-3 text-blue-600" />
+      : <ArrowDown className="h-3 w-3 text-blue-600" />;
+  };
+
+  const ITEMS_PER_PAGE = 20;
+  const paginatedContacts = filtered.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -129,6 +167,9 @@ export default function Contacts() {
       </div>
 
       {/* Contacts Table */}
+      {isLoading ? (
+        <SkeletonTable rows={8} cols={6} />
+      ) : (
       <div className="bg-white rounded-lg shadow overflow-hidden">
         {isLoading ? (
           <SkeletonTable rows={8} cols={6} />
@@ -145,23 +186,52 @@ export default function Contacts() {
         <table className="w-full">
           <thead>
             <tr className="bg-gray-50 border-b">
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Name</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Contact</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Type</th>
+              <th 
+                className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('name')}
+              >
+                <div className="flex items-center gap-2">
+                  Name <SortIcon column="name" />
+                </div>
+              </th>
+              <th 
+                className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('email')}
+              >
+                <div className="flex items-center gap-2">
+                  Contact <SortIcon column="email" />
+                </div>
+              </th>
+              <th 
+                className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('type')}
+              >
+                <div className="flex items-center gap-2">
+                  Type <SortIcon column="type" />
+                </div>
+              </th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Assigned To</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y">
-            {filtered.length === 0 ? (
+            {filtered.length === 0 && searchTerm ? (
               <tr>
                 <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
                   No contacts match your filters. Try adjusting your search criteria.
+                <td colSpan="6" className="px-6 py-4">
+                  <EmptySearchResults query={searchTerm} onClear={() => setSearchTerm('')} />
+                </td>
+              </tr>
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="px-6 py-4">
+                  <EmptyContacts onAction={() => window.location.href = createPageUrl('ContactCreate')} />
                 </td>
               </tr>
             ) : (
-              filtered.map(contact => (
+              paginatedContacts.map(contact => (
                 <tr key={contact.id} className="hover:bg-gray-50 transition">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
@@ -205,29 +275,31 @@ export default function Contacts() {
             )}
           </tbody>
         </table>
-        )}
       </div>
+      )}
 
-      {/* Pagination */}
-      <div className="flex justify-center gap-4 mt-6">
-        <Button 
-          variant="outline" 
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-        >
-          Previous
-        </Button>
-        <span className="px-4 py-2 text-sm text-gray-600">
-          Page {currentPage}
-        </span>
-        <Button 
-          variant="outline"
-          onClick={() => setCurrentPage(p => p + 1)}
-          disabled={filtered.length < 20}
-        >
-          Next
-        </Button>
-      </div>
+      {/* Pagination - FIX: Proper pagination based on total pages */}
+      {filtered.length > 0 && (
+        <div className="flex justify-center gap-4 mt-6">
+          <Button 
+            variant="outline" 
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+          >
+            Previous
+          </Button>
+          <span className="px-4 py-2 text-sm text-gray-600">
+            Page {currentPage} of {Math.ceil(filtered.length / 20) || 1}
+          </span>
+          <Button 
+            variant="outline"
+            onClick={() => setCurrentPage(p => p + 1)}
+            disabled={currentPage >= Math.ceil(filtered.length / 20)}
+          >
+            Next
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

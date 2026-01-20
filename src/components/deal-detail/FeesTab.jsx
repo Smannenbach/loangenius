@@ -4,8 +4,19 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Plus, Edit2, Trash2 } from 'lucide-react';
+import { AlertCircle, Plus, Edit2, Trash2, DollarSign } from 'lucide-react';
 import AddFeeModal from './AddFeeModal';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const CD_SECTIONS = {
   A: 'Origination Charges',
@@ -19,6 +30,7 @@ const CD_SECTIONS = {
 export default function FeesTab({ dealId, deal }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingFee, setEditingFee] = useState(null);
+  const [deleteConfirmFee, setDeleteConfirmFee] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: fees = [] } = useQuery({
@@ -35,8 +47,23 @@ export default function FeesTab({ dealId, deal }) {
 
   const deleteMutation = useMutation({
     mutationFn: (feeId) => base44.entities.Fee.delete(feeId),
+    onMutate: async (feeId) => {
+      await queryClient.cancelQueries({ queryKey: ['deal-fees', dealId] });
+      const previousFees = queryClient.getQueryData(['deal-fees', dealId]);
+      queryClient.setQueryData(['deal-fees', dealId], (old) => 
+        old ? old.filter(f => f.id !== feeId) : []
+      );
+      return { previousFees };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deal-fees', dealId] });
+      toast.success('Fee deleted');
+    },
+    onError: (error, feeId, context) => {
+      if (context?.previousFees) {
+        queryClient.setQueryData(['deal-fees', dealId], context.previousFees);
+      }
+      toast.error('Failed to delete fee');
     },
   });
 
@@ -105,8 +132,23 @@ export default function FeesTab({ dealId, deal }) {
         </Button>
       </div>
 
+      {/* Empty State */}
+      {fees.length === 0 && (
+        <Card className="border-dashed">
+          <CardContent className="py-12 text-center">
+            <DollarSign className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">No fees added yet</h3>
+            <p className="text-gray-500 mb-4">Add closing costs and fees to calculate cash to close</p>
+            <Button onClick={() => setShowAddModal(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add First Fee
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Fee Sections */}
-      <div className="space-y-6">
+      {fees.length > 0 && <div className="space-y-6">
         {sortedSections.map((section) => {
           const sectionFees = groupedFees[section];
           const sectionTitle = CD_SECTIONS[section] || `Section ${section}`;
@@ -160,7 +202,7 @@ export default function FeesTab({ dealId, deal }) {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => deleteMutation.mutate(fee.id)}
+                              onClick={() => setDeleteConfirmFee(fee)}
                               className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -175,7 +217,7 @@ export default function FeesTab({ dealId, deal }) {
             </div>
           );
         })}
-      </div>
+      </div>}
 
       {/* Totals Section */}
       <Card className="border-gray-200 bg-gray-50">
@@ -216,6 +258,29 @@ export default function FeesTab({ dealId, deal }) {
           setEditingFee(null);
         }}
       />
+
+      <AlertDialog open={!!deleteConfirmFee} onOpenChange={() => setDeleteConfirmFee(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Fee</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deleteConfirmFee?.fee_name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                deleteMutation.mutate(deleteConfirmFee.id);
+                setDeleteConfirmFee(null);
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

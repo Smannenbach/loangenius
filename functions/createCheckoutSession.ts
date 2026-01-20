@@ -59,7 +59,16 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Plan not configured in Stripe' }, { status: 400 });
     }
 
-    const origin = req.headers.get('origin') || 'https://app.loangenius.com';
+    // SECURITY FIX: Validate origin against allowlist
+    const ALLOWED_ORIGINS = [
+      'https://app.loangenius.com',
+      'https://portal.loangenius.com',
+      'https://loangenius.base44.app'
+    ];
+    const requestOrigin = req.headers.get('origin');
+    const origin = (requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin))
+      ? requestOrigin
+      : 'https://app.loangenius.com';
 
     // Create Checkout Session
     const session = await stripe.checkout.sessions.create({

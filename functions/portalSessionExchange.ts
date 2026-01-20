@@ -7,6 +7,9 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // CRITICAL FIX: Initialize base44 client from request
+    const base44 = createClientFromRequest(req);
+    
     const url = new URL(req.url);
     const token = url.searchParams.get('token');
 

@@ -65,6 +65,7 @@ async function decrypt(encrypted) {
 function hexToBytes(hex) {
   const bytes = new Uint8Array(hex.length / 2);
   for (let i = 0; i < hex.length; i += 2) {
+    // FIX: Use substring instead of deprecated substr
     bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
   }
   return bytes;

@@ -37,7 +37,16 @@ Deno.serve(async (req) => {
       is_used: false,
     });
 
-    const origin = req.headers.get('origin') || 'https://app.loangenius.com';
+    // SECURITY FIX: Validate origin against allowlist to prevent open redirect
+    const ALLOWED_ORIGINS = [
+      'https://app.loangenius.com',
+      'https://portal.loangenius.com',
+      'https://loangenius.base44.app'
+    ];
+    const requestOrigin = req.headers.get('origin');
+    const origin = (requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin)) 
+      ? requestOrigin 
+      : 'https://app.loangenius.com';
     const magicUrl = `${origin}/BorrowerPortalLogin?token=${token}`;
 
     // Send email with magic link

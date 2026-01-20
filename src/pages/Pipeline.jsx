@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { ListItemSkeleton } from '@/components/LoadingSkeletons';
+import { SkeletonCardGrid } from '@/components/ui/skeleton-cards';
+import { DealStageBadge } from '@/components/ui/status-badge';
+import { EmptyDeals } from '@/components/ui/empty-states';
 import {
   Search,
   Filter,
@@ -140,15 +142,21 @@ export default function Pipeline() {
       <div className="overflow-x-auto pb-4">
         {isLoading ? (
           <div className="flex gap-4 min-w-max">
-            {Array(4).fill(0).map((_, i) => (
+            {Array(5).fill(0).map((_, i) => (
               <div key={i} className="w-64 md:w-72 flex-shrink-0 space-y-3">
-                <div className="h-8 bg-gray-200 rounded animate-pulse w-1/3" />
+                <div className="h-6 bg-gray-200 rounded animate-pulse w-24 mb-3" />
                 {Array(3).fill(0).map((_, j) => (
-                  <ListItemSkeleton key={j} />
+                  <div key={j} className="bg-white p-4 rounded-lg border space-y-3">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-20" />
+                    <div className="h-5 bg-gray-200 rounded animate-pulse w-16" />
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-24" />
+                  </div>
                 ))}
               </div>
             ))}
           </div>
+        ) : filteredDeals.length === 0 && searchTerm ? (
+          <EmptyDeals onAction={() => setSearchTerm('')} />
         ) : (
           <div className="flex gap-4 min-w-max">
             {stages.map((stage) => {

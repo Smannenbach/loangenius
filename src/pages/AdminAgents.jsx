@@ -38,20 +38,23 @@ const AGENTS = [
 export default function AdminAgents() {
   const [selectedAgent, setSelectedAgent] = useState(AGENTS[0]);
 
+  // FIX: Return stable metrics instead of random values that change on every render
   const { data: agentMetrics } = useQuery({
     queryKey: ['agent-metrics'],
     queryFn: async () => {
-      // Simulate metrics fetch
+      // Use stable metrics based on agent ID hash instead of random values
+      // In production, this would fetch from a real metrics endpoint
       return {
-        agents: AGENTS.map(a => ({
+        agents: AGENTS.map((a, index) => ({
           ...a,
-          uptime: 99.8 + Math.random() * 0.2,
-          error_rate: Math.random() * 0.05,
-          run_count: Math.floor(Math.random() * 500) + 100
+          // Use index-based stable values instead of Math.random()
+          uptime: 99.5 + (index % 5) * 0.1,
+          error_rate: 0.01 + (index % 3) * 0.01,
+          run_count: 150 + (index * 17) % 350
         }))
       };
     },
-    staleTime: 30000
+    staleTime: 60000 // Increase stale time to reduce unnecessary refetches
   });
 
   const metrics = agentMetrics?.agents || AGENTS;
@@ -176,17 +179,21 @@ export default function AdminAgents() {
                       className="w-full" 
                       variant="outline" 
                       size="sm"
-                      onClick={() => toast.success('Metrics dashboard coming soon')}
+                      asChild
                     >
-                      <Eye className="h-4 w-4 mr-2" /> View Metrics
+                      <Link to={createPageUrl(`AgentPerformanceDashboard?agent=${selectedAgent.id}`)}>
+                        <Eye className="h-4 w-4 mr-2" /> View Metrics
+                      </Link>
                     </Button>
                     <Button 
                       className="w-full" 
                       variant="outline" 
                       size="sm"
-                      onClick={() => toast.success('Agent configuration coming soon')}
+                      asChild
                     >
-                      <Settings className="h-4 w-4 mr-2" /> Configure
+                      <Link to={createPageUrl(`AdminAgents?configure=${selectedAgent.id}`)}>
+                        <Settings className="h-4 w-4 mr-2" /> Configure
+                      </Link>
                     </Button>
                   </div>
                 </CardContent>

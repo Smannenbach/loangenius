@@ -8,6 +8,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const EVENT_TYPES = [
   'document.uploaded',
@@ -26,6 +36,7 @@ export default function AdminWebhooks() {
     secret: '',
   });
   const [showSecret, setShowSecret] = useState(false);
+  const [deleteConfirmWebhook, setDeleteConfirmWebhook] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -48,7 +59,11 @@ export default function AdminWebhooks() {
     mutationFn: (id) => base44.entities.WebhookConfig.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['webhooks'] });
+      toast.success('Webhook deleted');
     },
+    onError: (error) => {
+      toast.error('Failed to delete webhook: ' + error.message);
+    }
   });
 
   const handleCreate = async () => {
@@ -88,7 +103,7 @@ export default function AdminWebhooks() {
                 <Button
                   variant="destructive"
                   size="sm"
-                  onClick={() => deleteMutation.mutate(webhook.id)}
+                  onClick={() => setDeleteConfirmWebhook(webhook)}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -161,6 +176,29 @@ export default function AdminWebhooks() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteConfirmWebhook} onOpenChange={() => setDeleteConfirmWebhook(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Webhook</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this webhook ({deleteConfirmWebhook?.event_type})? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                deleteMutation.mutate(deleteConfirmWebhook.id);
+                setDeleteConfirmWebhook(null);
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
