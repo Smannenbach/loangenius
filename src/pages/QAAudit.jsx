@@ -321,6 +321,26 @@ export default function QAAudit() {
                     <CheckCircle className="h-4 w-4 text-green-600" />
                     <span>Upgraded encryption from base64 to AES-GCM</span>
                   </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span>Standardized Sonner Toaster in Layout.jsx</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span>Pipeline stage updates now show toasts</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span>Removed org_id fallbacks across all pages</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span>Added 404 NotFound page for unknown routes</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span>Replaced window.location navigations with Link/anchor tags</span>
+                  </li>
                 </ul>
               </CardContent>
             </Card>
