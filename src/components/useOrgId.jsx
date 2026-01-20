@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 /**
  * Canonical organization resolver hook
@@ -12,9 +12,13 @@ import { useEffect } from 'react';
  * - Looking up OrgMembership
  * - Auto-creating org if none exists (for new users)
  * - Caching to prevent duplicate queries
+ * 
+ * CRITICAL: This is the ONLY source of truth for orgId in the frontend.
+ * Never use user.org_id, user.id, or any other fallback for org_id.
  */
 export function useOrgId() {
   const queryClient = useQueryClient();
+  const hasAttemptedBootstrap = useRef(false);
 
   // Get current user - cached globally with long stale time
   const { data: user, isLoading: userLoading, error: userError } = useQuery({
@@ -41,7 +45,7 @@ export function useOrgId() {
       return results || [];
     },
     enabled: !!user?.email,
-    staleTime: 10 * 60 * 1000, // 10 minutes - memberships rarely change
+    staleTime: 5 * 60 * 1000, // 5 minutes - check more frequently for bootstrap
     gcTime: 30 * 60 * 1000,
     retry: 1
   });
@@ -66,50 +70,57 @@ export function useOrgId() {
     staleTime: 10 * 60 * 1000
   });
 
-  // Mutation to ensure org exists (creates if needed)
+  // Mutation to ensure org exists (creates if needed via backend)
   const ensureOrgMutation = useMutation({
     mutationFn: async () => {
-      // Try to seed org and users via backend function
-      try {
-        await base44.functions.invoke('seedOrgAndUsers', {});
-      } catch (e) {
-        console.log('seedOrgAndUsers not available, creating manually:', e.message);
-        // Create a default org manually as fallback
-        const newOrg = await base44.entities.Organization.create({
-          name: `${user?.full_name || 'My'} Organization`,
-          slug: `org-${Date.now()}`,
-          subscription_status: 'TRIAL'
-        });
-        
-        await base44.entities.OrgMembership.create({
-          org_id: newOrg.id,
-          user_id: user?.email,
-          role: 'admin',
-          is_primary: true
-        });
-      }
+      // Call the canonical backend bootstrap function
+      const response = await base44.functions.invoke('seedOrgAndUsers', {});
+      return response.data;
     },
-    onSuccess: () => {
-      // Refetch memberships after creating
+    onSuccess: (data) => {
+      console.log('Org bootstrap complete:', data);
+      // Invalidate and refetch all org-related queries
       queryClient.invalidateQueries({ queryKey: ['orgMemberships'] });
       queryClient.invalidateQueries({ queryKey: ['organization'] });
+      // Also invalidate any org-scoped entity queries that may have run with null orgId
+      queryClient.invalidateQueries({ queryKey: ['Lead'] });
+      queryClient.invalidateQueries({ queryKey: ['Deal'] });
+      queryClient.invalidateQueries({ queryKey: ['Contact'] });
+      queryClient.invalidateQueries({ queryKey: ['Task'] });
       refetchMemberships();
+    },
+    onError: (error) => {
+      console.error('Org bootstrap failed:', error);
     }
   });
 
-  // Auto-ensure org exists for new users (only once)
+  // Auto-ensure org exists for new users (only once per session)
   useEffect(() => {
-    if (user?.email && !membershipLoading && memberships.length === 0 && !ensureOrgMutation.isPending) {
+    if (
+      user?.email && 
+      !membershipLoading && 
+      memberships.length === 0 && 
+      !ensureOrgMutation.isPending &&
+      !hasAttemptedBootstrap.current
+    ) {
       // User exists but has no org - create one
+      hasAttemptedBootstrap.current = true;
+      console.log('No org membership found for user, bootstrapping...');
       ensureOrgMutation.mutate();
     }
   }, [user?.email, membershipLoading, memberships.length]);
 
+  // Reset bootstrap flag if user changes
+  useEffect(() => {
+    hasAttemptedBootstrap.current = false;
+  }, [user?.email]);
+
   const isLoading = userLoading || membershipLoading || orgLoading || ensureOrgMutation.isPending;
-  const error = userError || membershipError;
+  const error = userError || membershipError || ensureOrgMutation.error;
+  const bootstrapError = ensureOrgMutation.error && memberships.length === 0;
 
   return {
-    // Core values
+    // Core values - NEVER use fallbacks like user.org_id or user.id
     orgId,
     org,
     membership: primaryMembership,
@@ -120,11 +131,14 @@ export function useOrgId() {
     // Status
     isLoading,
     isReady: !!orgId && !isLoading,
-    error,
+    error: bootstrapError ? ensureOrgMutation.error : error,
     hasOrg: !!orgId,
     
     // Actions
-    ensureOrg: ensureOrgMutation.mutate,
+    ensureOrg: () => {
+      hasAttemptedBootstrap.current = false;
+      ensureOrgMutation.mutate();
+    },
     isEnsuringOrg: ensureOrgMutation.isPending,
     refetchMemberships
   };
