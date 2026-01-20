@@ -699,19 +699,19 @@ export default function QAAudit() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-red-700">
                       <MousePointer className="h-5 w-5" />
-                      Dead Buttons
+                      TRUE Dead Buttons (Must Fix)
                     </CardTitle>
                     <CardDescription>
-                      Buttons without onClick, not type="submit", and not asChild
+                      Buttons that appear interactive but do nothing when clicked
                     </CardDescription>
                   </div>
-                  {filteredDeadButtons.length > 0 && (
+                  {filteredTrueDeadButtons.length > 0 && (
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => copyList(filteredDeadButtons, 'buttons')}
+                      onClick={() => copyList(filteredTrueDeadButtons, 'buttons')}
                     >
                       <Copy className="h-4 w-4 mr-2" />
                       Copy List
@@ -720,33 +720,90 @@ export default function QAAudit() {
                 </div>
               </CardHeader>
               <CardContent>
-                {filteredDeadButtons.length === 0 ? (
+                {filteredTrueDeadButtons.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500" />
-                    <p>All buttons are properly wired!</p>
+                    <p>No dead buttons found! All interactive elements are properly wired.</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {filteredDeadButtons.slice(0, 20).map((item, idx) => (
-                      <div key={idx} className="p-4 border border-yellow-200 rounded-lg bg-yellow-50">
+                    {filteredTrueDeadButtons.slice(0, 30).map((item, idx) => (
+                      <div key={idx} className="p-4 border border-red-200 rounded-lg bg-red-50">
                         <div className="flex items-start justify-between">
-                          <div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <FileCode className="h-4 w-4 text-gray-500" />
+                              <span className="font-mono text-sm">{item.file}</span>
+                              <span className="text-gray-400">:{item.line}</span>
+                              {!item.hasDataTestId && (
+                                <Badge variant="outline" className="text-orange-600 border-orange-300">
+                                  Missing data-testid
+                                </Badge>
+                              )}
+                            </div>
+                            <code className="text-xs text-gray-600 mt-2 block bg-gray-100 p-2 rounded overflow-x-auto">
+                              {item.snippet}
+                            </code>
+                          </div>
+                          <Badge className="bg-red-100 text-red-800 ml-2">BLOCKER</Badge>
+                        </div>
+                      </div>
+                    ))}
+                    {filteredTrueDeadButtons.length > 30 && (
+                      <p className="text-sm text-gray-500 text-center">
+                        And {filteredTrueDeadButtons.length - 30} more...
+                      </p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Exempt Buttons Tab */}
+          <TabsContent value="exempt" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-blue-700">
+                      <CheckCircle className="h-5 w-5" />
+                      Exempt Buttons (Valid Patterns)
+                    </CardTitle>
+                    <CardDescription>
+                      Buttons that look like dead clicks but are valid trigger/disabled patterns
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {filteredExemptButtons.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>No exempt buttons found.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {filteredExemptButtons.slice(0, 30).map((item, idx) => (
+                      <div key={idx} className="p-4 border border-blue-200 rounded-lg bg-blue-50">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <FileCode className="h-4 w-4 text-gray-500" />
                               <span className="font-mono text-sm">{item.file}</span>
                               <span className="text-gray-400">:{item.line}</span>
                             </div>
-                            <code className="text-xs text-gray-600 mt-2 block bg-gray-100 p-2 rounded">
+                            <p className="text-sm text-blue-700 mt-1 font-medium">{item.reason}</p>
+                            <code className="text-xs text-gray-600 mt-2 block bg-gray-100 p-2 rounded overflow-x-auto">
                               {item.snippet}
                             </code>
                           </div>
-                          <Badge className="bg-yellow-100 text-yellow-800">HIGH</Badge>
+                          <Badge className="bg-blue-100 text-blue-800 ml-2">EXEMPT</Badge>
                         </div>
                       </div>
                     ))}
-                    {filteredDeadButtons.length > 20 && (
+                    {filteredExemptButtons.length > 30 && (
                       <p className="text-sm text-gray-500 text-center">
-                        And {filteredDeadButtons.length - 20} more...
+                        And {filteredExemptButtons.length - 30} more...
                       </p>
                     )}
                   </div>
