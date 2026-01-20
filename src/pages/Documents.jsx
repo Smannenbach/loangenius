@@ -64,6 +64,8 @@ export default function Documents() {
       setIsUploadOpen(false);
       setUploadData({ name: '', document_type: 'other' });
       setSelectedFile(null);
+      // FIX: Also reset the file input ref
+      if (fileInputRef.current) fileInputRef.current.value = '';
       toast.success('Document uploaded successfully!');
     },
     onError: (error) => {
@@ -270,8 +272,16 @@ export default function Documents() {
         </CardContent>
       </Card>
 
-      {/* Upload Dialog */}
-      <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+      {/* Upload Dialog - FIX: Reset form on close */}
+      <Dialog open={isUploadOpen} onOpenChange={(open) => {
+        if (!open) {
+          // Reset form when dialog closes
+          setUploadData({ name: '', document_type: 'other' });
+          setSelectedFile(null);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+        setIsUploadOpen(open);
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Upload Document</DialogTitle>
