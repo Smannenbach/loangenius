@@ -48,6 +48,9 @@ import SmartDocumentReview from '@/components/documents/SmartDocumentReview';
 import LenderSyncPanel from '@/components/lender/LenderSyncPanel';
 import LenderOutreachPanel from '@/components/deal-detail/LenderOutreachPanel';
 import OfferLetterGenerator from '@/components/deal-detail/OfferLetterGenerator';
+import ExportDealPDFModal from '@/components/deal-detail/ExportDealPDFModal';
+import UploadDocumentModal from '@/components/deal-detail/UploadDocumentModal';
+import AddConditionModal from '@/components/deal-detail/AddConditionModal';
 
 export default function DealDetail() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -56,6 +59,9 @@ export default function DealDetail() {
   const [showPortalInviteModal, setShowPortalInviteModal] = useState(false);
   const [showSubmitToLenderModal, setShowSubmitToLenderModal] = useState(false);
   const [selectedBorrower, setSelectedBorrower] = useState(null);
+  const [showExportPDFModal, setShowExportPDFModal] = useState(false);
+  const [showUploadDocModal, setShowUploadDocModal] = useState(false);
+  const [showAddConditionModal, setShowAddConditionModal] = useState(false);
 
   const { data: deal, isLoading: dealLoading, error: dealError } = useQuery({
     queryKey: ['deal', dealId],
@@ -316,7 +322,7 @@ export default function DealDetail() {
             <Button 
               variant="outline" 
               className="gap-2"
-              onClick={() => toast.info('PDF export coming soon')}
+              onClick={() => setShowExportPDFModal(true)}
               data-testid="cta:DealDetail:ExportPDF"
             >
               <Download className="h-4 w-4" />
@@ -465,7 +471,7 @@ export default function DealDetail() {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => toast.info('Document upload coming soon')}
+                    onClick={() => setShowUploadDocModal(true)}
                     data-testid="cta:DealDetail:UploadDocument"
                   >
                     Upload Document
@@ -512,7 +518,7 @@ export default function DealDetail() {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => toast.info('Add condition coming soon')}
+                onClick={() => setShowAddConditionModal(true)}
                 data-testid="cta:DealDetail:AddCondition"
               >
                 Add Condition
@@ -733,7 +739,7 @@ export default function DealDetail() {
                       <Button 
                         size="sm" 
                         variant="outline"
-                        onClick={() => toast.info('Portal preview coming soon')}
+                        onClick={() => window.open(createPageUrl(`BorrowerPortalHome?deal_id=${dealId}`), '_blank')}
                       >
                         <Eye className="h-4 w-4 mr-2" />
                         Preview
@@ -833,6 +839,27 @@ export default function DealDetail() {
         dealId={dealId}
         open={showSubmitToLenderModal}
         onOpenChange={setShowSubmitToLenderModal}
+      />
+
+      <ExportDealPDFModal
+        dealId={dealId}
+        deal={deal}
+        open={showExportPDFModal}
+        onOpenChange={setShowExportPDFModal}
+      />
+
+      <UploadDocumentModal
+        dealId={dealId}
+        orgId={deal.org_id}
+        open={showUploadDocModal}
+        onOpenChange={setShowUploadDocModal}
+      />
+
+      <AddConditionModal
+        dealId={dealId}
+        orgId={deal.org_id}
+        open={showAddConditionModal}
+        onOpenChange={setShowAddConditionModal}
       />
     </div>
   );

@@ -179,17 +179,21 @@ export default function AdminAgents() {
                       className="w-full" 
                       variant="outline" 
                       size="sm"
-                      onClick={() => toast.success('Metrics dashboard coming soon')}
+                      asChild
                     >
-                      <Eye className="h-4 w-4 mr-2" /> View Metrics
+                      <Link to={createPageUrl(`AgentPerformanceDashboard?agent=${selectedAgent.id}`)}>
+                        <Eye className="h-4 w-4 mr-2" /> View Metrics
+                      </Link>
                     </Button>
                     <Button 
                       className="w-full" 
                       variant="outline" 
                       size="sm"
-                      onClick={() => toast.success('Agent configuration coming soon')}
+                      asChild
                     >
-                      <Settings className="h-4 w-4 mr-2" /> Configure
+                      <Link to={createPageUrl(`AdminAgents?configure=${selectedAgent.id}`)}>
+                        <Settings className="h-4 w-4 mr-2" /> Configure
+                      </Link>
                     </Button>
                   </div>
                 </CardContent>
