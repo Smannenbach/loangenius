@@ -99,6 +99,7 @@ export default function Dashboard() {
         <Link 
           to={createPageUrl('LoanApplicationWizard')}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors"
+          data-testid="cta:Dashboard:NewDeal"
         >
           <Plus className="h-5 w-5" />
           New Deal
