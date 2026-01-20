@@ -349,7 +349,12 @@ export default function Layout({ children, currentPageName }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80 bg-slate-800 border-slate-700">
-              <div className="p-3 font-medium text-white border-b border-slate-700">Notifications</div>
+              <div className="p-3 font-medium text-white border-b border-slate-700 flex items-center justify-between">
+                <span>Notifications</span>
+                <Link to={createPageUrl('AlertsNotifications')} className="text-xs text-blue-400 hover:underline">
+                  View All
+                </Link>
+              </div>
               <DropdownMenuItem className="p-3 hover:bg-slate-700 cursor-pointer">
                 <div className="flex flex-col">
                   <span className="font-medium text-white">New document uploaded</span>
@@ -361,6 +366,12 @@ export default function Layout({ children, currentPageName }) {
                   <span className="font-medium text-white">Task assigned to you</span>
                   <span className="text-xs text-slate-400">Review appraisal • 1 hour ago</span>
                 </div>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-slate-700" />
+              <DropdownMenuItem asChild>
+                <Link to={createPageUrl('AlertsNotifications')} className="p-3 text-center text-blue-400 hover:bg-slate-700 cursor-pointer block">
+                  See all notifications
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
