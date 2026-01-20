@@ -30,6 +30,7 @@ import {
 import { toast } from 'sonner';
 import AILenderMatcher from '@/components/AILenderMatcher.jsx';
 import LenderAPIConfig from '@/components/lender/LenderAPIConfig';
+import LenderSyncPanel from '@/components/lender/LenderSyncPanel';
 
 export default function LenderIntegrations() {
   const queryClient = useQueryClient();
@@ -184,7 +185,7 @@ export default function LenderIntegrations() {
         </div>
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700 gap-2">
+            <Button className="bg-blue-600 hover:bg-blue-700 gap-2" data-testid="cta:LenderIntegrations:AddIntegration">
               <Plus className="h-4 w-4" />
               Add Lender Integration
             </Button>
@@ -336,7 +337,9 @@ export default function LenderIntegrations() {
                   Cancel
                 </Button>
                 <Button
+                  type="submit"
                   className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  data-testid="cta:LenderIntegrations:SaveIntegration"
                   onClick={() => {
                     if (!newIntegration.lender_name) {
                       toast.error('Please enter lender name');
@@ -409,6 +412,10 @@ export default function LenderIntegrations() {
           <TabsTrigger value="ai-search" className="gap-2">
             <Sparkles className="h-4 w-4" />
             AI Lender Search
+          </TabsTrigger>
+          <TabsTrigger value="sync" className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Sync Status
           </TabsTrigger>
         </TabsList>
 
@@ -561,6 +568,35 @@ export default function LenderIntegrations() {
         <TabsContent value="ai-search">
           <AILenderMatcher />
         </TabsContent>
+
+        <TabsContent value="sync">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Sync Overview</CardTitle>
+                <CardDescription>Recent synchronization activity</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <SyncLogsList orgId={orgId} />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button variant="outline" className="w-full justify-start gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Sync All Pending Submissions
+                </Button>
+                <Button variant="outline" className="w-full justify-start gap-2">
+                  <Settings className="h-4 w-4" />
+                  Configure Webhooks
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* Configure Integration Dialog */}
@@ -595,6 +631,56 @@ export default function LenderIntegrations() {
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function SyncLogsList({ orgId }) {
+  const { data: syncLogs = [], isLoading } = useQuery({
+    queryKey: ['allSyncLogs', orgId],
+    queryFn: async () => {
+      if (!orgId) return [];
+      try {
+        return await base44.entities.LenderSyncLog.filter({ org_id: orgId });
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!orgId,
+  });
+
+  if (isLoading) {
+    return <div className="text-center py-4 text-gray-500">Loading...</div>;
+  }
+
+  if (syncLogs.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        <RefreshCw className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+        <p>No sync activity yet</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2 max-h-64 overflow-y-auto">
+      {syncLogs.slice(0, 20).map((log) => (
+        <div key={log.id} className="p-2 border rounded flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Badge className={
+              log.status === 'success' ? 'bg-green-100 text-green-700' :
+              log.status === 'failed' ? 'bg-red-100 text-red-700' :
+              'bg-gray-100 text-gray-700'
+            }>
+              {log.status}
+            </Badge>
+            <span className="text-sm">{log.sync_type}</span>
+          </div>
+          <span className="text-xs text-gray-500">
+            {new Date(log.created_date).toLocaleString()}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
