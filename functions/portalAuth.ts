@@ -37,7 +37,8 @@ Deno.serve(async (req) => {
     if (email) {
       const borrowers = await base44.asServiceRole.entities.Borrower.filter({ email: email.toLowerCase() });
       if (borrowers.length === 0) {
-        return Response.json({ ok: false, error: 'Borrower not found' }, { status: 404 });
+        // SECURITY FIX: Use generic error message to prevent user enumeration
+        return Response.json({ ok: false, error: 'Invalid credentials' }, { status: 401 });
       }
 
       return Response.json({
