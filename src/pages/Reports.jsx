@@ -244,7 +244,7 @@ export default function Reports() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredReports.map(report => (
-                <ReportCard key={report.id} report={report} />
+                <ReportCard key={report.id} report={report} orgId={orgId} />
               ))}
             </div>
           )}
@@ -261,10 +261,10 @@ export default function Reports() {
   );
 }
 
-function ReportCard({ report }) {
+function ReportCard({ report, orgId }) {
   const mutation = useMutation({
     mutationFn: () => base44.functions.invoke('generateReport', {
-      org_id: 'default',
+      org_id: orgId,
       report_id: report.id,
       filters: {}
     }),
