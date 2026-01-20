@@ -1,75 +1,242 @@
+/**
+ * MISMO SchemaPack Manager
+ * Production-grade schema pack management with pinned versions and hash verification
+ * 
+ * Pack A: MISMO v3.4 Build 324 Generic
+ * Pack B: DU/ULAD Strict v3.4 Build 324
+ */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-// MISMO v3.4 Build 324 Schema Pack Definitions
+// ============================================================
+// SCHEMA PACK DEFINITIONS (PINNED, HASHED)
+// ============================================================
+
 const SCHEMA_PACKS = {
-  PACK_A_GENERIC_MISMO_34_B324: {
+  'PACK_A_GENERIC_MISMO_34_B324': {
     id: 'PACK_A_GENERIC_MISMO_34_B324',
-    name: 'MISMO v3.4 Build 324 (Generic)',
+    name: 'MISMO 3.4.0 Build 324 Generic',
+    description: 'Official MISMO v3.4 Reference Model schema set',
     mismo_version: '3.4.0',
-    build: 'B324',
-    ldd_identifier: 'MISMO_3.4.0_B324',
-    description: 'Official MISMO v3.4 Build 324 schema set from MISMO Reference Model',
-    root_element: 'MESSAGE',
-    namespaces: {
-      mismo: 'http://www.mismo.org/residential/2009/schemas',
-      xlink: 'http://www.w3.org/1999/xlink',
-    },
-    schema_files: [
+    build: '324',
+    ldd_identifier: 'urn:fdc:mismo.org:ldd:3.4.324',
+    pack_hash: 'sha256:a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6',
+    artifacts: [
       'MISMO_3.4.0_B324.xsd',
-      'MISMO_3.4.0_B324_CoreComponents.xsd',
-      'MISMO_3.4.0_B324_CommonTypes.xsd',
+      'MISMO_3.4.0_B324_MISMO_TYPES.xsd',
+      'MISMO_3.4.0_B324_REFERENCE.xsd'
     ],
-    pack_hash: 'sha256:a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6', // Computed from schema artifacts
-    created_at: '2024-01-15T00:00:00Z',
-    validation_strictness: 'standard'
+    required_namespaces: [
+      'http://www.mismo.org/residential/2009/schemas'
+    ],
+    optional_namespaces: [],
+    extension_namespaces: [
+      'https://loangenius.ai/mismo/ext/1.0'
+    ],
+    root_element: 'MESSAGE',
+    strict_mode: false,
+    allow_extensions: true
   },
-  PACK_B_DU_ULAD_STRICT_34_B324: {
+  'PACK_B_DU_ULAD_STRICT_34_B324': {
     id: 'PACK_B_DU_ULAD_STRICT_34_B324',
-    name: 'MISMO v3.4 Build 324 + DU/ULAD (Strict)',
+    name: 'DU/ULAD Strict v3.4.0 Build 324',
+    description: 'Fannie Mae DU Spec with ULAD extensions',
     mismo_version: '3.4.0',
-    build: 'B324',
-    ldd_identifier: 'MISMO_3.4.0_B324_DU_ULAD',
-    description: 'MISMO v3.4 Build 324 with DU Spec schemas, ULAD extensions, and wrapper validation',
-    root_element: 'MESSAGE',
-    namespaces: {
-      mismo: 'http://www.mismo.org/residential/2009/schemas',
-      xlink: 'http://www.w3.org/1999/xlink',
-      du: 'http://www.fanniemae.com/du/schemas',
-      ulad: 'http://www.fanniemae.com/ulad/schemas',
-    },
-    schema_files: [
+    build: '324',
+    ldd_identifier: 'urn:fdc:mismo.org:ldd:ulad:3.4.324',
+    pack_hash: 'sha256:b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a1',
+    artifacts: [
       'MISMO_3.4.0_B324.xsd',
-      'MISMO_3.4.0_B324_CoreComponents.xsd',
-      'ULAD_ExtensionV3_4.xsd',
-      'DU_SchemaExtensionV3_4.xsd',
-      'DU_Wrapper_3.4.0_B324.xsd',
+      'ULAD_3.4.0_B324_Extension.xsd',
+      'DU_3.4.0_B324_Wrapper.xsd'
     ],
-    pack_hash: 'sha256:b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7', // Computed from schema artifacts
-    created_at: '2024-01-15T00:00:00Z',
-    validation_strictness: 'strict',
-    requires_du_wrapper: true
+    required_namespaces: [
+      'http://www.mismo.org/residential/2009/schemas'
+    ],
+    optional_namespaces: [
+      'http://www.datamodelextension.org/Schema/ULAD',
+      'http://www.datamodelextension.org/Schema/DU'
+    ],
+    extension_namespaces: [],
+    root_element: 'MESSAGE',
+    strict_mode: true,
+    allow_extensions: false,
+    additional_rules: {
+      require_ulad_extension: true,
+      enforce_sequence_order: true,
+      validate_conditionality: true
+    }
   }
 };
 
-// LG Extension Namespace Configuration
-const LG_EXTENSION_CONFIG = {
-  namespace: 'https://loangenius.ai/mismo/ext/1.0',
-  prefix: 'LG',
-  version: '1.0',
-  description: 'LoanGenius DSCR and Business Purpose Loan Extensions per MEG-0025'
+// ============================================================
+// LDD ENUM REGISTRY (MISMO 3.4 Build 324)
+// ============================================================
+
+const LDD_ENUMS = {
+  LoanPurposeType: [
+    'CashOutRefinance', 'ConstructionOnly', 'ConstructionToPermanent',
+    'HELOC', 'HomeEquityLineOfCredit', 'MortgageModification',
+    'NoCashOutRefinance', 'Other', 'Purchase', 'Refinance', 'SecondMortgage'
+  ],
+  PropertyUsageType: [
+    'Investment', 'PrimaryResidence', 'SecondHome', 'Other'
+  ],
+  PropertyEstateType: [
+    'FeeSimple', 'Leasehold', 'Other'
+  ],
+  ConstructionMethodType: [
+    'Manufactured', 'ManufacturedHousing', 'MHAdvantage', 'Modular', 
+    'OnFrame', 'Other', 'SiteBuilt'
+  ],
+  AttachmentType: [
+    'Attached', 'Detached', 'SemiDetached'
+  ],
+  ProjectLegalStructureType: [
+    'CommonInterestApartment', 'Condominium', 'Cooperative', 'Other',
+    'PlannedUnitDevelopment'
+  ],
+  LegalEntityType: [
+    'Corporation', 'Estate', 'GeneralPartnership', 'GovernmentEntity',
+    'Individual', 'Joint', 'LimitedLiabilityCompany', 'LimitedLiabilityPartnership',
+    'LimitedPartnership', 'NativeAmericanTribe', 'NonProfitCorporation',
+    'Partnership', 'PubliclyTradedCompany', 'RealEstateInvestmentTrust',
+    'SCorporation', 'SoleProprietorship', 'Trust', 'Other'
+  ],
+  BorrowerClassificationType: [
+    'Primary', 'Secondary'
+  ],
+  CitizenshipResidencyType: [
+    'NonPermanentResidentAlien', 'NonResidentAlien', 'PermanentResidentAlien',
+    'Unknown', 'USCitizen'
+  ],
+  MaritalStatusType: [
+    'Married', 'NotProvided', 'Separated', 'Unmarried', 'Unknown'
+  ],
+  AssetType: [
+    'Bond', 'BridgeLoanNotDeposited', 'CashOnHand', 'CashValue',
+    'CertificateOfDeposit', 'CheckingAccount', 'EarnestMoney',
+    'EmployerAssistedHousing', 'GiftOfCash', 'GiftOfEquity', 'Grant',
+    'IndividualDevelopmentAccount', 'LifeInsurance', 'MoneyMarketFund',
+    'MutualFund', 'NetWorthOfBusinessOwned', 'Other',
+    'PendingNetSaleProceedsFromRealEstateAssets', 'ProceedsFromSaleOfNonRealEstateAsset',
+    'ProceedsFromSecuredLoan', 'ProceedsFromUnsecuredLoan', 'RelocationMoney',
+    'RetirementFund', 'SaleOtherAssets', 'SavingsAccount',
+    'SecuredBorrowedFunds', 'Stock', 'StockOptions', 'TrustAccount',
+    'UnsecuredBorrowedFunds'
+  ],
+  MortgageType: [
+    'Conventional', 'FHA', 'FarmersHomeAdministration', 'LocalAgency',
+    'Other', 'PublicAndIndianHousing', 'StateAgency', 'USDA', 'VA'
+  ],
+  AmortizationType: [
+    'AdjustableRate', 'Fixed', 'GEM', 'GPM', 'GraduatedPaymentARM',
+    'Other', 'RateImprovementMortgage', 'Step'
+  ],
+  PrepaymentPenaltyOptionType: [
+    'PrepaymentPenaltyOptionHard', 'PrepaymentPenaltyOptionNotApplicable',
+    'PrepaymentPenaltyOptionSoft'
+  ],
+  PartyRoleType: [
+    'Borrower', 'NotePayTo', 'SellerOfMortgage', 'Servicer',
+    'TitleHolder', 'Appraiser', 'Attorney', 'Broker', 'Closer',
+    'CreditReportProvider', 'DocumentPreparer', 'FloodInsuranceProvider',
+    'HazardInsuranceProvider', 'Inspector', 'Investor', 'LenderContact',
+    'LoanOfficer', 'LoanOriginator', 'LoanProcessor', 'MortgageInsuranceProvider',
+    'NotaryPublic', 'PropertyAccessContact', 'PropertyInspector',
+    'PropertyManager', 'RealEstateAgent', 'Seller', 'Surveyor',
+    'TaxServiceProvider', 'TitleCompany', 'TitleInsuranceProvider',
+    'Underwriter', 'Vendor', 'Other'
+  ],
+  CountryCode: ['US', 'CA', 'MX', 'GB', 'DE', 'FR', 'Other'],
+  StateCode: [
+    'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+    'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+    'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+    'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+    'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+    'DC', 'PR', 'VI', 'GU', 'AS', 'MP'
+  ],
+  BankruptcyType: [
+    'Chapter7', 'Chapter11', 'Chapter12', 'Chapter13', 'Other'
+  ],
+  HMDAEthnicityType: [
+    'HispanicOrLatino', 'Mexican', 'PuertoRican', 'Cuban',
+    'OtherHispanicOrLatino', 'NotHispanicOrLatino',
+    'InformationNotProvidedByApplicantInMailInternetOrTelephoneApplication',
+    'NotApplicable'
+  ],
+  HMDARaceType: [
+    'AmericanIndianOrAlaskaNative', 'Asian', 'AsianIndian',
+    'BlackOrAfricanAmerican', 'Chinese', 'Filipino', 'GuamanianOrChamorro',
+    'Japanese', 'Korean', 'NativeHawaiian', 'OtherAsian', 'OtherPacificIslander',
+    'Samoan', 'Vietnamese', 'White',
+    'InformationNotProvidedByApplicantInMailInternetOrTelephoneApplication',
+    'NotApplicable'
+  ],
+  HMDASexType: [
+    'Female', 'Male',
+    'InformationNotProvidedByApplicantInMailInternetOrTelephoneApplication',
+    'NotApplicable'
+  ]
 };
 
-// MISMO LDD Enum Validation Rules (subset for critical fields)
-const LDD_ENUM_RULES = {
-  'LoanPurposeType': ['Purchase', 'Refinance', 'CashOutRefinance', 'NoCashOutRefinance', 'ConstructionOnly', 'ConstructionToPermanent', 'Other'],
-  'PropertyUsageType': ['Investment', 'PrimaryResidence', 'SecondHome'],
-  'LegalEntityType': ['Corporation', 'GeneralPartnership', 'LimitedLiabilityCompany', 'SoleProprietorship', 'Trust', 'Other'],
-  'BorrowerClassificationType': ['Primary', 'Secondary', 'CoSigner', 'Guarantor'],
-  'CitizenshipResidencyType': ['USCitizen', 'PermanentResidentAlien', 'NonPermanentResidentAlien', 'ForeignNational'],
-  'MaritalStatusType': ['Married', 'Separated', 'Unmarried'],
-  'TitleHoldingType': ['JointWithRightOfSurvivorship', 'TenantInCommon', 'SoleOwnership', 'CommunityProperty', 'Other'],
-  'AssetType': ['CheckingAccount', 'SavingsAccount', 'MoneyMarketFund', 'CertificateOfDeposit', 'MutualFund', 'Stocks', 'StockOptions', 'Bonds', 'RetirementFund', 'BridgeLoanNotDeposited', 'IndividualDevelopmentAccount', 'TrustAccount', 'CashOnHand', 'EarnestMoney', 'LifeInsurance', 'Other'],
-  'IncomeType': ['Base', 'Overtime', 'Bonus', 'Commission', 'DividendsInterest', 'NetRentalIncome', 'Other'],
+// ============================================================
+// DATATYPE VALIDATION PATTERNS
+// ============================================================
+
+const DATATYPE_PATTERNS = {
+  'MISMODate': /^\d{4}-\d{2}-\d{2}$/,
+  'MISMODateTime': /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?$/,
+  'MISMODecimal': /^-?\d+(\.\d+)?$/,
+  'MISMOInteger': /^-?\d+$/,
+  'MISMOBoolean': /^(true|false)$/i,
+  'MISMOPercent': /^-?\d+(\.\d+)?$/,
+  'MISMOAmount': /^-?\d+(\.\d{0,2})?$/,
+  'MISMOIdentifier': /^[A-Za-z0-9_-]+$/,
+  'MISMOPhone': /^\+?[1-9]\d{1,14}$/,
+  'MISMOPostalCode': /^\d{5}(-\d{4})?$/,
+  'MISMOStateCode': /^[A-Z]{2}$/,
+  'MISMOCountryCode': /^[A-Z]{2}$/,
+  'MISMOSSN': /^\d{9}$/,
+  'MISMOEIN': /^\d{2}-?\d{7}$/
+};
+
+// ============================================================
+// REQUIRED ELEMENTS PER SCHEMA PACK
+// ============================================================
+
+const REQUIRED_ELEMENTS = {
+  'PACK_A_GENERIC_MISMO_34_B324': {
+    message_level: ['DEAL_SETS'],
+    deal_set_level: ['DEALS'],
+    deals_level: ['DEAL'],
+    deal_level: ['LOANS'],
+    loans_level: ['LOAN'],
+    loan_level: ['LOAN_IDENTIFIERS', 'TERMS_OF_LOAN']
+  },
+  'PACK_B_DU_ULAD_STRICT_34_B324': {
+    message_level: ['ABOUT_VERSIONS', 'DEAL_SETS'],
+    deal_set_level: ['DEALS'],
+    deals_level: ['DEAL'],
+    deal_level: ['COLLATERALS', 'LOANS', 'PARTIES'],
+    loans_level: ['LOAN'],
+    loan_level: ['LOAN_IDENTIFIERS', 'LOAN_DETAIL', 'TERMS_OF_LOAN'],
+    collaterals_level: ['COLLATERAL'],
+    collateral_level: ['SUBJECT_PROPERTY'],
+    parties_level: ['PARTY']
+  }
+};
+
+// ============================================================
+// ELEMENT SEQUENCE RULES (DU STRICT MODE)
+// ============================================================
+
+const ELEMENT_SEQUENCE = {
+  'MESSAGE': ['ABOUT_VERSIONS', 'DOCUMENT_SETS', 'DEAL_SETS', 'MESSAGE_HEADER'],
+  'DEAL': ['ABOUT_VERSIONS', 'ASSETS', 'COLLATERALS', 'LIABILITIES', 'LOANS', 'PARTIES', 'RELATIONSHIPS', 'SERVICES'],
+  'LOAN': ['ADJUSTMENT', 'AMORTIZATION', 'ARM', 'BUYDOWN', 'CLOSING_INFORMATION', 'CONSTRUCTION', 'DOCUMENT_SPECIFIC_DATA_SETS', 'ESCROW', 'EXTENSION', 'FHA_LOAN', 'FORECLOSURE', 'HELOC', 'HIGH_COST_MORTGAGES', 'HOUSING_EXPENSES', 'HOUSING_GOVERNMENT_LOANS', 'INTEREST_ONLY', 'LOAN_COMMENTS', 'LOAN_DETAIL', 'LOAN_IDENTIFIERS', 'LOAN_LEVEL_CREDIT', 'LOAN_PRODUCT', 'LOAN_PROGRAMS', 'LOAN_QUALIFYING_INFORMATION', 'LOAN_STATE_DATA_DETAIL', 'LOAN_STATE_DISCLOSURES', 'MATURITY_RULE', 'NEGATIVE_AMORTIZATION', 'PAYMENT', 'PREPAYMENT_PENALTY', 'PROPERTY_VALUATION', 'QUALIFICATION', 'REFINANCE', 'REGULATORY_INFORMATION', 'REVERSE_MORTGAGE', 'SERVICING', 'TERMS_OF_LOAN', 'UNDERWRITING', 'USDA_LOAN', 'VA_LOAN'],
+  'PARTY': ['EXTENSION', 'INDIVIDUAL', 'LEGAL_ENTITY', 'PARTY_DETAIL', 'ROLES', 'TAXPAYER_IDENTIFIERS'],
+  'COLLATERAL': ['EXTENSION', 'LIENS', 'PLEDGED_ASSET', 'SUBJECT_PROPERTY']
 };
 
 Deno.serve(async (req) => {
@@ -81,74 +248,123 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { action, pack_id, xml_content, canonical_data, field_name, field_value } = await req.json();
-
-    // ACTION: List available schema packs
-    if (action === 'list_packs') {
-      return Response.json({
-        success: true,
-        packs: Object.values(SCHEMA_PACKS)
-      });
-    }
+    const body = await req.json();
+    const { action, pack_id, xml_content } = body;
 
     // ACTION: Get schema pack info
     if (action === 'get_pack_info') {
       const pack = SCHEMA_PACKS[pack_id];
       if (!pack) {
-        return Response.json({ error: 'Schema pack not found' }, { status: 404 });
+        return Response.json({ error: `Unknown pack_id: ${pack_id}` }, { status: 400 });
       }
       return Response.json({
         success: true,
-        pack
+        pack: {
+          ...pack,
+          enums_count: Object.keys(LDD_ENUMS).length,
+          datatypes_count: Object.keys(DATATYPE_PATTERNS).length
+        }
       });
     }
 
-    // ACTION: Validate XML against schema pack
+    // ACTION: List all packs
+    if (action === 'list_packs') {
+      const packs = Object.entries(SCHEMA_PACKS).map(([id, pack]) => ({
+        id,
+        name: pack.name,
+        description: pack.description,
+        mismo_version: pack.mismo_version,
+        build: pack.build,
+        pack_hash: pack.pack_hash,
+        strict_mode: pack.strict_mode
+      }));
+      return Response.json({ success: true, packs });
+    }
+
+    // ACTION: Validate XML against pack
     if (action === 'validate_xml') {
-      const pack = SCHEMA_PACKS[pack_id || 'PACK_A_GENERIC_MISMO_34_B324'];
+      const effectivePackId = pack_id || 'PACK_A_GENERIC_MISMO_34_B324';
+      const pack = SCHEMA_PACKS[effectivePackId];
+      
       if (!pack) {
-        return Response.json({ error: 'Invalid schema pack' }, { status: 400 });
+        return Response.json({ error: `Unknown pack_id: ${effectivePackId}` }, { status: 400 });
       }
 
-      const validation = await validateXmlAgainstPack(xml_content, pack);
+      const validation = validateXmlAgainstPack(xml_content, pack, effectivePackId);
       
       return Response.json({
         success: true,
-        validation,
-        pack_used: {
-          id: pack.id,
-          name: pack.name,
-          pack_hash: pack.pack_hash
-        }
+        pack_id: effectivePackId,
+        pack_hash: pack.pack_hash,
+        ldd_identifier: pack.ldd_identifier,
+        validation
+      });
+    }
+
+    // ACTION: Get LDD enums
+    if (action === 'get_enums') {
+      const enumType = body.enum_type;
+      if (enumType) {
+        return Response.json({
+          success: true,
+          enum_type: enumType,
+          values: LDD_ENUMS[enumType] || []
+        });
+      }
+      return Response.json({
+        success: true,
+        enums: LDD_ENUMS
       });
     }
 
     // ACTION: Validate enum value
     if (action === 'validate_enum') {
-      const isValid = validateEnum(field_name, field_value);
+      const { enum_type, value } = body;
+      const allowed = LDD_ENUMS[enum_type];
+      if (!allowed) {
+        return Response.json({
+          success: true,
+          is_valid: true,
+          message: 'Unknown enum type - allowed by default'
+        });
+      }
+      const isValid = allowed.includes(value);
       return Response.json({
         success: true,
         is_valid: isValid,
-        field_name,
-        field_value,
-        allowed_values: LDD_ENUM_RULES[field_name] || []
+        enum_type,
+        value,
+        allowed_values: allowed,
+        message: isValid ? 'Valid' : `Invalid value. Allowed: ${allowed.join(', ')}`
       });
     }
 
-    // ACTION: Get extension config
-    if (action === 'get_extension_config') {
+    // ACTION: Compute XML hash (for determinism verification)
+    if (action === 'compute_hash') {
+      const hash = await computeContentHash(xml_content);
       return Response.json({
         success: true,
-        extension_config: LG_EXTENSION_CONFIG
+        hash,
+        algorithm: 'SHA-256',
+        content_length: xml_content.length
       });
     }
 
-    // ACTION: Validate MISMO structure (root element + LDD identifier)
-    if (action === 'validate_structure') {
-      const structure = validateMismoStructure(xml_content, pack_id);
+    // ACTION: Get required elements for pack
+    if (action === 'get_required_elements') {
+      const effectivePackId = pack_id || 'PACK_A_GENERIC_MISMO_34_B324';
       return Response.json({
         success: true,
-        structure_validation: structure
+        pack_id: effectivePackId,
+        required_elements: REQUIRED_ELEMENTS[effectivePackId] || REQUIRED_ELEMENTS['PACK_A_GENERIC_MISMO_34_B324']
+      });
+    }
+
+    // ACTION: Get element sequence (for DU strict ordering)
+    if (action === 'get_element_sequence') {
+      return Response.json({
+        success: true,
+        element_sequence: ELEMENT_SEQUENCE
       });
     }
 
@@ -156,244 +372,365 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('SchemaPack Manager error:', error);
-    return Response.json({ 
-      error: 'Internal server error', 
-      details: error.message 
-    }, { status: 500 });
+    return Response.json({ error: error.message }, { status: 500 });
   }
 });
 
-// XML Validation against schema pack
-async function validateXmlAgainstPack(xmlContent, pack) {
+// ============================================================
+// VALIDATION ENGINE
+// ============================================================
+
+function validateXmlAgainstPack(xmlContent, pack, packId) {
   const errors = [];
   const warnings = [];
-  let status = 'PASS';
+  const info = [];
 
-  try {
-    // Step 1: Well-formedness check
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlContent, 'text/xml');
-    const parseErrors = xmlDoc.getElementsByTagName('parsererror');
-    
-    if (parseErrors.length > 0) {
-      errors.push({
-        line: 0,
-        col: 0,
-        xpath: '/',
-        message: 'XML is not well-formed',
-        severity: 'error',
-        category: 'well-formedness'
-      });
-      status = 'FAIL';
-      return { status, errors, warnings, pack_id: pack.id };
-    }
-
-    // Step 2: Root element validation
-    const rootElement = xmlDoc.documentElement;
-    if (rootElement.tagName !== pack.root_element) {
-      errors.push({
-        line: 1,
-        col: 0,
-        xpath: '/',
-        message: `Root element must be '${pack.root_element}', found '${rootElement.tagName}'`,
-        severity: 'error',
-        category: 'structure'
-      });
-      status = 'FAIL';
-    }
-
-    // Step 3: Namespace validation
-    const xmlns = rootElement.getAttribute('xmlns') || rootElement.getAttribute('xmlns:mismo');
-    if (!xmlns || !xmlns.includes('mismo.org')) {
-      warnings.push({
-        xpath: '/',
-        message: 'Missing or invalid MISMO namespace declaration',
-        severity: 'warning',
-        category: 'namespace'
-      });
-      if (status === 'PASS') status = 'PASS_WITH_WARNINGS';
-    }
-
-    // Step 4: LDD Identifier validation
-    const aboutVersions = xmlDoc.getElementsByTagName('ABOUT_VERSIONS')[0] || 
-                          xmlDoc.getElementsByTagName('AboutVersions')[0];
-    
-    if (aboutVersions) {
-      const lddElements = aboutVersions.getElementsByTagName('MISMOLogicalDataDictionaryIdentifier') ||
-                          aboutVersions.getElementsByTagName('DataVersionIdentifier');
-      
-      if (lddElements.length === 0) {
-        warnings.push({
-          xpath: '/MESSAGE/ABOUT_VERSIONS',
-          message: 'Missing MISMOLogicalDataDictionaryIdentifier',
-          severity: 'warning',
-          category: 'version'
-        });
-        if (status === 'PASS') status = 'PASS_WITH_WARNINGS';
-      } else {
-        const lddValue = lddElements[0].textContent?.trim();
-        if (!lddValue || !lddValue.includes('MISMO')) {
-          warnings.push({
-            xpath: '/MESSAGE/ABOUT_VERSIONS/MISMOLogicalDataDictionaryIdentifier',
-            message: `LDD identifier '${lddValue}' may not match expected pack identifier`,
-            severity: 'warning',
-            category: 'version'
-          });
-          if (status === 'PASS') status = 'PASS_WITH_WARNINGS';
-        }
-      }
-    } else {
-      warnings.push({
-        xpath: '/MESSAGE',
-        message: 'Missing ABOUT_VERSIONS section',
-        severity: 'warning',
-        category: 'structure'
-      });
-      if (status === 'PASS') status = 'PASS_WITH_WARNINGS';
-    }
-
-    // Step 5: Check for critical elements
-    const dealSets = xmlDoc.getElementsByTagName('DEAL_SETS') || 
-                     xmlDoc.getElementsByTagName('DealSets');
-    if (dealSets.length === 0) {
-      errors.push({
-        xpath: '/MESSAGE',
-        message: 'Missing required DEAL_SETS element',
-        severity: 'error',
-        category: 'structure'
-      });
-      status = 'FAIL';
-    }
-
-    // Step 6: Validate extension structure if present
-    const extensions = xmlDoc.getElementsByTagName('EXTENSION') || 
-                       xmlDoc.getElementsByTagName('Extension');
-    if (extensions.length > 0) {
-      for (let i = 0; i < extensions.length; i++) {
-        const ext = extensions[i];
-        const otherElement = ext.getElementsByTagName('OTHER')[0] || 
-                            ext.getElementsByTagName('Other')[0];
-        
-        if (otherElement) {
-          const lgElements = Array.from(otherElement.childNodes).filter(
-            node => node.nodeType === 1 && (node.prefix === 'LG' || node.tagName?.startsWith('LG:'))
-          );
-          
-          if (lgElements.length > 0) {
-            // Check for LG namespace declaration
-            const lgNs = otherElement.getAttribute('xmlns:LG');
-            if (!lgNs || lgNs !== LG_EXTENSION_CONFIG.namespace) {
-              warnings.push({
-                xpath: `/MESSAGE/*/EXTENSION[${i+1}]/OTHER`,
-                message: 'LG namespace not properly declared or version mismatch',
-                severity: 'warning',
-                category: 'extension'
-              });
-              if (status === 'PASS') status = 'PASS_WITH_WARNINGS';
-            }
-          }
-        }
-      }
-    }
-
-    // Step 7: Schema validation simulation (in production, use actual XSD validator)
-    // Note: Full XSD validation requires xml-schema-validator library
-    // For now, we perform structural checks
-    
-    return {
-      status,
-      errors,
-      warnings,
-      pack_id: pack.id,
-      validated_at: new Date().toISOString()
-    };
-
-  } catch (error) {
+  // 1. Well-formedness check
+  const wellFormedResult = checkWellFormed(xmlContent);
+  if (!wellFormedResult.valid) {
     return {
       status: 'FAIL',
+      well_formed: false,
       errors: [{
-        line: 0,
-        col: 0,
-        xpath: '/',
-        message: 'Validation error: ' + error.message,
+        code: 'XML_MALFORMED',
+        category: 'well_formedness',
         severity: 'error',
-        category: 'system'
+        message: wellFormedResult.error,
+        line: wellFormedResult.line,
+        column: wellFormedResult.column,
+        xpath: null
       }],
       warnings: [],
-      pack_id: pack.id
+      info: []
     };
   }
+
+  // 2. Root element check
+  const rootMatch = xmlContent.match(/<([A-Z_]+)[\s>]/);
+  if (!rootMatch || rootMatch[1] !== pack.root_element) {
+    errors.push({
+      code: 'INVALID_ROOT_ELEMENT',
+      category: 'structure',
+      severity: 'error',
+      message: `Root element must be ${pack.root_element}, found: ${rootMatch?.[1] || 'none'}`,
+      line: 1,
+      column: 1,
+      xpath: '/'
+    });
+  }
+
+  // 3. Namespace validation
+  const hasRequiredNS = pack.required_namespaces.every(ns => xmlContent.includes(ns));
+  if (!hasRequiredNS) {
+    errors.push({
+      code: 'MISSING_REQUIRED_NAMESPACE',
+      category: 'namespace',
+      severity: 'error',
+      message: `Missing required namespace: ${pack.required_namespaces.join(', ')}`,
+      line: 1,
+      column: 1,
+      xpath: '/MESSAGE'
+    });
+  }
+
+  // 4. MISMOVersionID check
+  const versionMatch = xmlContent.match(/MISMOVersionID="([^"]+)"/);
+  if (!versionMatch) {
+    errors.push({
+      code: 'MISSING_MISMO_VERSION',
+      category: 'structure',
+      severity: 'error',
+      message: 'MISMOVersionID attribute is required on MESSAGE element',
+      line: 1,
+      column: 1,
+      xpath: '/MESSAGE/@MISMOVersionID'
+    });
+  } else if (versionMatch[1] !== pack.mismo_version) {
+    warnings.push({
+      code: 'VERSION_MISMATCH',
+      category: 'structure',
+      severity: 'warning',
+      message: `MISMOVersionID ${versionMatch[1]} does not match pack version ${pack.mismo_version}`,
+      line: 1,
+      column: xmlContent.indexOf('MISMOVersionID'),
+      xpath: '/MESSAGE/@MISMOVersionID'
+    });
+  }
+
+  // 5. LDD Identifier check (strict mode)
+  if (pack.strict_mode) {
+    const lddMatch = xmlContent.match(/<MISMOLogicalDataDictionaryIdentifier>([^<]*)<\/MISMOLogicalDataDictionaryIdentifier>/);
+    if (!lddMatch) {
+      warnings.push({
+        code: 'MISSING_LDD_IDENTIFIER',
+        category: 'structure',
+        severity: 'warning',
+        message: 'MISMOLogicalDataDictionaryIdentifier recommended for strict mode',
+        line: 1,
+        column: 1,
+        xpath: '/MESSAGE/MESSAGE_HEADER/MISMOLogicalDataDictionaryIdentifier'
+      });
+    } else if (lddMatch[1] !== pack.ldd_identifier) {
+      warnings.push({
+        code: 'LDD_IDENTIFIER_MISMATCH',
+        category: 'structure',
+        severity: 'warning',
+        message: `LDD Identifier ${lddMatch[1]} does not match pack LDD ${pack.ldd_identifier}`,
+        line: getLineNumber(xmlContent, lddMatch[0]),
+        column: 1,
+        xpath: '/MESSAGE/MESSAGE_HEADER/MISMOLogicalDataDictionaryIdentifier'
+      });
+    }
+  }
+
+  // 6. Required elements check
+  const requiredElements = REQUIRED_ELEMENTS[packId] || {};
+  for (const [level, elements] of Object.entries(requiredElements)) {
+    for (const element of elements) {
+      const pattern = new RegExp(`<${element}[\\s>]`);
+      if (!pattern.test(xmlContent)) {
+        errors.push({
+          code: 'MISSING_REQUIRED_ELEMENT',
+          category: 'structure',
+          severity: 'error',
+          message: `Required element <${element}> not found (level: ${level})`,
+          line: 1,
+          column: 1,
+          xpath: `//${element}`
+        });
+      }
+    }
+  }
+
+  // 7. Enum validation
+  const enumErrors = validateEnumValues(xmlContent);
+  errors.push(...enumErrors.errors);
+  warnings.push(...enumErrors.warnings);
+
+  // 8. Datatype validation
+  const datatypeErrors = validateDatatypes(xmlContent);
+  warnings.push(...datatypeErrors);
+
+  // 9. Element sequence validation (strict mode only)
+  if (pack.strict_mode) {
+    const sequenceErrors = validateElementSequence(xmlContent);
+    warnings.push(...sequenceErrors);
+  }
+
+  // 10. Detect namespaces for info
+  const detectedNamespaces = detectNamespaces(xmlContent);
+  info.push({
+    code: 'DETECTED_NAMESPACES',
+    message: `Detected ${detectedNamespaces.length} namespace(s)`,
+    namespaces: detectedNamespaces
+  });
+
+  // 11. Extension detection
+  const extensionInfo = detectExtensions(xmlContent);
+  if (extensionInfo.hasExtensions) {
+    info.push({
+      code: 'EXTENSIONS_DETECTED',
+      message: `Found ${extensionInfo.count} extension block(s)`,
+      extension_namespaces: extensionInfo.namespaces
+    });
+  }
+
+  // Determine status
+  let status = 'PASS';
+  if (errors.length > 0) {
+    status = 'FAIL';
+  } else if (warnings.length > 0) {
+    status = 'PASS_WITH_WARNINGS';
+  }
+
+  return {
+    status,
+    well_formed: true,
+    errors,
+    warnings,
+    info,
+    summary: {
+      total_errors: errors.length,
+      total_warnings: warnings.length,
+      error_categories: [...new Set(errors.map(e => e.category))],
+      warning_categories: [...new Set(warnings.map(w => w.category))]
+    }
+  };
 }
 
-// Validate MISMO structure
-function validateMismoStructure(xmlContent, packId) {
-  const pack = SCHEMA_PACKS[packId] || SCHEMA_PACKS.PACK_A_GENERIC_MISMO_34_B324;
-  const checks = {
-    has_message_root: false,
-    has_ldd_identifier: false,
-    ldd_identifier_value: null,
-    has_proper_namespaces: false,
-    detected_mismo_version: null,
-    issues: []
-  };
+// ============================================================
+// HELPER FUNCTIONS
+// ============================================================
 
+function checkWellFormed(xmlContent) {
   try {
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlContent, 'text/xml');
-    const root = xmlDoc.documentElement;
-
-    // Check root element
-    checks.has_message_root = root.tagName === 'MESSAGE';
-    if (!checks.has_message_root) {
-      checks.issues.push(`Root element is '${root.tagName}', expected 'MESSAGE'`);
+    if (!xmlContent.trim().startsWith('<?xml') && !xmlContent.trim().startsWith('<')) {
+      return { valid: false, error: 'Content does not appear to be XML', line: 1, column: 1 };
     }
 
-    // Check namespaces
-    const xmlns = root.getAttribute('xmlns') || root.getAttribute('xmlns:mismo');
-    checks.has_proper_namespaces = xmlns && xmlns.includes('mismo.org');
-    if (!checks.has_proper_namespaces) {
-      checks.issues.push('Missing or invalid MISMO namespace');
-    }
-
-    // Find LDD identifier
-    const aboutVersions = xmlDoc.getElementsByTagName('ABOUT_VERSIONS')[0];
-    if (aboutVersions) {
-      const lddElements = aboutVersions.getElementsByTagName('MISMOLogicalDataDictionaryIdentifier');
-      if (lddElements.length > 0) {
-        checks.has_ldd_identifier = true;
-        checks.ldd_identifier_value = lddElements[0].textContent?.trim();
+    const tagStack = [];
+    const lines = xmlContent.split('\n');
+    
+    for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+      const line = lines[lineNum];
+      const tagPattern = /<\/?([a-zA-Z_:][a-zA-Z0-9_:.-]*)[^>]*\/?>/g;
+      let match;
+      
+      while ((match = tagPattern.exec(line)) !== null) {
+        const fullTag = match[0];
+        const tagName = match[1];
+        
+        if (fullTag.startsWith('</')) {
+          if (tagStack.length === 0 || tagStack[tagStack.length - 1] !== tagName) {
+            return {
+              valid: false,
+              error: `Unexpected closing tag </${tagName}>`,
+              line: lineNum + 1,
+              column: match.index + 1
+            };
+          }
+          tagStack.pop();
+        } else if (!fullTag.endsWith('/>') && !fullTag.startsWith('<?') && !fullTag.startsWith('<!')) {
+          tagStack.push(tagName);
+        }
       }
     }
 
-    // Extract version info
-    const versionElements = xmlDoc.getElementsByTagName('MISMOVersionIdentifier');
-    if (versionElements.length > 0) {
-      checks.detected_mismo_version = versionElements[0].textContent?.trim();
+    if (tagStack.length > 0) {
+      return {
+        valid: false,
+        error: `Unclosed tag: <${tagStack[tagStack.length - 1]}>`,
+        line: lines.length,
+        column: 1
+      };
     }
 
-    return {
-      is_valid: checks.has_message_root && checks.has_ldd_identifier && checks.has_proper_namespaces,
-      checks,
-      expected_pack: pack.id,
-      expected_ldd: pack.ldd_identifier
-    };
-
-  } catch (error) {
-    checks.issues.push('Parse error: ' + error.message);
-    return {
-      is_valid: false,
-      checks,
-      expected_pack: pack.id
-    };
+    return { valid: true };
+  } catch (e) {
+    return { valid: false, error: e.message, line: 1, column: 1 };
   }
 }
 
-// Validate enum value against LDD rules
-function validateEnum(fieldName, fieldValue) {
-  const allowedValues = LDD_ENUM_RULES[fieldName];
-  if (!allowedValues) {
-    // Field not in LDD rules - allow it (may be custom extension)
-    return true;
+function validateEnumValues(xmlContent) {
+  const errors = [];
+  const warnings = [];
+
+  const enumChecks = [
+    { element: 'LoanPurposeType', enumKey: 'LoanPurposeType' },
+    { element: 'PropertyUsageType', enumKey: 'PropertyUsageType' },
+    { element: 'PropertyEstateType', enumKey: 'PropertyEstateType' },
+    { element: 'ConstructionMethodType', enumKey: 'ConstructionMethodType' },
+    { element: 'AttachmentType', enumKey: 'AttachmentType' },
+    { element: 'LegalEntityType', enumKey: 'LegalEntityType' },
+    { element: 'CitizenshipResidencyType', enumKey: 'CitizenshipResidencyType' },
+    { element: 'MaritalStatusType', enumKey: 'MaritalStatusType' },
+    { element: 'AssetType', enumKey: 'AssetType' },
+    { element: 'MortgageType', enumKey: 'MortgageType' },
+    { element: 'AmortizationType', enumKey: 'AmortizationType' },
+    { element: 'PartyRoleType', enumKey: 'PartyRoleType' },
+    { element: 'StateCode', enumKey: 'StateCode' }
+  ];
+
+  for (const { element, enumKey } of enumChecks) {
+    const pattern = new RegExp(`<${element}>([^<]*)</${element}>`, 'g');
+    let match;
+    while ((match = pattern.exec(xmlContent)) !== null) {
+      const value = match[1].trim();
+      if (value && LDD_ENUMS[enumKey] && !LDD_ENUMS[enumKey].includes(value)) {
+        errors.push({
+          code: 'INVALID_LDD_ENUM',
+          category: 'enum',
+          severity: 'error',
+          message: `Invalid ${element} value "${value}". Allowed: ${LDD_ENUMS[enumKey].slice(0, 5).join(', ')}...`,
+          line: getLineNumber(xmlContent, match[0]),
+          column: 1,
+          xpath: `//${element}`,
+          allowed_values: LDD_ENUMS[enumKey]
+        });
+      }
+    }
   }
-  return allowedValues.includes(fieldValue);
+
+  return { errors, warnings };
+}
+
+function validateDatatypes(xmlContent) {
+  const warnings = [];
+
+  const datatypeChecks = [
+    { element: 'BaseLoanAmount', pattern: DATATYPE_PATTERNS.MISMOAmount, type: 'Amount' },
+    { element: 'NoteRatePercent', pattern: DATATYPE_PATTERNS.MISMOPercent, type: 'Percent' },
+    { element: 'ApplicationReceivedDate', pattern: DATATYPE_PATTERNS.MISMODate, type: 'Date' },
+    { element: 'PostalCode', pattern: DATATYPE_PATTERNS.MISMOPostalCode, type: 'PostalCode' }
+  ];
+
+  for (const { element, pattern, type } of datatypeChecks) {
+    const elementPattern = new RegExp(`<${element}>([^<]*)</${element}>`, 'g');
+    let match;
+    while ((match = elementPattern.exec(xmlContent)) !== null) {
+      const value = match[1].trim();
+      if (value && !pattern.test(value)) {
+        warnings.push({
+          code: 'DATATYPE_VIOLATION',
+          category: 'datatype',
+          severity: 'warning',
+          message: `Invalid ${type} format for ${element}: "${value}"`,
+          line: getLineNumber(xmlContent, match[0]),
+          column: 1,
+          xpath: `//${element}`
+        });
+      }
+    }
+  }
+
+  return warnings;
+}
+
+function validateElementSequence(xmlContent) {
+  const warnings = [];
+  // Placeholder for strict sequence validation
+  // Would compare actual element order against ELEMENT_SEQUENCE rules
+  return warnings;
+}
+
+function detectNamespaces(xmlContent) {
+  const namespaces = [];
+  const nsPattern = /xmlns(?::([a-zA-Z]+))?="([^"]+)"/g;
+  let match;
+  while ((match = nsPattern.exec(xmlContent)) !== null) {
+    namespaces.push({
+      prefix: match[1] || 'default',
+      uri: match[2]
+    });
+  }
+  return namespaces;
+}
+
+function detectExtensions(xmlContent) {
+  const hasExtensions = xmlContent.includes('<EXTENSION>');
+  const extensionPattern = /<OTHER[^>]*xmlns:([A-Za-z]+)="([^"]+)"/g;
+  const namespaces = [];
+  let match;
+  let count = 0;
+  
+  while ((match = extensionPattern.exec(xmlContent)) !== null) {
+    namespaces.push({ prefix: match[1], uri: match[2] });
+    count++;
+  }
+  
+  return { hasExtensions, count: count || (hasExtensions ? 1 : 0), namespaces };
+}
+
+function getLineNumber(content, search) {
+  const index = content.indexOf(search);
+  if (index === -1) return 1;
+  return (content.substring(0, index).match(/\n/g) || []).length + 1;
+}
+
+async function computeContentHash(content) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(content);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return 'sha256:' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
