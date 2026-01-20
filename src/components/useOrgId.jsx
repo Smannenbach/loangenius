@@ -147,31 +147,39 @@ export function useOrgId() {
 /**
  * Hook for org-scoped entity queries
  * Automatically adds org_id filter and handles loading states
- * NEVER falls back to list() - returns empty array if no org
+ * 
+ * CRITICAL: NEVER falls back to list() - returns empty array if no org.
+ * This ensures data isolation between organizations.
  */
 export function useOrgScopedQuery(entityName, additionalFilters = {}, options = {}) {
-  const { orgId, isLoading: orgLoading } = useOrgId();
+  const { orgId, isLoading: orgLoading, isReady } = useOrgId();
 
   return useQuery({
     queryKey: [entityName, 'org', orgId, JSON.stringify(additionalFilters)],
     queryFn: async () => {
-      // SECURITY: Never query without org_id
-      if (!orgId) return [];
+      // SECURITY: Never query without org_id - this is critical for data isolation
+      if (!orgId) {
+        console.warn(`useOrgScopedQuery(${entityName}): No orgId available, returning empty array`);
+        return [];
+      }
       
       const filters = {
         org_id: orgId,
         ...additionalFilters
       };
       
-      // Remove undefined/null filters
+      // Remove undefined/null filters but NEVER remove org_id
       Object.keys(filters).forEach(key => {
-        if (filters[key] === undefined || filters[key] === null) delete filters[key];
+        if (key !== 'org_id' && (filters[key] === undefined || filters[key] === null)) {
+          delete filters[key];
+        }
       });
 
       const results = await base44.entities[entityName].filter(filters);
       return results || [];
     },
-    enabled: !!orgId && !orgLoading,
+    // Only enable when org is ready and we have an orgId
+    enabled: isReady && !!orgId && !orgLoading,
     staleTime: options.staleTime || 30000, // 30 seconds default
     retry: 2,
     ...options
