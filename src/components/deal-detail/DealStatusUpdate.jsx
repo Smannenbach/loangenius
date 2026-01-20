@@ -29,6 +29,7 @@ export default function DealStatusUpdate({ deal, dealId }) {
   const [notes, setNotes] = useState('');
   const queryClient = useQueryClient();
 
+  // FIX: Add optimistic updates for better UX
   const updateStageMutation = useMutation({
     mutationFn: async () => {
       try {
@@ -43,12 +44,23 @@ export default function DealStatusUpdate({ deal, dealId }) {
         return await base44.entities.Deal.update(dealId, { stage: newStage });
       }
     },
+    // Optimistic update: immediately show new stage
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['deal', dealId] });
+      const previousDeal = queryClient.getQueryData(['deal', dealId]);
+      queryClient.setQueryData(['deal', dealId], (old) => old ? { ...old, stage: newStage } : old);
+      return { previousDeal };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deal', dealId] });
       setNotes('');
       toast.success('Deal stage updated successfully');
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback on error
+      if (context?.previousDeal) {
+        queryClient.setQueryData(['deal', dealId], context.previousDeal);
+      }
       toast.error('Failed to update stage: ' + error.message);
     },
   });

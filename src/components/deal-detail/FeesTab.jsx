@@ -33,10 +33,24 @@ export default function FeesTab({ dealId, deal }) {
     enabled: !!dealId,
   });
 
+  // FIX: Add optimistic updates for fee deletion
   const deleteMutation = useMutation({
     mutationFn: (feeId) => base44.entities.Fee.delete(feeId),
+    onMutate: async (feeId) => {
+      await queryClient.cancelQueries({ queryKey: ['deal-fees', dealId] });
+      const previousFees = queryClient.getQueryData(['deal-fees', dealId]);
+      queryClient.setQueryData(['deal-fees', dealId], (old) => 
+        old ? old.filter(f => f.id !== feeId) : []
+      );
+      return { previousFees };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deal-fees', dealId] });
+    },
+    onError: (error, feeId, context) => {
+      if (context?.previousFees) {
+        queryClient.setQueryData(['deal-fees', dealId], context.previousFees);
+      }
     },
   });
 
