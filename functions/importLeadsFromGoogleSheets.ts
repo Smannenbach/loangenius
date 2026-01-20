@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 /**
  * Import leads from Google Sheets to LoanGenius
+ * Uses canonical org resolver via OrgMembership
  */
 Deno.serve(async (req) => {
   try {
@@ -12,6 +13,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get org_id from OrgMembership - canonical resolver
+    const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
+    if (memberships.length === 0) {
+      return Response.json({ error: 'User not part of any organization. Please contact support.' }, { status: 403 });
+    }
+    const org_id = memberships[0].org_id;
+
     const { spreadsheet_id, sheet_name = 'Leads' } = await req.json();
 
     if (!spreadsheet_id) {
@@ -19,7 +27,22 @@ Deno.serve(async (req) => {
     }
 
     // Get access token from Google Sheets connector
-    const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
+    let accessToken;
+    try {
+      accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
+    } catch (e) {
+      return Response.json({ 
+        error: 'Google Sheets not connected. Please go to Admin → Integrations to authorize Google Sheets access.',
+        connector_missing: true
+      }, { status: 403 });
+    }
+
+    if (!accessToken) {
+      return Response.json({ 
+        error: 'Google Sheets authorization expired. Please re-authorize in Admin → Integrations.',
+        connector_missing: true
+      }, { status: 403 });
+    }
 
     // Fetch data from Google Sheets
     const sheetResponse = await fetch(
@@ -83,7 +106,7 @@ Deno.serve(async (req) => {
 
       try {
         const leadData = {
-          org_id: user.org_id || user.id,
+          org_id: org_id,
           status: 'new',
         };
 
@@ -131,7 +154,7 @@ Deno.serve(async (req) => {
 
     // Update sync log
     const syncConfigs = await base44.asServiceRole.entities.GoogleSheetsSync.filter({
-      org_id: user.org_id,
+      org_id: org_id,
       spreadsheet_id: spreadsheet_id,
     });
 

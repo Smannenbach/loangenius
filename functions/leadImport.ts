@@ -192,9 +192,20 @@ Deno.serve(async (req) => {
         csvText = data;
       } else if (source_type === 'google_sheets' && spreadsheet_id) {
         // Fetch from Google Sheets API
-        const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
+        let accessToken;
+        try {
+          accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
+        } catch (e) {
+          return Response.json({ 
+            error: 'Google Sheets not connected. Go to Admin → Integrations to authorize.',
+            connector_missing: true 
+          }, { status: 403 });
+        }
         if (!accessToken) {
-          return Response.json({ error: 'Google Sheets not authorized. Please authorize in Settings.' }, { status: 403 });
+          return Response.json({ 
+            error: 'Google Sheets authorization expired. Please re-authorize in Admin → Integrations.',
+            connector_missing: true 
+          }, { status: 403 });
         }
 
         const range = sheet_name || 'Sheet1';
@@ -265,9 +276,20 @@ Deno.serve(async (req) => {
       if (source_type === 'csv' && data) {
         csvText = data;
       } else if (source_type === 'google_sheets' && spreadsheet_id) {
-        const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
+        let accessToken;
+        try {
+          accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
+        } catch (e) {
+          return Response.json({ 
+            error: 'Google Sheets not connected. Go to Admin → Integrations to authorize.',
+            connector_missing: true 
+          }, { status: 403 });
+        }
         if (!accessToken) {
-          return Response.json({ error: 'Google Sheets not authorized' }, { status: 403 });
+          return Response.json({ 
+            error: 'Google Sheets authorization expired. Please re-authorize.',
+            connector_missing: true 
+          }, { status: 403 });
         }
 
         const range = sheet_name || 'Sheet1';

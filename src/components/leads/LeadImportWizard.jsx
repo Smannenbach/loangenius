@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useOrgId } from '@/components/useOrgId';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,8 +26,10 @@ const STEPS = [
 
 export default function LeadImportWizard({ trigger, onImportComplete }) {
   const queryClient = useQueryClient();
+  const { orgId } = useOrgId();
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(1);
+  const [connectorError, setConnectorError] = useState(null);
   
   // Source state
   const [sourceType, setSourceType] = useState('csv');
@@ -122,7 +125,12 @@ export default function LeadImportWizard({ trigger, onImportComplete }) {
       toast.success(`Found ${data.total_rows || data.rows?.length || 0} rows to import`);
     },
     onError: (error) => {
-      toast.error('Preview failed: ' + (error.response?.data?.error || error.message));
+      const errorMsg = error.response?.data?.error || error.message;
+      // Check for connector errors
+      if (errorMsg.includes('not authorized') || errorMsg.includes('Google Sheets')) {
+        setConnectorError(errorMsg);
+      }
+      toast.error('Preview failed: ' + errorMsg);
     }
   });
 
@@ -151,6 +159,8 @@ export default function LeadImportWizard({ trigger, onImportComplete }) {
     onSuccess: (data) => {
       setImportResult(data);
       setStep(4);
+      // Invalidate leads query with proper org scoping
+      queryClient.invalidateQueries({ queryKey: ['Lead', 'org', orgId] });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       toast.success(`Successfully imported ${data.imported} leads!`);
     },
@@ -311,11 +321,31 @@ export default function LeadImportWizard({ trigger, onImportComplete }) {
                 <TabsContent value="google_sheets" className="space-y-4 mt-4">
                   <Card>
                     <CardContent className="pt-6 space-y-4">
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                        <p className="text-sm text-blue-800">
-                          Use Google Sheets API for private sheets. Requires Google Sheets authorization in Settings.
-                        </p>
-                      </div>
+                      {connectorError ? (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                          <div className="flex items-start gap-3">
+                            <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+                            <div>
+                              <p className="font-medium text-amber-800">Google Sheets Not Connected</p>
+                              <p className="text-sm text-amber-700 mt-1">
+                                {connectorError}
+                              </p>
+                              <p className="text-sm text-amber-700 mt-2">
+                                To connect Google Sheets, go to <strong>Admin → Integrations</strong> and authorize Google Sheets access.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <p className="text-sm text-green-800">
+                              Google Sheets is connected. You can import from private sheets.
+                            </p>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="space-y-2">
                         <Label>Spreadsheet ID</Label>
