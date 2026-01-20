@@ -450,37 +450,45 @@ export default function DealDetail() {
         </TabsContent>
 
         <TabsContent value="documents">
-          <Card className="border-gray-200">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Documents</CardTitle>
-              <Button variant="outline" size="sm">Upload Document</Button>
-            </CardHeader>
-            <CardContent>
-              {documents.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <FileText className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                  <p>No documents uploaded yet</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {documents.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-5 w-5 text-gray-400" />
-                        <div>
-                          <div className="font-medium">{doc.name}</div>
-                          <div className="text-sm text-gray-500 capitalize">{doc.document_type?.replace(/_/g, ' ')}</div>
-                        </div>
-                      </div>
-                      <Badge className={doc.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}>
-                        {doc.status}
-                      </Badge>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <Card className="border-gray-200">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-lg">Documents</CardTitle>
+                  <Button variant="outline" size="sm">Upload Document</Button>
+                </CardHeader>
+                <CardContent>
+                  {documents.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <FileText className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                      <p>No documents uploaded yet</p>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  ) : (
+                    <div className="space-y-3">
+                      {documents.map((doc) => (
+                        <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <FileText className="h-5 w-5 text-gray-400" />
+                            <div>
+                              <div className="font-medium">{doc.name}</div>
+                              <div className="text-sm text-gray-500 capitalize">{doc.document_type?.replace(/_/g, ' ')}</div>
+                            </div>
+                          </div>
+                          <Badge className={doc.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}>
+                            {doc.status}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+            <div className="space-y-4">
+              <DocumentGenerator dealId={dealId} deal={deal} />
+              <SmartDocumentReview dealId={dealId} />
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="conditions">
@@ -657,7 +665,12 @@ export default function DealDetail() {
         </TabsContent>
 
         <TabsContent value="lenders">
-          <LenderOutreachPanel dealId={dealId} deal={deal} />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <LenderOutreachPanel dealId={dealId} deal={deal} />
+            </div>
+            <LenderSyncPanel dealId={dealId} orgId={deal?.org_id} />
+          </div>
         </TabsContent>
 
         <TabsContent value="portal" className="space-y-6">
