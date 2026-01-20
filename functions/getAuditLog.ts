@@ -20,18 +20,23 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { entity_type, entity_id, limit = 100 } = body;
+    const { entity_type, entity_id, limit = 100, offset = 0 } = body;
 
     let filters = { org_id: orgId };
     if (entity_type) filters.entity_type = entity_type;
     if (entity_id) filters.entity_id = entity_id;
 
-    const logs = await base44.asServiceRole.entities.ActivityLog.filter(filters);
-    const sorted = logs.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, limit);
+    // FIX: Use database-level pagination instead of fetching all and slicing in memory
+    // This prevents OOM with large audit logs
+    const logs = await base44.asServiceRole.entities.ActivityLog.filter(
+      filters,
+      '-created_date', // Sort by newest first
+      limit            // Limit results
+    );
 
     return Response.json({
       ok: true,
-      logs: sorted.map(log => ({
+      logs: logs.map(log => ({
         id: log.id,
         entity_type: log.entity_type,
         entity_id: log.entity_id,
@@ -40,7 +45,8 @@ Deno.serve(async (req) => {
         timestamp: log.created_date,
         details: log.details_json,
       })),
-      count: sorted.length,
+      count: logs.length,
+      has_more: logs.length === limit,
     });
   } catch (error) {
     console.error('getAuditLog error:', error);

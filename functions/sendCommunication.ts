@@ -29,8 +29,21 @@ Deno.serve(async (req) => {
         body: messageBody,
       });
     } else if (channel === 'sms') {
-      // SMS would use Twilio integration
-      result = { sent: true, message: 'SMS queued' };
+      // FIX: Actually send SMS via Twilio
+      try {
+        const smsResponse = await base44.functions.invoke('twilioSMS', {
+          to,
+          body: messageBody
+        });
+        result = { 
+          sent: smsResponse.data?.success || false, 
+          sid: smsResponse.data?.sid,
+          message: smsResponse.data?.message || 'SMS sent'
+        };
+      } catch (smsError) {
+        console.error('SMS send failed:', smsError);
+        result = { sent: false, message: smsError.message };
+      }
     } else {
       return Response.json({ ok: false, error: 'Invalid channel' }, { status: 400 });
     }

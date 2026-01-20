@@ -17,12 +17,13 @@ Deno.serve(async (req) => {
     const { deal_id, ...dealData } = body;
 
     // Generate deal number if new
+    // FIX: Use UUID-based approach to prevent race condition where concurrent requests get same number
     if (!deal_id) {
       const now = new Date();
       const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
-      const existingDeals = await base44.entities.Deal.filter({ org_id: orgId });
-      const sequenceNum = String(existingDeals.length + 1).padStart(4, '0');
-      dealData.deal_number = `LG-${yearMonth}-${sequenceNum}`;
+      // Use crypto.randomUUID() for collision-free unique identifier
+      const uniqueId = crypto.randomUUID().slice(0, 8).toUpperCase();
+      dealData.deal_number = `LG-${yearMonth}-${uniqueId}`;
     }
 
     dealData.org_id = orgId;

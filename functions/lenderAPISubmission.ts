@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { decrypt } from './_shared/crypto.ts';
 
 // Lender API Submission Handler
 // Submits MISMO XML to lender APIs and tracks responses
@@ -165,8 +166,20 @@ async function submitViaRestAPI(lender, xmlContent, submissionId) {
   }
 
   try {
-    // Get API key from lender config (decrypt if needed)
-    const apiKey = lender.api_key_encrypted; // In production, decrypt this
+    // FIX: Decrypt API key before use
+    let apiKey;
+    if (lender.api_key_encrypted) {
+      try {
+        apiKey = await decrypt(lender.api_key_encrypted);
+      } catch (decryptError) {
+        console.error('Failed to decrypt API key:', decryptError);
+        return { success: false, message: 'Failed to decrypt API credentials' };
+      }
+    }
+
+    if (!apiKey) {
+      return { success: false, message: 'API key not configured' };
+    }
 
     const response = await fetch(lender.api_endpoint, {
       method: 'POST',
