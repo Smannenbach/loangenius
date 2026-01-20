@@ -71,6 +71,9 @@ import ValidationDashboard from './pages/ValidationDashboard';
 import base44ClickMap from './pages/BASE44_CLICK_MAP';
 import bugfixChangelog from './pages/BUGFIX_CHANGELOG';
 import smokeTestResults from './pages/SMOKE_TEST_RESULTS';
+import base44ImportSpec from './pages/BASE44_IMPORT_SPEC';
+import importFixChangelog from './pages/IMPORT_FIX_CHANGELOG';
+import importE2eResults from './pages/IMPORT_E2E_RESULTS';
 import __Layout from './Layout.jsx';
 
 
@@ -148,6 +151,9 @@ export const PAGES = {
     "BASE44_CLICK_MAP": base44ClickMap,
     "BUGFIX_CHANGELOG": bugfixChangelog,
     "SMOKE_TEST_RESULTS": smokeTestResults,
+    "BASE44_IMPORT_SPEC": base44ImportSpec,
+    "IMPORT_FIX_CHANGELOG": importFixChangelog,
+    "IMPORT_E2E_RESULTS": importE2eResults,
 }
 
 export const pagesConfig = {
