@@ -3,20 +3,31 @@
  * Use this for ALL backend function logging
  */
 
-// PII patterns to redact
+// PII patterns to redact (OWASP compliant - no sensitive data in logs)
 const PII_PATTERNS = [
   // SSN: XXX-XX-XXXX or XXXXXXXXX
   { pattern: /\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g, name: 'SSN', replacement: '[SSN-REDACTED]' },
-  // DOB: Various date formats
+  // DOB: Various date formats (MM/DD/YYYY, MM-DD-YYYY, YYYY-MM-DD)
   { pattern: /\b(0?[1-9]|1[0-2])[-\/](0?[1-9]|[12]\d|3[01])[-\/](19|20)\d{2}\b/g, name: 'DOB', replacement: '[DOB-REDACTED]' },
+  { pattern: /\b(19|20)\d{2}[-\/](0?[1-9]|1[0-2])[-\/](0?[1-9]|[12]\d|3[01])\b/g, name: 'DOB-ISO', replacement: '[DOB-REDACTED]' },
   // Tax ID / EIN: XX-XXXXXXX
   { pattern: /\b\d{2}[-\s]?\d{7}\b/g, name: 'EIN', replacement: '[TAX-ID-REDACTED]' },
   // Bank account numbers (8-17 digits)
   { pattern: /\b\d{8,17}\b/g, name: 'BANK', replacement: '[ACCT-REDACTED]' },
-  // Credit card numbers
+  // Credit card numbers (various formats)
   { pattern: /\b(?:\d{4}[-\s]?){3}\d{4}\b/g, name: 'CC', replacement: '[CC-REDACTED]' },
+  { pattern: /\b3[47]\d{13}\b/g, name: 'AMEX', replacement: '[CC-REDACTED]' },
   // Routing numbers (9 digits starting with 0-3)
   { pattern: /\b[0-3]\d{8}\b/g, name: 'ROUTING', replacement: '[ROUTING-REDACTED]' },
+  // Email addresses
+  { pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/gi, name: 'EMAIL', replacement: '[EMAIL-REDACTED]' },
+  // Phone numbers (various formats)
+  { pattern: /\b(?:\+1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g, name: 'PHONE', replacement: '[PHONE-REDACTED]' },
+  // IP addresses
+  { pattern: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g, name: 'IP', replacement: '[IP-REDACTED]' },
+  // Bearer tokens and API keys (common patterns)
+  { pattern: /Bearer\s+[A-Za-z0-9\-_.~+/]+=*/gi, name: 'TOKEN', replacement: 'Bearer [TOKEN-REDACTED]' },
+  { pattern: /\b(sk|pk|api)[-_][a-zA-Z0-9]{20,}\b/gi, name: 'APIKEY', replacement: '[APIKEY-REDACTED]' },
 ];
 
 // Sensitive field names that should never be logged
