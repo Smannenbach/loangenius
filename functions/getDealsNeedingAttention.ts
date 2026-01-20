@@ -1,88 +1,72 @@
+/**
+ * Get Deals Needing Attention
+ */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-/**
- * Get deals needing attention (stale, missing docs, expiring conditions)
- */
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
+    if (memberships.length === 0) return Response.json({ error: 'No organization' }, { status: 403 });
+    const orgId = memberships[0].org_id;
 
-    const { limit = 5 } = await req.json();
-    const orgId = user.org_id || '';
-    const today = new Date();
+    const deals = await base44.entities.Deal.filter({ org_id: orgId, is_deleted: false });
+    const conditions = await base44.entities.Condition.filter({ org_id: orgId });
+    const tasks = await base44.entities.Task.filter({ org_id: orgId });
 
-    const attentionDeals = [];
+    const needsAttention = [];
+    const now = new Date();
 
-    // Get all active deals
-    const deals = await base44.asServiceRole.entities.Deal.filter({
-      org_id: orgId,
-      status_not_in: ['funded', 'denied', 'withdrawn'],
-    });
+    for (const deal of deals) {
+      const reasons = [];
+      
+      // Check for pending conditions
+      const dealConditions = conditions.filter(c => c.deal_id === deal.id && c.status === 'pending');
+      if (dealConditions.length > 0) {
+        reasons.push(`${dealConditions.length} pending condition(s)`);
+      }
 
-    // 1. Stale deals (no activity in 7+ days)
-    deals.forEach(deal => {
-      const lastUpdate = new Date(deal.updated_date);
-      const daysSinceUpdate = Math.floor((today - lastUpdate) / (1000 * 60 * 60 * 24));
+      // Check for overdue tasks
+      const dealTasks = tasks.filter(t => t.deal_id === deal.id && t.status === 'pending');
+      const overdueTasks = dealTasks.filter(t => t.due_date && new Date(t.due_date) < now);
+      if (overdueTasks.length > 0) {
+        reasons.push(`${overdueTasks.length} overdue task(s)`);
+      }
 
-      if (daysSinceUpdate >= 7) {
-        attentionDeals.push({
+      // Check if deal is stale (no updates in 7 days)
+      const lastUpdate = new Date(deal.updated_date || deal.created_date);
+      const daysSinceUpdate = Math.floor((now - lastUpdate) / (1000 * 60 * 60 * 24));
+      if (daysSinceUpdate > 7 && !['funded', 'denied', 'withdrawn'].includes(deal.stage)) {
+        reasons.push(`No activity for ${daysSinceUpdate} days`);
+      }
+
+      if (reasons.length > 0) {
+        needsAttention.push({
           deal_id: deal.id,
           deal_number: deal.deal_number,
-          borrower_name: deal.primary_borrower_id ? 'Borrower' : 'Unknown',
-          reason: 'stale',
-          severity: daysSinceUpdate > 14 ? 'high' : 'medium',
-          message: `Stale ${daysSinceUpdate} days - no activity`,
-          days_stale: daysSinceUpdate,
+          stage: deal.stage,
+          loan_amount: deal.loan_amount,
+          reasons,
+          priority: reasons.length >= 2 ? 'high' : 'medium',
         });
       }
-    });
+    }
 
-    // 2. Missing documents (check if conditions exist)
-    const conditions = await base44.asServiceRole.entities.Condition.filter({
-      org_id: orgId,
-      status_not_in: ['approved', 'rejected'],
+    // Sort by priority
+    needsAttention.sort((a, b) => {
+      if (a.priority === 'high' && b.priority !== 'high') return -1;
+      if (b.priority === 'high' && a.priority !== 'high') return 1;
+      return 0;
     });
-
-    const dealsMissingDocs = {};
-    conditions.forEach(cond => {
-      if (!dealsMissingDocs[cond.deal_id]) {
-        dealsMissingDocs[cond.deal_id] = 0;
-      }
-      dealsMissingDocs[cond.deal_id]++;
-    });
-
-    Object.entries(dealsMissingDocs).forEach(([dealId, count]) => {
-      const deal = deals.find(d => d.id === dealId);
-      if (deal && count > 0) {
-        attentionDeals.push({
-          deal_id: dealId,
-          deal_number: deal.deal_number,
-          borrower_name: 'Borrower',
-          reason: 'missing_conditions',
-          severity: count > 3 ? 'high' : 'medium',
-          message: `${count} pending conditions`,
-          condition_count: count,
-        });
-      }
-    });
-
-    // Sort by severity
-    const severityOrder = { high: 0, medium: 1, low: 2 };
-    const sorted = attentionDeals.sort(
-      (a, b) => severityOrder[a.severity] - severityOrder[b.severity]
-    );
 
     return Response.json({
-      success: true,
-      deals: sorted.slice(0, limit),
+      deals: needsAttention.slice(0, 10),
+      total_count: needsAttention.length,
     });
   } catch (error) {
-    console.error('Error getting attention deals:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

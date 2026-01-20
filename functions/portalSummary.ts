@@ -1,84 +1,69 @@
+/**
+ * Borrower Portal Summary
+ */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-/**
- * Get deal summary for portal display (using session token)
- */
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { sessionId } = await req.json();
+    const body = await req.json();
+    const { deal_id, borrower_email } = body;
 
-    if (!sessionId) {
-      return Response.json({ error: 'Session ID required' }, { status: 400 });
-    }
-
-    // Get session
-    const session = await base44.asServiceRole.entities.PortalSession.get(sessionId);
-    if (!session) {
-      return Response.json({ error: 'Session not found' }, { status: 404 });
-    }
-
-    // Verify not revoked/expired
-    if (session.is_revoked || new Date(session.expires_at) < new Date()) {
-      return Response.json({ error: 'Session invalid' }, { status: 401 });
+    if (!deal_id) {
+      return Response.json({ error: 'Missing deal_id' }, { status: 400 });
     }
 
     // Get deal
-    const deal = await base44.asServiceRole.entities.Deal.get(session.deal_id);
-    if (!deal) {
+    const deals = await base44.asServiceRole.entities.Deal.filter({ id: deal_id });
+    if (deals.length === 0) {
       return Response.json({ error: 'Deal not found' }, { status: 404 });
     }
+    const deal = deals[0];
 
-    // Get borrower
-    const borrower = await base44.asServiceRole.entities.Borrower.get(session.borrower_id);
+    // Get conditions
+    const conditions = await base44.asServiceRole.entities.Condition.filter({ deal_id: deal_id });
+    const pendingConditions = conditions.filter(c => c.status === 'pending');
+    const completedConditions = conditions.filter(c => c.status === 'fulfilled');
 
-    // Get properties
-    const dealProperties = await base44.asServiceRole.entities.DealProperty.filter({
-      deal_id: deal.id,
-    });
+    // Get documents
+    const docReqs = await base44.asServiceRole.entities.DealDocumentRequirement.filter({ deal_id: deal_id });
+    const pendingDocs = docReqs.filter(d => d.status === 'pending');
+    const uploadedDocs = docReqs.filter(d => ['uploaded', 'accepted'].includes(d.status));
 
-    const properties = await Promise.all(
-      dealProperties.map(dp => base44.asServiceRole.entities.Property.get(dp.property_id))
-    );
-
-    // Update last accessed
-    await base44.asServiceRole.entities.PortalSession.update(sessionId, {
-      last_accessed_at: new Date().toISOString(),
-    });
+    // Get tasks
+    const tasks = await base44.asServiceRole.entities.Task.filter({ deal_id: deal_id, is_visible_to_borrower: true });
+    const pendingTasks = tasks.filter(t => t.status === 'pending');
 
     return Response.json({
-      success: true,
       deal: {
         id: deal.id,
         deal_number: deal.deal_number,
         stage: deal.stage,
+        status: deal.status,
+        loan_amount: deal.loan_amount,
         loan_product: deal.loan_product,
         loan_purpose: deal.loan_purpose,
-        loan_amount: deal.loan_amount,
-        interest_rate: deal.interest_rate,
-        loan_term_months: deal.loan_term_months,
-        dscr: deal.dscr,
-        ltv: deal.ltv,
-        monthly_pitia: deal.monthly_pitia,
       },
-      borrower: {
-        id: borrower.id,
-        first_name: borrower.first_name,
-        last_name: borrower.last_name,
-        email: borrower.email,
-        phone: borrower.phone,
+      conditions: {
+        total: conditions.length,
+        pending: pendingConditions.length,
+        completed: completedConditions.length,
       },
-      properties: properties.map(p => ({
-        id: p.id,
-        address_street: p.address_street,
-        address_city: p.address_city,
-        address_state: p.address_state,
-        address_zip: p.address_zip,
-        gross_rent_monthly: p.gross_rent_monthly,
-      })),
+      documents: {
+        total: docReqs.length,
+        pending: pendingDocs.length,
+        uploaded: uploadedDocs.length,
+      },
+      tasks: {
+        total: tasks.length,
+        pending: pendingTasks.length,
+      },
+      progress_percent: Math.round(
+        ((completedConditions.length + uploadedDocs.length) / 
+         Math.max(conditions.length + docReqs.length, 1)) * 100
+      ),
     });
   } catch (error) {
-    console.error('Portal summary error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

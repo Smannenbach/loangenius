@@ -1,54 +1,47 @@
+/**
+ * Portal Requirements - Get/manage document requirements for borrower portal
+ */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-/**
- * Get document requirements for portal
- */
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { sessionId } = await req.json();
+    const body = await req.json();
+    const { action, deal_id, requirement_id, status } = body;
 
-    if (!sessionId) {
-      return Response.json({ error: 'Session ID required' }, { status: 400 });
+    if (!deal_id) {
+      return Response.json({ error: 'Missing deal_id' }, { status: 400 });
     }
 
-    // Get session
-    const session = await base44.asServiceRole.entities.PortalSession.get(sessionId);
-    if (!session || session.is_revoked || new Date(session.expires_at) < new Date()) {
-      return Response.json({ error: 'Session invalid' }, { status: 401 });
-    }
-
-    // Get document requirements for deal
-    const requirements = await base44.asServiceRole.entities.DealDocumentRequirement.filter({
-      deal_id: session.deal_id,
-      is_visible_to_borrower: true,
-    });
-
-    // Group by category
-    const grouped = {};
-    for (const req of requirements) {
-      const cat = req.category || 'Other';
-      if (!grouped[cat]) grouped[cat] = [];
-      grouped[cat].push({
-        id: req.id,
-        name: req.display_name,
-        status: req.status,
-        due_date: req.due_date,
-        is_required: req.is_required,
+    if (action === 'list' || !action) {
+      const requirements = await base44.asServiceRole.entities.DealDocumentRequirement.filter({ 
+        deal_id: deal_id 
+      });
+      
+      return Response.json({
+        requirements: requirements.map(r => ({
+          id: r.id,
+          name: r.requirement_name,
+          type: r.requirement_type,
+          category: r.category,
+          status: r.status,
+          is_required: r.is_required,
+          instructions: r.instructions,
+          rejection_reason: r.rejection_reason,
+        })),
       });
     }
 
-    // Update last accessed
-    await base44.asServiceRole.entities.PortalSession.update(sessionId, {
-      last_accessed_at: new Date().toISOString(),
-    });
+    if (action === 'update_status' && requirement_id) {
+      await base44.asServiceRole.entities.DealDocumentRequirement.update(requirement_id, {
+        status: status,
+        completed_at: status === 'accepted' ? new Date().toISOString() : null,
+      });
+      return Response.json({ success: true });
+    }
 
-    return Response.json({
-      success: true,
-      requirements_by_category: grouped,
-    });
+    return Response.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
-    console.error('Portal requirements error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

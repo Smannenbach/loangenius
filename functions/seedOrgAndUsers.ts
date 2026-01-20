@@ -1,79 +1,67 @@
+/**
+ * Seed Organization and Users - Bootstrap new user organizations
+ */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-/**
- * Seed organization and org membership for new users
- * Creates org if user has no memberships, or returns existing org
- * 
- * This is the canonical org bootstrap function - called automatically
- * by the frontend useOrgId hook when a user has no org membership.
- */
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-    
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // First, check if user already has any membership
-    const existingMemberships = await base44.asServiceRole.entities.OrgMembership.filter({
-      user_id: user.email,
+    // Check if user already has an org
+    const existingMemberships = await base44.entities.OrgMembership.filter({ 
+      user_id: user.email 
     });
 
     if (existingMemberships.length > 0) {
-      // User already has an org - return it
-      const orgId = existingMemberships[0].org_id;
       return Response.json({
         success: true,
         message: 'User already has organization',
-        org_id: orgId,
-        user_email: user.email,
-        already_existed: true,
+        org_id: existingMemberships[0].org_id,
+        already_exists: true,
       });
     }
 
-    // User has no org - create one
-    const timestamp = Date.now();
-    const orgSlug = `org-${user.email.split('@')[0]}-${timestamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-    
-    // Create organization
-    const newOrg = await base44.asServiceRole.entities.Organization.create({
-      name: `${user.full_name || user.email.split('@')[0]}'s Organization`,
-      slug: orgSlug,
-      subscription_status: 'TRIAL',
-      trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days
-    });
-
-    const orgId = newOrg.id;
-
-    // Create OrgMembership for current user as admin
-    await base44.asServiceRole.entities.OrgMembership.create({
-      org_id: orgId,
-      user_id: user.email,
-      role: 'admin',
-      is_primary: true,
+    // Create new organization
+    const org = await base44.asServiceRole.entities.Organization.create({
+      name: user.full_name ? `${user.full_name}'s Organization` : 'My Organization',
       status: 'active',
     });
 
-    // Create default OrgSettings
+    // Create admin role if not exists
+    let adminRole = null;
+    const roles = await base44.asServiceRole.entities.Role.filter({ name: 'admin' });
+    if (roles.length === 0) {
+      adminRole = await base44.asServiceRole.entities.Role.create({
+        name: 'admin',
+        permissions: ['*'],
+      });
+    } else {
+      adminRole = roles[0];
+    }
+
+    // Create membership
+    await base44.asServiceRole.entities.OrgMembership.create({
+      org_id: org.id,
+      user_id: user.email,
+      role_id: adminRole.id,
+      status: 'active',
+    });
+
+    // Create default org settings
     await base44.asServiceRole.entities.OrgSettings.create({
-      org_id: orgId,
-      company_name: `${user.full_name || 'My'} Company`,
+      org_id: org.id,
+      company_name: org.name,
       portal_enabled: true,
     });
 
-    console.log(`Created new org ${orgId} for user ${user.email}`);
-
     return Response.json({
       success: true,
+      org_id: org.id,
       message: 'Organization created successfully',
-      org_id: orgId,
-      user_email: user.email,
-      already_existed: false,
     });
   } catch (error) {
-    console.error('Seed org error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

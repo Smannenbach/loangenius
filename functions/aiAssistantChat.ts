@@ -1,93 +1,38 @@
+/**
+ * AI Assistant Chat
+ */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-export default Deno.serve(async (req) => {
-  if (req.method !== 'POST') {
-    return Response.json({ error: 'Method not allowed' }, { status: 405 });
-  }
-
+Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { message, deal_id, conversation_context = [] } = await req.json();
+    const body = await req.json();
+    const { message, context } = body;
 
     if (!message) {
       return Response.json({ error: 'Missing message' }, { status: 400 });
     }
 
-    // Build system prompt based on user role
-    const isAdmin = user.role === 'admin';
-    const systemPrompt = isAdmin
-      ? `You are LoanGenius AI, an expert loan origination assistant for lenders and loan officers. 
-         Help with: deal underwriting, document requirements, condition management, DSCR calculations, 
-         compliance questions, and best practices. Be concise and professional.`
-      : `You are LoanGenius AI, an expert loan origination assistant for borrowers. 
-         Help with: understanding loan terms, document requirements, application status, required documents, 
-         and general mortgage questions. Be helpful, clear, and reassuring.`;
-
-    // Get user's org for context isolation
-    const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
-      user_id: user.email,
-    });
-    if (memberships.length === 0) {
-      return Response.json({ error: 'User not part of any organization' }, { status: 403 });
-    }
-    const user_org_id = memberships[0].org_id;
-
-    // Fetch deal context if provided - verify org isolation
-    let dealContext = '';
-    if (deal_id) {
-      const deals = await base44.asServiceRole.entities.Deal.filter({
-        id: deal_id,
-        org_id: user_org_id
-      });
-      if (deals.length > 0) {
-        const deal = deals[0];
-        dealContext = `\n\nCurrent Deal Context:\n- Loan Amount: $${deal.loan_amount?.toLocaleString()}\n- Product: ${deal.loan_product}\n- Status: ${deal.status}`;
-      }
-    }
-
-    // Use AI Model Router for optimal model selection
-    let llmResponse;
-    try {
-      const routerResponse = await base44.functions.invoke('aiModelRouter', {
-        task_type: 'chat_assistant',
-        system_prompt: systemPrompt + dealContext,
-        user_prompt: `Previous messages: ${JSON.stringify(conversation_context.slice(-5))}\n\nUser: ${message}`,
-        options: {
-          temperature: 0.4,
-          max_tokens: 2000
-        }
-      });
-      llmResponse = routerResponse.data?.content || 'I apologize, but I encountered an issue processing your request.';
-    } catch (routerError) {
-      // Fallback to InvokeLLM if router fails
-      console.log('AI Router fallback:', routerError.message);
-      llmResponse = await base44.integrations.Core.InvokeLLM({
-        prompt: `${systemPrompt}${dealContext}\n\nPrevious messages: ${JSON.stringify(conversation_context.slice(-5))}\n\nUser: ${message}`,
-        add_context_from_internet: false
-      });
-    }
-
-    // Create activity log with proper org isolation
-    await base44.asServiceRole.entities.ActivityLog.create({
-      org_id: user_org_id,
-      deal_id: deal_id || null,
-      activity_type: 'ai_assistant_query',
-      description: `AI Assistant query: ${message.substring(0, 100)}...`,
-      source: 'api',
-      user_id: user.email,
-      metadata: { user_role: user.role }
+    // Use InvokeLLM for AI response
+    const response = await base44.integrations.Core.InvokeLLM({
+      prompt: `You are a helpful AI assistant for a loan origination platform called LoanGenius. 
+      You help users with questions about loans, DSCR calculations, underwriting, and general mortgage questions.
+      
+      User question: ${message}
+      
+      ${context ? `Additional context: ${JSON.stringify(context)}` : ''}
+      
+      Provide a helpful, professional response.`,
+      add_context_from_internet: true,
     });
 
     return Response.json({
-      response: llmResponse,
+      success: true,
+      response: response,
       timestamp: new Date().toISOString(),
-      deal_id
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

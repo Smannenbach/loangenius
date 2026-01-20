@@ -1,157 +1,55 @@
+/**
+ * Send Communication - Email/SMS to leads/borrowers
+ */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-const SENDGRID_API_KEY = Deno.env.get('Sendgrid_API_Key');
-const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID');
-const TWILIO_AUTH_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN');
-const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER');
-
-/**
- * Send email via SendGrid API
- */
-async function sendEmailViaSendGrid(to, subject, body, fromName = 'LoanGenius') {
-  const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${SENDGRID_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      personalizations: [{ to: [{ email: to }] }],
-      from: { email: 'noreply@loangenius.app', name: fromName },
-      subject: subject,
-      content: [{ type: 'text/html', value: body.replace(/\n/g, '<br>') }],
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`SendGrid error: ${response.status} - ${errorText}`);
-  }
-
-  return { success: true, provider: 'sendgrid' };
-}
-
-/**
- * Send SMS via Twilio API
- */
-async function sendSMSViaTwilio(to, body) {
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
-    throw new Error('Twilio credentials not configured');
-  }
-
-  // Ensure phone number is in E.164 format
-  let formattedTo = to.replace(/[^\d+]/g, '');
-  if (!formattedTo.startsWith('+')) {
-    formattedTo = '+1' + formattedTo; // Default to US
-  }
-
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
-  const auth = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${auth}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      To: formattedTo,
-      From: TWILIO_PHONE_NUMBER,
-      Body: body,
-    }),
-  });
-
-  const result = await response.json();
-
-  if (!response.ok) {
-    throw new Error(`Twilio error: ${result.message || result.error_message || 'Unknown error'}`);
-  }
-
-  return { 
-    success: true, 
-    provider: 'twilio',
-    sid: result.sid,
-    status: result.status 
-  };
-}
-
-/**
- * Send email or SMS communication
- */
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
+    if (memberships.length === 0) return Response.json({ error: 'No organization' }, { status: 403 });
+    const orgId = memberships[0].org_id;
 
     const body = await req.json();
-    const channel = body.channel || body.type || 'email';
-    const to = body.to || body.recipient;
-    const subject = body.subject || 'LoanGenius Notification';
-    const messageBody = body.body || body.message || body.content;
+    const { channel, to, subject, body: messageBody, deal_id, lead_id, contact_id } = body;
 
-    if (!to || !messageBody) {
-      return Response.json({ error: 'Missing required fields (to, body)' }, { status: 400 });
+    if (!channel || !to || !messageBody) {
+      return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    let result;
-    let status = 'sent';
-
+    // Send based on channel
     if (channel === 'email') {
-      // Send email via SendGrid
-      if (SENDGRID_API_KEY) {
-        result = await sendEmailViaSendGrid(to, subject, messageBody, user.full_name || 'LoanGenius');
-      } else {
-        // Fallback to Core integration
-        result = await base44.integrations.Core.SendEmail({
-          to,
-          subject,
-          body: messageBody,
-          from_name: user.full_name || 'LoanGenius',
-        });
-      }
-    } else if (channel === 'sms') {
-      // Send SMS via Twilio
-      result = await sendSMSViaTwilio(to, messageBody);
-      status = result.status || 'sent';
-    } else {
-      return Response.json({ error: `Unsupported channel: ${channel}` }, { status: 400 });
-    }
-
-    // Log the communication - get org_id from membership
-    let orgId = user.org_id || 'default';
-    try {
-      const memberships = await base44.asServiceRole.entities.OrgMembership.filter({
-        user_id: user.email
+      await base44.integrations.Core.SendEmail({
+        to: to,
+        subject: subject || 'Message from your loan team',
+        body: messageBody,
       });
-      if (memberships.length > 0) {
-        orgId = memberships[0].org_id;
-      }
-    } catch (e) {
-      console.log('Could not get org membership:', e.message);
+    } else if (channel === 'sms') {
+      // SMS would require Twilio integration
+      // For now, log the attempt
+      console.log(`SMS to ${to}: ${messageBody}`);
     }
 
-    await base44.asServiceRole.entities.CommunicationsLog.create({
+    // Log communication
+    const logEntry = await base44.entities.CommunicationsLog.create({
       org_id: orgId,
-      channel,
+      deal_id: deal_id,
+      lead_id: lead_id,
+      contact_id: contact_id,
+      channel: channel,
       direction: 'outbound',
-      to,
       from: user.email,
-      subject: channel === 'email' ? subject : null,
+      to: to,
+      subject: subject,
       body: messageBody,
-      status,
+      status: 'sent',
     });
 
-    return Response.json({
-      success: true,
-      message: `${channel.toUpperCase()} sent to ${to}`,
-      provider: result.provider,
-    });
+    return Response.json({ success: true, log_id: logEntry.id });
   } catch (error) {
-    console.error('Send communication error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

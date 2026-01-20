@@ -1,94 +1,69 @@
+/**
+ * Send Quote - Generate and send loan quote
+ */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-/**
- * Send loan quote to borrower via email
- */
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    const memberships = await base44.entities.OrgMembership.filter({ user_id: user.email });
+    if (memberships.length === 0) return Response.json({ error: 'No organization' }, { status: 403 });
+    const orgId = memberships[0].org_id;
+
+    const body = await req.json();
+    const { lead_id, quote_data, send_email } = body;
+
+    if (!lead_id || !quote_data) {
+      return Response.json({ error: 'Missing lead_id or quote_data' }, { status: 400 });
     }
 
-    const { borrower_email, borrower_name, quote_data } = await req.json();
-
-    if (!borrower_email || !quote_data) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    // Get lead
+    const leads = await base44.entities.Lead.filter({ id: lead_id, org_id: orgId });
+    if (leads.length === 0) {
+      return Response.json({ error: 'Lead not found' }, { status: 404 });
     }
+    const lead = leads[0];
 
-    const emailBody = `
-Dear ${borrower_name},
-
-Thank you for choosing LoanGenius for your loan needs. Below is your personalized loan quote.
-
-LOAN QUOTE SUMMARY
-==================
-
-Property Address: ${quote_data.propertyAddress}
-Property Value: $${parseFloat(quote_data.propertyValue).toLocaleString()}
-Loan Amount: $${parseFloat(quote_data.loanAmount).toLocaleString()}
-Interest Rate: ${quote_data.interestRate}%
-Loan Term: ${quote_data.term} years
-LTV: ${quote_data.ltv}%
-DSCR: ${quote_data.dscr}
-
-MONTHLY PAYMENT
-===============
-P&I: $${parseFloat(quote_data.monthlyPayment).toLocaleString()}
-
-CLOSING COSTS BREAKDOWN
-=======================
-Origination Fee: $${parseFloat(quote_data.originationFee).toLocaleString()}
-Points: $${parseFloat(quote_data.points).toLocaleString()}
-Appraisal Fee: $${parseFloat(quote_data.appraisalFee || 0).toLocaleString()}
-Title Insurance: $${parseFloat(quote_data.titleInsurance || 0).toLocaleString()}
-Title Search: $${parseFloat(quote_data.titleSearch || 0).toLocaleString()}
-Home Inspection: $${parseFloat(quote_data.homeInspection || 0).toLocaleString()}
-Survey: $${parseFloat(quote_data.survey || 0).toLocaleString()}
-Other Fees: $${parseFloat(quote_data.otherFees || 0).toLocaleString()}
------
-Total Closing Costs: $${parseFloat(quote_data.totalClosingCosts).toLocaleString()}
-
-TOTAL LOAN COST
-===============
-Total Upfront: $${parseFloat(quote_data.totalUpfrontCosts).toLocaleString()}
-Total Interest: $${(parseFloat(quote_data.totalPayment) - parseFloat(quote_data.loanAmount)).toLocaleString()}
-Total Cost of Loan: $${parseFloat(quote_data.totalCostOfLoan).toLocaleString()}
-APR: ${quote_data.apr}%
-
-This quote is valid for 7 days. Please contact us for any questions.
-
-Best regards,
-LoanGenius Team
-    `;
-
-    await base44.integrations.Core.SendEmail({
-      to: borrower_email,
-      subject: `Your Loan Quote from LoanGenius - ${quote_data.borrowerName}`,
-      body: emailBody,
-      from_name: 'LoanGenius',
-    });
-
-    // Log the quote sent
-    await base44.asServiceRole.entities.CommunicationsLog.create({
-      org_id: user.org_id || 'default',
-      channel: 'email',
-      direction: 'outbound',
-      to: borrower_email,
-      from: user.email,
-      subject: `Loan Quote - ${quote_data.borrowerName}`,
-      body: `Quote for $${parseFloat(quote_data.loanAmount).toLocaleString()} at ${quote_data.interestRate}%`,
+    // Create quote record
+    const quote = await base44.entities.Quote.create({
+      org_id: orgId,
+      lead_id: lead_id,
+      loan_amount: quote_data.loan_amount,
+      interest_rate: quote_data.interest_rate,
+      loan_term: quote_data.loan_term,
+      monthly_payment: quote_data.monthly_payment,
       status: 'sent',
+      sent_at: new Date().toISOString(),
     });
 
-    return Response.json({
-      success: true,
-      message: `Quote sent to ${borrower_email}`,
-    });
+    // Send email if requested
+    if (send_email && lead.home_email) {
+      await base44.integrations.Core.SendEmail({
+        to: lead.home_email,
+        subject: 'Your Loan Quote',
+        body: `
+          Hi ${lead.first_name},
+
+          Thank you for your interest in our loan products. Here is your personalized quote:
+
+          Loan Amount: $${quote_data.loan_amount?.toLocaleString()}
+          Interest Rate: ${quote_data.interest_rate}%
+          Loan Term: ${quote_data.loan_term} months
+          Estimated Monthly Payment: $${quote_data.monthly_payment?.toLocaleString()}
+
+          Please reply to this email or call us to discuss your options.
+
+          Best regards,
+          Your Loan Team
+        `,
+      });
+    }
+
+    return Response.json({ success: true, quote });
   } catch (error) {
-    console.error('Send quote error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
