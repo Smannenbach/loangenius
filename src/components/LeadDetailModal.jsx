@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,12 +11,14 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import QuoteGeneratorModal from './QuoteGeneratorModal';
 import DealCalculator from './deal-wizard/DealCalculator';
+import { createPageUrl } from '../utils';
 
 export default function LeadDetailModal({ lead, onEdit, trigger }) {
   const [isOpen, setIsOpen] = useState(false);
   const [quoteModalOpen, setQuoteModalOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Fetch tasks for this lead
   const { data: tasks = [], refetch: refetchTasks } = useQuery({
@@ -148,9 +151,9 @@ export default function LeadDetailModal({ lead, onEdit, trigger }) {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
       toast.success('Lead converted to Loan Application!');
       setIsOpen(false);
-      // Redirect to deal detail page
+      // Redirect to deal detail page using React Router
       if (data?.data?.deal_id) {
-        window.location.assign(`/DealDetail?id=${data.data.deal_id}`);
+        navigate(createPageUrl(`DealDetail?id=${data.data.deal_id}`));
       }
     },
     onError: (error) => {
