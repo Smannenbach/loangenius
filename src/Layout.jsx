@@ -22,6 +22,49 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+
+// Organization Selector Component
+function OrgSelector() {
+  const { data: tenants = [], isLoading } = useQuery({
+    queryKey: ['tenants'],
+    queryFn: () => base44.entities.TenantAccount.list('-created_date'),
+  });
+
+  const { data: orgs = [] } = useQuery({
+    queryKey: ['organizations'],
+    queryFn: () => base44.entities.Organization.list('-created_date'),
+  });
+
+  const allOrganizations = tenants.length > 0 ? tenants : orgs;
+  const [selectedOrg, setSelectedOrg] = React.useState(null);
+
+  React.useEffect(() => {
+    if (!selectedOrg && allOrganizations.length > 0) {
+      setSelectedOrg(allOrganizations[0]);
+    }
+  }, [allOrganizations, selectedOrg]);
+
+  if (isLoading || allOrganizations.length === 0) return null;
+
+  return (
+    <Select value={selectedOrg?.id || ''} onValueChange={(id) => {
+      const org = allOrganizations.find(o => o.id === id);
+      setSelectedOrg(org);
+    }}>
+      <SelectTrigger className="w-48 bg-slate-700/50 border-slate-600 text-slate-200 hover:bg-slate-700 hover:border-slate-500">
+        <Building2 className="h-4 w-4 mr-2" />
+        <SelectValue placeholder="Select organization..." />
+      </SelectTrigger>
+      <SelectContent className="bg-slate-800 border-slate-700">
+        {allOrganizations.map(org => (
+          <SelectItem key={org.id} value={org.id} className="text-slate-200 hover:bg-slate-700">
+            {org.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 import {
         LayoutDashboard,
         Users,
@@ -332,19 +375,24 @@ export default function Layout({ children, currentPageName }) {
           isSidebarOpen ? 'left-60' : 'left-20'
         }`}
       >
-        {/* Search */}
-        <div className="flex-1 max-w-xl">
-          <button
-            onClick={globalSearch.open}
-            className="w-full flex items-center gap-3 px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-sm text-slate-400 hover:bg-slate-700 hover:border-slate-500 transition-colors text-left"
-            aria-label="Open search (Ctrl+K)"
-          >
-            <Search className="h-4 w-4 flex-shrink-0" />
-            <span className="flex-1">Search deals, borrowers, documents...</span>
-            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-xs font-medium bg-slate-600 rounded">
-              <span className="text-[10px]">⌘</span>K
-            </kbd>
-          </button>
+        <div className="flex items-center gap-3 flex-1 max-w-2xl">
+          {/* Organization Selector */}
+          <OrgSelector />
+
+          {/* Search */}
+          <div className="flex-1">
+            <button
+              onClick={globalSearch.open}
+              className="w-full flex items-center gap-3 px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-sm text-slate-400 hover:bg-slate-700 hover:border-slate-500 transition-colors text-left"
+              aria-label="Open search (Ctrl+K)"
+            >
+              <Search className="h-4 w-4 flex-shrink-0" />
+              <span className="flex-1">Search deals, borrowers, documents...</span>
+              <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-xs font-medium bg-slate-600 rounded">
+                <span className="text-[10px]">⌘</span>K
+              </kbd>
+            </button>
+          </div>
         </div>
 
         {/* Actions */}

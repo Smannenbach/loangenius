@@ -3,13 +3,14 @@ import AIOrchestrator from './pages/AIOrchestrator';
 import AdminAIProviders from './pages/AdminAIProviders';
 import AdminAgents from './pages/AdminAgents';
 import AdminAuditLogs from './pages/AdminAuditLogs';
+import AdminBilling from './pages/AdminBilling';
 import AdminIntegrations from './pages/AdminIntegrations';
 import AdminLoginHistory from './pages/AdminLoginHistory';
 import AdminOrganization from './pages/AdminOrganization';
 import AdminPortalPreview from './pages/AdminPortalPreview';
 import AdminPrivacyRequests from './pages/AdminPrivacyRequests';
 import AdminSettings from './pages/AdminSettings';
-import ContactDetail from './pages/ContactDetail';
+import AdminWebhooks from './pages/AdminWebhooks';
 import AgentExecutionViewer from './pages/AgentExecutionViewer';
 import AgentKnowledgeBase from './pages/AgentKnowledgeBase';
 import AgentOrchestrator from './pages/AgentOrchestrator';
@@ -24,9 +25,9 @@ import BillingSuccess from './pages/BillingSuccess';
 import BorrowerOnboarding from './pages/BorrowerOnboarding';
 import BorrowerPortal from './pages/BorrowerPortal';
 import BorrowerPortalDashboard from './pages/BorrowerPortalDashboard';
-import BrandStudio from './pages/BrandStudio';
+import BorrowerPortalHome from './pages/BorrowerPortalHome';
 import BorrowerPortalLogin from './pages/BorrowerPortalLogin';
-import Dashboard from './pages/Dashboard';
+import BrandStudio from './pages/BrandStudio';
 import BrandingSettings from './pages/BrandingSettings';
 import BusinessPurposeApplication from './pages/BusinessPurposeApplication';
 import CoborrowerPortal from './pages/CoborrowerPortal';
@@ -34,33 +35,34 @@ import Communications from './pages/Communications';
 import ComplianceDashboard from './pages/ComplianceDashboard';
 import ConsentManagement from './pages/ConsentManagement';
 import ContactCreate from './pages/ContactCreate';
+import ContactDetail from './pages/ContactDetail';
 import Contacts from './pages/Contacts';
-import Deals from './pages/Deals';
 import Conversations from './pages/Conversations';
-import Documents from './pages/Documents';
+import Dashboard from './pages/Dashboard';
 import DealDetail from './pages/DealDetail';
 import DealMobile from './pages/DealMobile';
 import DealWizard from './pages/DealWizard';
-import Loans from './pages/Loans';
+import Deals from './pages/Deals';
 import DocumentIntelligence from './pages/DocumentIntelligence';
 import DocumentIntelligenceHub from './pages/DocumentIntelligenceHub';
-import Leads from './pages/Leads';
+import Documents from './pages/Documents';
 import EmailSequences from './pages/EmailSequences';
 import ErrorTest from './pages/ErrorTest';
 import ExecutiveDashboard from './pages/ExecutiveDashboard';
 import LandingPage from './pages/LandingPage';
 import LeadIntelligence from './pages/LeadIntelligence';
-import Pipeline from './pages/Pipeline';
+import Leads from './pages/Leads';
 import LenderIntegrations from './pages/LenderIntegrations';
 import Lenders from './pages/Lenders';
 import LoanApplication from './pages/LoanApplication';
 import LoanApplicationWizard from './pages/LoanApplicationWizard';
-import Settings from './pages/Settings';
+import Loans from './pages/Loans';
 import MISMOExportProfiles from './pages/MISMOExportProfiles';
 import MISMOImportExport from './pages/MISMOImportExport';
 import MISMOValidator from './pages/MISMOValidator';
 import NewDeal from './pages/NewDeal';
 import NotFound from './pages/NotFound';
+import Pipeline from './pages/Pipeline';
 import PortalSettings from './pages/PortalSettings';
 import Preflight from './pages/Preflight';
 import Privacy from './pages/Privacy';
@@ -73,11 +75,13 @@ import Reports from './pages/Reports';
 import Roadmap from './pages/Roadmap';
 import smokeTestResults from './pages/SMOKE_TEST_RESULTS';
 import Security from './pages/Security';
+import Settings from './pages/Settings';
 import SmokeTests from './pages/SmokeTests';
 import Status from './pages/Status';
 import SubmissionPrep from './pages/SubmissionPrep';
 import Subprocessors from './pages/Subprocessors';
 import SuperAdmin from './pages/SuperAdmin';
+import SystemDiagnostics from './pages/SystemDiagnostics';
 import SystemHealth from './pages/SystemHealth';
 import TenantBrandingSettings from './pages/TenantBrandingSettings';
 import TenantDomains from './pages/TenantDomains';
@@ -88,10 +92,6 @@ import Underwriting from './pages/Underwriting';
 import UnderwritingChecklist from './pages/UnderwritingChecklist';
 import Users from './pages/Users';
 import ValidationDashboard from './pages/ValidationDashboard';
-import AdminBilling from './pages/AdminBilling';
-import SystemDiagnostics from './pages/SystemDiagnostics';
-import AdminWebhooks from './pages/AdminWebhooks';
-import BorrowerPortalHome from './pages/BorrowerPortalHome';
 import __Layout from './Layout.jsx';
 
 
@@ -101,13 +101,14 @@ export const PAGES = {
     "AdminAIProviders": AdminAIProviders,
     "AdminAgents": AdminAgents,
     "AdminAuditLogs": AdminAuditLogs,
+    "AdminBilling": AdminBilling,
     "AdminIntegrations": AdminIntegrations,
     "AdminLoginHistory": AdminLoginHistory,
     "AdminOrganization": AdminOrganization,
     "AdminPortalPreview": AdminPortalPreview,
     "AdminPrivacyRequests": AdminPrivacyRequests,
     "AdminSettings": AdminSettings,
-    "ContactDetail": ContactDetail,
+    "AdminWebhooks": AdminWebhooks,
     "AgentExecutionViewer": AgentExecutionViewer,
     "AgentKnowledgeBase": AgentKnowledgeBase,
     "AgentOrchestrator": AgentOrchestrator,
@@ -122,9 +123,9 @@ export const PAGES = {
     "BorrowerOnboarding": BorrowerOnboarding,
     "BorrowerPortal": BorrowerPortal,
     "BorrowerPortalDashboard": BorrowerPortalDashboard,
-    "BrandStudio": BrandStudio,
+    "BorrowerPortalHome": BorrowerPortalHome,
     "BorrowerPortalLogin": BorrowerPortalLogin,
-    "Dashboard": Dashboard,
+    "BrandStudio": BrandStudio,
     "BrandingSettings": BrandingSettings,
     "BusinessPurposeApplication": BusinessPurposeApplication,
     "CoborrowerPortal": CoborrowerPortal,
@@ -132,33 +133,34 @@ export const PAGES = {
     "ComplianceDashboard": ComplianceDashboard,
     "ConsentManagement": ConsentManagement,
     "ContactCreate": ContactCreate,
+    "ContactDetail": ContactDetail,
     "Contacts": Contacts,
-    "Deals": Deals,
     "Conversations": Conversations,
-    "Documents": Documents,
+    "Dashboard": Dashboard,
     "DealDetail": DealDetail,
     "DealMobile": DealMobile,
     "DealWizard": DealWizard,
-    "Loans": Loans,
+    "Deals": Deals,
     "DocumentIntelligence": DocumentIntelligence,
     "DocumentIntelligenceHub": DocumentIntelligenceHub,
-    "Leads": Leads,
+    "Documents": Documents,
     "EmailSequences": EmailSequences,
     "ErrorTest": ErrorTest,
     "ExecutiveDashboard": ExecutiveDashboard,
     "LandingPage": LandingPage,
     "LeadIntelligence": LeadIntelligence,
-    "Pipeline": Pipeline,
+    "Leads": Leads,
     "LenderIntegrations": LenderIntegrations,
     "Lenders": Lenders,
     "LoanApplication": LoanApplication,
     "LoanApplicationWizard": LoanApplicationWizard,
-    "Settings": Settings,
+    "Loans": Loans,
     "MISMOExportProfiles": MISMOExportProfiles,
     "MISMOImportExport": MISMOImportExport,
     "MISMOValidator": MISMOValidator,
     "NewDeal": NewDeal,
     "NotFound": NotFound,
+    "Pipeline": Pipeline,
     "PortalSettings": PortalSettings,
     "Preflight": Preflight,
     "Privacy": Privacy,
@@ -171,11 +173,13 @@ export const PAGES = {
     "Roadmap": Roadmap,
     "SMOKE_TEST_RESULTS": smokeTestResults,
     "Security": Security,
+    "Settings": Settings,
     "SmokeTests": SmokeTests,
     "Status": Status,
     "SubmissionPrep": SubmissionPrep,
     "Subprocessors": Subprocessors,
     "SuperAdmin": SuperAdmin,
+    "SystemDiagnostics": SystemDiagnostics,
     "SystemHealth": SystemHealth,
     "TenantBrandingSettings": TenantBrandingSettings,
     "TenantDomains": TenantDomains,
@@ -186,10 +190,6 @@ export const PAGES = {
     "UnderwritingChecklist": UnderwritingChecklist,
     "Users": Users,
     "ValidationDashboard": ValidationDashboard,
-    "AdminBilling": AdminBilling,
-    "SystemDiagnostics": SystemDiagnostics,
-    "AdminWebhooks": AdminWebhooks,
-    "BorrowerPortalHome": BorrowerPortalHome,
 }
 
 export const pagesConfig = {
