@@ -51,6 +51,7 @@ import {
   CheckCircle,
   Clock,
   X,
+  Sparkles,
 } from 'lucide-react';
 import { COUNTRY_CODES } from '@/components/formatters';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
@@ -59,6 +60,7 @@ import LeadDetailModal from '@/components/LeadDetailModal';
 import LeadImportWizard from '@/components/leads/LeadImportWizard';
 import GoogleSheetsImportWizard from '@/components/leads/GoogleSheetsImportWizard';
 import { TCPAConsentCompact } from '@/components/TCPAConsent';
+import LeadScoreCard from '@/components/ai/LeadScoreCard';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
@@ -120,6 +122,8 @@ export default function Leads() {
   const [quoteSelectedLead, setQuoteSelectedLead] = useState(null);
   const [selectedLeads, setSelectedLeads] = useState(new Set());
   const [deleteConfirmLead, setDeleteConfirmLead] = useState(null);
+  const [aiScoreModalOpen, setAiScoreModalOpen] = useState(false);
+  const [selectedLeadForAI, setSelectedLeadForAI] = useState(null);
   const [newLead, setNewLead] = useState({
     first_name: '',
     last_name: '',
@@ -1214,6 +1218,15 @@ export default function Leads() {
                       <td className="px-6 py-4 text-sm text-gray-600">{lead.property_city}, {lead.property_state}</td>
                       <td className="px-6 py-4 text-right">
                       <div className="flex gap-2 justify-end">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 text-purple-600 hover:text-purple-700"
+                          onClick={() => { setSelectedLeadForAI(lead); setAiScoreModalOpen(true); }}
+                        >
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          AI
+                        </Button>
                         <LeadDetailModal lead={lead} onEdit={handleEditLead} trigger={<Button variant="ghost" size="sm" className="h-8">View</Button>} />
                         <Button 
                           variant="ghost" 
@@ -1310,6 +1323,27 @@ export default function Leads() {
           lead={quoteSelectedLead}
         />
       )}
+
+      {/* AI Score Modal */}
+      <Dialog open={aiScoreModalOpen} onOpenChange={setAiScoreModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-purple-600" />
+              AI Lead Analysis
+            </DialogTitle>
+          </DialogHeader>
+          {selectedLeadForAI && (
+            <LeadScoreCard 
+              lead={selectedLeadForAI}
+              onAction={(suggestion) => {
+                setAiScoreModalOpen(false);
+                // TODO: Integrate with communication tools
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Confirmation Dialog */}
       {ConfirmDialogComponent}

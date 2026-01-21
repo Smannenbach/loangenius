@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import CommunicationAI from '@/components/ai/CommunicationAI';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +36,7 @@ import {
   Trash2,
   Pin,
   Loader2,
+  Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
@@ -45,6 +47,7 @@ export default function Conversations() {
   const [searchTerm, setSearchTerm] = useState('');
   const [newMessage, setNewMessage] = useState('');
   const [filter, setFilter] = useState('all');
+  const [showAI, setShowAI] = useState(false);
   const messagesEndRef = useRef(null);
 
   const { data: user } = useQuery({
@@ -203,7 +206,7 @@ export default function Conversations() {
   return (
     <div className="h-[calc(100vh-4rem)] flex bg-white">
       {/* Conversations List */}
-      <div className="w-80 border-r flex flex-col bg-gray-50">
+      <div className="w-80 border-r flex flex-col bg-gray-50 flex-shrink-0">
         {/* Header */}
         <div className="p-4 border-b bg-white">
           <div className="flex items-center justify-between mb-4">
@@ -309,7 +312,7 @@ export default function Conversations() {
       </div>
 
       {/* Message Thread */}
-      {selectedConversation ? (
+      {selectedConversation && !showAI ? (
         <div className="flex-1 flex flex-col">
           {/* Thread Header */}
           <div className="h-16 border-b flex items-center justify-between px-4 bg-white">
@@ -327,6 +330,15 @@ export default function Conversations() {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <Button 
+                variant={showAI ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setShowAI(!showAI)}
+                className={showAI ? "bg-purple-600 hover:bg-purple-700 text-white gap-2" : "gap-2"}
+              >
+                <Sparkles className="h-4 w-4" />
+                AI Assist
+              </Button>
               <Button variant="ghost" size="icon" className="h-9 w-9 text-gray-500 hover:text-gray-700">
                 <Phone className="h-4 w-4" />
               </Button>
@@ -453,6 +465,16 @@ export default function Conversations() {
                 )}
               </Button>
             </div>
+          </div>
+        </div>
+      ) : showAI ? (
+        /* AI Panel */
+        <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+          <div className="max-w-2xl mx-auto">
+            <CommunicationAI 
+              contact={getContactInfo(selectedConversation)}
+              conversationHistory={selectedMessages}
+            />
           </div>
         </div>
       ) : (

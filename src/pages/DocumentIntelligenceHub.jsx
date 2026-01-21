@@ -21,6 +21,7 @@ import {
 import DocumentGenerator from '@/components/documents/DocumentGenerator';
 import SmartDocumentReview from '@/components/documents/SmartDocumentReview';
 import DocumentDataExtractor from '@/components/documents/DocumentDataExtractor';
+import DocumentAIPanel from '@/components/ai/DocumentAIPanel';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
@@ -277,10 +278,17 @@ export default function DocumentIntelligenceHub() {
         {/* Extract Data Tab */}
         <TabsContent value="extract">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DocumentDataExtractor 
-              dealId={selectedDealId}
-              onExtracted={(data) => console.log('Extracted:', data)}
-            />
+            <div className="space-y-4">
+              <DocumentDataExtractor 
+                dealId={selectedDealId}
+                onExtracted={(data) => console.log('Extracted:', data)}
+              />
+            </div>
+            <div className="space-y-4">
+              <DocumentAIPanel 
+                document={null}
+                onAnalysisComplete={(analysis) => console.log('Analysis:', analysis)}
+              />
             <Card>
               <CardHeader>
                 <CardTitle>Supported Document Types</CardTitle>
@@ -311,6 +319,7 @@ export default function DocumentIntelligenceHub() {
                 </div>
               </CardContent>
             </Card>
+            </div>
           </div>
         </TabsContent>
 
