@@ -46,19 +46,33 @@ export default function CommunicationAI({ contact, conversationHistory = [] }) {
   const generateMutation = useMutation({
     mutationFn: async (intent) => {
       setGenerating(true);
-      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      const messages = {
+      const intentPrompts = {
         followup: `Hi ${contact?.name || 'there'},\n\nI hope this message finds you well. I wanted to follow up on our recent conversation about your loan application.\n\nWe've reviewed your documents and everything looks great. The next step would be to schedule a quick call to finalize the details and answer any questions you might have.\n\nWhen would be a convenient time for you this week?\n\nBest regards`,
         
         document_request: `Hi ${contact?.name || 'there'},\n\nThank you for your continued cooperation. To move forward with your application, we'll need the following documents:\n\n• Recent bank statements (last 2 months)\n• Proof of income (pay stubs or tax returns)\n• Property insurance information\n\nYou can upload these securely through your borrower portal, or reply to this message and I'll send you a direct link.\n\nPlease let me know if you have any questions!`,
         
         status_update: `Hi ${contact?.name || 'there'},\n\nGreat news! Your loan application has progressed to the underwriting stage. We're currently reviewing all documentation and expect to have a decision within 3-5 business days.\n\nI'll keep you updated throughout the process. In the meantime, if you have any questions, don't hesitate to reach out.\n\nThanks for your patience!`,
         
-        rate_quote: `Hi ${contact?.name || 'there'},\n\nBased on our recent discussion and the information you provided, I'm pleased to share a preliminary rate quote:\n\n• Loan Amount: $${contact?.loan_amount?.toLocaleString() || '500,000'}\n• Interest Rate: 7.25%\n• Monthly Payment: ~$3,415\n• Loan Term: 30 years\n\nThis is a competitive rate based on current market conditions and your strong financial profile. The rate is subject to final approval and may vary slightly.\n\nWould you like to schedule a call to discuss this in detail?`
+        rate_quote: `Send a rate quote message for ${contact?.name || 'the borrower'} with loan amount $${contact?.loan_amount?.toLocaleString() || '500,000'}`
       };
 
-      return messages[intent] || messages.followup;
+      const prompt = `You are a professional loan officer. ${intentPrompts[intent] || 'Write a follow-up message'}.
+
+Context:
+- Borrower: ${contact?.name || 'Client'}
+- Loan Amount: $${contact?.loan_amount?.toLocaleString() || 'Not specified'}
+- Property: ${contact?.property_city || 'Not specified'}
+- Recent messages: ${conversationHistory.length} total
+- Last contact: ${history.responseTime} hours ago
+
+Write a professional, friendly message. Keep it under 150 words. Sign off warmly.`;
+
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt
+      });
+
+      return response;
     },
     onSuccess: (message) => {
       setGeneratedMessage(message);

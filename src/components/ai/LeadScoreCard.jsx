@@ -1,12 +1,97 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, TrendingUp, Target, AlertCircle, Mail, MessageSquare, Phone } from 'lucide-react';
+import { Sparkles, TrendingUp, Target, AlertCircle, Mail, MessageSquare, Phone, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { base44 } from '@/api/base44Client';
+import { useMutation } from '@tanstack/react-query';
 
 export default function LeadScoreCard({ lead, onAction }) {
-  // AI Scoring Logic
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // AI Analysis Mutation
+  const analyzeLeadMutation = useMutation({
+    mutationFn: async () => {
+      const prompt = `Analyze this lead for a loan origination platform and provide structured insights:
+
+Lead Details:
+- Name: ${lead.first_name} ${lead.last_name}
+- Loan Type: ${lead.loan_type || 'Not specified'}
+- Loan Amount: $${lead.loan_amount?.toLocaleString() || 'Not specified'}
+- Property Value: $${lead.estimated_value?.toLocaleString() || 'Not specified'}
+- FICO Score: ${lead.fico_score || 'Not specified'}
+- Status: ${lead.status}
+- Property: ${lead.property_city}, ${lead.property_state}
+- Email: ${lead.home_email || lead.work_email ? 'Yes' : 'No'}
+- Phone: ${lead.mobile_phone || lead.home_phone ? 'Yes' : 'No'}
+- Monthly Rental Income: $${lead.monthly_rental_income?.toLocaleString() || 'Not specified'}
+
+Please analyze and return ONLY a JSON object with this structure:
+{
+  "score": <number 0-100>,
+  "conversionProbability": <number 0-100>,
+  "conversionLabel": "High|Medium|Low",
+  "strengths": ["strength1", "strength2"],
+  "concerns": ["concern1", "concern2"],
+  "nextSteps": [
+    {
+      "action": "action name",
+      "priority": "high|medium|low",
+      "channel": "email|phone|sms",
+      "message": "suggested message to send"
+    }
+  ]
+}`;
+
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            score: { type: "number" },
+            conversionProbability: { type: "number" },
+            conversionLabel: { type: "string" },
+            strengths: { type: "array", items: { type: "string" } },
+            concerns: { type: "array", items: { type: "string" } },
+            nextSteps: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  action: { type: "string" },
+                  priority: { type: "string" },
+                  channel: { type: "string" },
+                  message: { type: "string" }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      return response;
+    },
+    onSuccess: (data) => {
+      setAiAnalysis(data);
+      setIsAnalyzing(false);
+    },
+    onError: () => {
+      setIsAnalyzing(false);
+      toast.error('AI analysis failed');
+    }
+  });
+
+  // Auto-analyze on mount
+  useEffect(() => {
+    if (!aiAnalysis && !isAnalyzing) {
+      setIsAnalyzing(true);
+      analyzeLeadMutation.mutate();
+    }
+  }, [lead.id]);
+
+  // Fallback scoring logic
   const calculateScore = () => {
     let score = 0;
     let factors = [];
@@ -43,17 +128,23 @@ export default function LeadScoreCard({ lead, onAction }) {
     return { score: Math.min(score, 100), factors };
   };
 
-  const { score, factors } = calculateScore();
-
-  // AI Conversion Probability
-  const conversionProbability = (() => {
-    if (score >= 80) return { value: 75, label: 'High', color: 'text-green-600 bg-green-50' };
-    if (score >= 60) return { value: 50, label: 'Medium', color: 'text-yellow-600 bg-yellow-50' };
+  // Use AI analysis if available, fallback to calculated
+  const { score: calcScore, factors } = calculateScore();
+  const score = aiAnalysis?.score || calcScore;
+  
+  const conversionProbability = aiAnalysis ? {
+    value: aiAnalysis.conversionProbability,
+    label: aiAnalysis.conversionLabel,
+    color: aiAnalysis.conversionLabel === 'High' ? 'text-green-600 bg-green-50' :
+           aiAnalysis.conversionLabel === 'Medium' ? 'text-yellow-600 bg-yellow-50' :
+           'text-gray-600 bg-gray-50'
+  } : (() => {
+    if (calcScore >= 80) return { value: 75, label: 'High', color: 'text-green-600 bg-green-50' };
+    if (calcScore >= 60) return { value: 50, label: 'Medium', color: 'text-yellow-600 bg-yellow-50' };
     return { value: 25, label: 'Low', color: 'text-gray-600 bg-gray-50' };
   })();
 
-  // AI Follow-up Suggestions
-  const followUpSuggestions = [];
+  const followUpSuggestions = aiAnalysis?.nextSteps || [];
   
   if (!lead.home_email && !lead.work_email) {
     followUpSuggestions.push({
@@ -129,7 +220,11 @@ export default function LeadScoreCard({ lead, onAction }) {
             <span className="text-lg text-gray-500 mb-1">/100</span>
           </div>
           <div className="mt-2 flex flex-wrap gap-1">
-            {factors.slice(0, 3).map((factor, idx) => (
+            {aiAnalysis?.strengths ? aiAnalysis.strengths.slice(0, 3).map((strength, idx) => (
+              <Badge key={idx} variant="outline" className="text-xs">
+                {strength}
+              </Badge>
+            )) : factors.slice(0, 3).map((factor, idx) => (
               <Badge key={idx} variant="outline" className="text-xs">
                 {factor}
               </Badge>

@@ -17,11 +17,93 @@ export default function DocumentAIPanel({ document, onAnalysisComplete }) {
 
   const analyzeMutation = useMutation({
     mutationFn: async () => {
-      // Simulate AI analysis
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock AI-extracted data
-      return {
+      const prompt = `Analyze this document for a loan origination platform. Extract key data and identify issues.
+
+Document: ${document?.file_name || 'Bank Statement'}
+Type: Financial Document
+
+Please analyze and return ONLY a JSON object with this structure:
+{
+  "documentType": "Bank Statement|Pay Stub|Tax Return|etc",
+  "confidence": <number 0-100>,
+  "extractedData": {
+    "accountNumber": "string",
+    "balance": <number>,
+    "income": {
+      "monthly": <number>,
+      "sources": ["source1", "source2"]
+    },
+    "expenses": {
+      "monthly": <number>
+    }
+  },
+  "tags": ["tag1", "tag2"],
+  "issues": [
+    {
+      "severity": "high|medium|low",
+      "description": "issue description",
+      "recommendation": "what to do"
+    }
+  ],
+  "compliance": {
+    "score": <number 0-100>,
+    "flags": []
+  },
+  "summary": "Brief summary of document analysis"
+}`;
+
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            documentType: { type: "string" },
+            confidence: { type: "number" },
+            extractedData: {
+              type: "object",
+              properties: {
+                accountNumber: { type: "string" },
+                balance: { type: "number" },
+                income: {
+                  type: "object",
+                  properties: {
+                    monthly: { type: "number" },
+                    sources: { type: "array", items: { type: "string" } }
+                  }
+                },
+                expenses: {
+                  type: "object",
+                  properties: {
+                    monthly: { type: "number" }
+                  }
+                }
+              }
+            },
+            tags: { type: "array", items: { type: "string" } },
+            issues: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  severity: { type: "string" },
+                  description: { type: "string" },
+                  recommendation: { type: "string" }
+                }
+              }
+            },
+            compliance: {
+              type: "object",
+              properties: {
+                score: { type: "number" },
+                flags: { type: "array", items: { type: "string" } }
+              }
+            },
+            summary: { type: "string" }
+          }
+        }
+      });
+
+      return response || {
         documentType: 'Bank Statement',
         confidence: 92,
         extractedData: {
