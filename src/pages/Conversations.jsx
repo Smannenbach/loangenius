@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import CommunicationAI from '@/components/ai/CommunicationAI';
+import ConversationSummarizer from '@/components/ai/ConversationSummarizer';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -470,7 +471,11 @@ export default function Conversations() {
       ) : showAI ? (
         /* AI Panel */
         <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-2xl mx-auto space-y-4">
+            <ConversationSummarizer 
+              messages={selectedMessages}
+              contact={getContactInfo(selectedConversation)}
+            />
             <CommunicationAI 
               contact={getContactInfo(selectedConversation)}
               conversationHistory={selectedMessages}

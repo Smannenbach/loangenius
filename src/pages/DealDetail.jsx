@@ -55,6 +55,7 @@ import UploadDocumentModal from '@/components/deal-detail/UploadDocumentModal';
 import AddConditionModal from '@/components/deal-detail/AddConditionModal';
 import SendForSignatureModal from '@/components/deal-detail/SendForSignatureModal';
 import EnvelopeStatusCard from '@/components/deal-detail/EnvelopeStatusCard';
+import DealReadinessScore from '@/components/ai/DealReadinessScore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FileSignature } from 'lucide-react';
 
@@ -834,7 +835,18 @@ export default function DealDetail() {
         </TabsContent>
 
         <TabsContent value="underwriting">
-          <UnderwritingTab dealId={dealId} deal={deal} />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <UnderwritingTab dealId={dealId} deal={deal} />
+            </div>
+            <div>
+              <DealReadinessScore 
+                deal={deal}
+                documents={documents}
+                borrowers={borrowers}
+              />
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="mismo">

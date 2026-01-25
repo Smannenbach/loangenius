@@ -30,6 +30,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import SmartNotifications from '@/components/ai/SmartNotifications';
 
 export default function Pipeline() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -136,6 +137,11 @@ export default function Pipeline() {
             <DropdownMenuItem onClick={() => setSearchTerm('Commercial')}>Commercial Only</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+      </div>
+
+      {/* Smart Notifications */}
+      <div className="mb-6">
+        <SmartNotifications />
       </div>
 
       {/* Pipeline Board */}
