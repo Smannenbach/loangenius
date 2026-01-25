@@ -48,13 +48,10 @@ export default function CommunicationAI({ contact, conversationHistory = [] }) {
       setGenerating(true);
       
       const intentPrompts = {
-        followup: `Hi ${contact?.name || 'there'},\n\nI hope this message finds you well. I wanted to follow up on our recent conversation about your loan application.\n\nWe've reviewed your documents and everything looks great. The next step would be to schedule a quick call to finalize the details and answer any questions you might have.\n\nWhen would be a convenient time for you this week?\n\nBest regards`,
-        
-        document_request: `Hi ${contact?.name || 'there'},\n\nThank you for your continued cooperation. To move forward with your application, we'll need the following documents:\n\n• Recent bank statements (last 2 months)\n• Proof of income (pay stubs or tax returns)\n• Property insurance information\n\nYou can upload these securely through your borrower portal, or reply to this message and I'll send you a direct link.\n\nPlease let me know if you have any questions!`,
-        
-        status_update: `Hi ${contact?.name || 'there'},\n\nGreat news! Your loan application has progressed to the underwriting stage. We're currently reviewing all documentation and expect to have a decision within 3-5 business days.\n\nI'll keep you updated throughout the process. In the meantime, if you have any questions, don't hesitate to reach out.\n\nThanks for your patience!`,
-        
-        rate_quote: `Send a rate quote message for ${contact?.name || 'the borrower'} with loan amount $${contact?.loan_amount?.toLocaleString() || '500,000'}`
+        followup: 'Write a follow-up message checking in on the loan application status',
+        document_request: 'Write a message requesting required loan documents (bank statements, pay stubs, property insurance)',
+        status_update: 'Write a status update that the loan has progressed to underwriting',
+        rate_quote: `Write a rate quote message with loan amount $${contact?.loan_amount?.toLocaleString() || '500,000'}`
       };
 
       const prompt = `You are a professional loan officer. ${intentPrompts[intent] || 'Write a follow-up message'}.
